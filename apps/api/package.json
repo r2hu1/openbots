@@ -18,7 +18,7 @@
     "@modelcontextprotocol/client": "^2.2.0",
     "@openbots/api-contract": "workspace:*",
     "@openbots/db": "workspace:*",
-    "@trigger.dev/sdk": "4.7.0",
+    "@trigger.dev/sdk": "4.7.1",
     "ai": "^7.0.0",
     "drizzle-orm": "^0.45.3",
     "hono": "^4.7.11",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@openbots/typescript-config": "workspace:*",
-    "@trigger.dev/build": "4.7.0",
+    "@trigger.dev/build": "4.7.1",
     "@types/node": "^20",
     "typescript": "^5"
   }

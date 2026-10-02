@@ -29,7 +29,7 @@ export function AgentHeader({
   onOpenSchedules,
 }: AgentHeaderProps) {
   return (
-    <header className="relative top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-10 after:bg-gradient-to-b after:from-background after:via-background/50 after:to-transparent">
+    <header className="relative top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background/60 after:via-background/30 after:to-transparent">
       <div className="flex items-center gap-1.5">
         <SidebarTrigger className="size-7 md:hidden" />
         {selectedAgent ? (
@@ -69,7 +69,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenConnections}
-                className="h-7 gap-1.5 text-xs"
+                className="h-7 gap-1.5 bg-sidebar text-xs"
                 title="Integrations & Tools"
               >
                 <IconPlug className="size-3.5" />
@@ -82,7 +82,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenSchedules}
-                className="h-7 gap-1.5 text-xs"
+                className="h-7 gap-1.5 bg-sidebar text-xs"
                 title="Scheduled Autonomous Tasks"
               >
                 <IconCalendar className="size-3.5" />
@@ -94,7 +94,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenHistory}
-              className="h-7 gap-1.5 text-xs"
+              className="h-7 gap-1.5 bg-sidebar text-xs"
               title="Execution History"
             >
               <IconHistory className="size-3.5" />
@@ -105,7 +105,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenConfigure}
-              className="h-7 gap-1.5 text-xs"
+              className="h-7 gap-1.5 bg-sidebar text-xs"
               title="Agent Settings"
             >
               <IconSettings className="size-3.5" />

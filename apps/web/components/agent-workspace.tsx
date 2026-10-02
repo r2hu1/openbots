@@ -147,10 +147,14 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     },
     enabled: !!activeConversationId,
     refetchInterval: isOptimisticRunning || activeRunId ? 1500 : false,
+    placeholderData: (prev) => prev,
   })
 
+  // Never show the loading skeleton if we already have optimistic content to display
   const isChatLoading =
     Boolean(selectedAgentId) &&
+    !isOptimisticRunning &&
+    optimisticMessages.length === 0 &&
     (isLoadingConversations ||
       (Boolean(activeConversationId) && isLoadingMessages) ||
       (Boolean(conversationsData?.conversations?.length) &&
@@ -158,33 +162,55 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
 
   const serverMessages = conversationDetail?.messages || []
 
-  // Reconcile optimistic messages: once the server returns messages containing the optimistic text, clear them
+  // Reconcile synchronously in useMemo — no extra render frame with duplicates
+  const messages = React.useMemo(() => {
+    if (optimisticMessages.length === 0) return serverMessages;
+
+    const reconciled = optimisticMessages.filter((opt) => {
+      const optText =
+        typeof opt.content === "object" &&
+        opt.content &&
+        "text" in opt.content
+          ? (opt.content as { text: string }).text
+          : String(opt.content)
+      return !serverMessages.some((srv) => {
+        const srvText =
+          typeof srv.content === "object" &&
+          srv.content &&
+          "text" in srv.content
+            ? (srv.content as { text: string }).text
+            : String(srv.content)
+        return srv.role === "user" && srvText === optText
+      })
+    })
+
+    return [...serverMessages, ...reconciled]
+  }, [serverMessages, optimisticMessages])
+
+  // Clear optimistic messages once fully reconciled with server
   React.useEffect(() => {
     if (serverMessages.length > 0 && optimisticMessages.length > 0) {
-      setOptimisticMessages((prev) =>
-        prev.filter((opt) => {
-          const optText =
-            typeof opt.content === "object" &&
-            opt.content &&
-            "text" in opt.content
-              ? (opt.content as { text: string }).text
-              : String(opt.content)
-          return !serverMessages.some((srv) => {
-            const srvText =
-              typeof srv.content === "object" &&
-              srv.content &&
-              "text" in srv.content
-                ? (srv.content as { text: string }).text
-                : String(srv.content)
-            return srv.role === "user" && srvText === optText
-          })
+      const allReconciled = optimisticMessages.every((opt) => {
+        const optText =
+          typeof opt.content === "object" &&
+          opt.content &&
+          "text" in opt.content
+            ? (opt.content as { text: string }).text
+            : String(opt.content)
+        return serverMessages.some((srv) => {
+          const srvText =
+            typeof srv.content === "object" &&
+            srv.content &&
+            "text" in srv.content
+              ? (srv.content as { text: string }).text
+              : String(srv.content)
+          return srv.role === "user" && srvText === optText
         })
-      )
+      })
+      if (allReconciled) {
+        setOptimisticMessages([])
+      }
     }
-  }, [serverMessages, optimisticMessages.length])
-
-  const messages = React.useMemo(() => {
-    return [...serverMessages, ...optimisticMessages]
   }, [serverMessages, optimisticMessages])
 
   // 4. Discover and Poll Active Run across reloads

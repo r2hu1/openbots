@@ -18,50 +18,82 @@ interface InputComposerProps {
 
 export function InputComposer({
   onSend,
-  isSubmitting,
-  isActiveRun,
+  isSubmitting = false,
+  isActiveRun = false,
   onCancelRun,
-  isCancelling,
+  isCancelling = false,
   placeholder = "Message your agent...",
-  disabled,
+  disabled = false,
 }: InputComposerProps) {
   const [text, setText] = React.useState("")
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault()
+  const isDisabled = disabled || isSubmitting
+  const canSubmit = text.trim().length > 0 && !isDisabled && !isActiveRun
 
-    const trimmed = text.trim()
+  const resizeTextarea = React.useCallback(() => {
+    const textarea = textareaRef.current
 
-    if (!trimmed || isSubmitting || isActiveRun || disabled) {
+    if (!textarea) return
+
+    textarea.style.height = "0px"
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`
+  }, [])
+
+  React.useEffect(() => {
+    resizeTextarea()
+  }, [text, resizeTextarea])
+
+  const handleSubmit = React.useCallback(() => {
+    const prompt = text.trim()
+
+    if (!prompt || !canSubmit) {
       return
     }
 
-    onSend(trimmed)
+    onSend(prompt)
     setText("")
-  }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus()
+    })
+  }, [text, canSubmit, onSend])
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Don't submit while using an IME (Hindi, Japanese, Chinese, etc.)
+    if (event.nativeEvent.isComposing) {
+      return
+    }
+
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault()
       handleSubmit()
     }
+  }
+
+  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(event.target.value)
   }
 
   return (
     <div className="w-full px-3 pb-3">
       <div className="mx-auto max-w-3xl">
-        <form onSubmit={handleSubmit}>
-          <div className="relative overflow-hidden rounded-3xl border border-border bg-background ring-border transition focus-within:ring-2">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            handleSubmit()
+          }}
+        >
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-background transition focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
             <Textarea
               ref={textareaRef}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              disabled={disabled || isSubmitting || isActiveRun}
+              disabled={isDisabled || isActiveRun}
               rows={1}
-              className="max-h-48 min-h-12 resize-none border-0 bg-transparent px-4 py-3.5 pr-14 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="max-h-48 min-h-12 resize-none overflow-y-auto border-0 bg-transparent px-4 py-3.5 pr-14 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
 
             <div className="absolute right-2 bottom-2">
@@ -73,9 +105,10 @@ export function InputComposer({
                   onClick={onCancelRun}
                   disabled={isCancelling}
                   className="size-8 rounded-full"
+                  aria-label="Stop run"
                 >
                   {isCancelling ? (
-                    <Spinner />
+                    <Spinner className="size-4" />
                   ) : (
                     <IconPlayerStop className="size-4" />
                   )}
@@ -84,11 +117,12 @@ export function InputComposer({
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!text.trim() || isSubmitting || disabled}
+                  disabled={!canSubmit}
                   className="size-8 rounded-full"
+                  aria-label="Send message"
                 >
                   {isSubmitting ? (
-                    <Spinner />
+                    <Spinner className="size-4" />
                   ) : (
                     <IconArrowUp className="size-4" />
                   )}

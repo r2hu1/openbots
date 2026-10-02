@@ -179,7 +179,7 @@ export function ConversationTimeline({
                           </Bubble>
 
                           {isUser ? (
-                            <MessageFooter className="justify-end gap-2 px-1 pt-0.5">
+                            <MessageFooter className="justify-end gap-1 px-0">
                               <span className="text-xs font-medium text-foreground">
                                 You
                               </span>
@@ -188,7 +188,7 @@ export function ConversationTimeline({
                               </span>
                             </MessageFooter>
                           ) : (
-                            <MessageFooter className="gap-2 px-1 pt-0.5">
+                            <MessageFooter className="gap-px px-0">
                               <Blobatar
                                 name={agentName}
                                 className="size-6 shrink-0"
@@ -232,18 +232,13 @@ export function ConversationTimeline({
                           </BubbleContent>
                         </Bubble>
 
-                        <MessageFooter className="gap-2 px-1 pt-0.5">
+                        <MessageFooter className="gap-px px-0">
                           <Blobatar
                             name={agentName}
                             className="size-6 shrink-0"
                           />
                           <span className="text-xs font-medium text-foreground">
                             {agentName}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {activeRun?.status === "running"
-                              ? "thinking..."
-                              : "queued..."}
                           </span>
                         </MessageFooter>
                       </MessageContent>

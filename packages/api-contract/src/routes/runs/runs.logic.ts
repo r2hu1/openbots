@@ -74,3 +74,48 @@ export async function cancelRun(runId: string, userId: string) {
   // Already terminal (completed, failed, cancelled) - safely return without mutating
   return { run: existingRun, status: 200 as const };
 }
+
+// In-process event emitter for real-time SSE streaming between executor and client
+type RunEvent =
+  | { type: "delta"; text: string }
+  | { type: "tool_start"; toolName: string; stepNumber: number }
+  | { type: "tool_finish"; toolName: string; stepNumber: number }
+  | { type: "status"; status: string; output?: any; error?: string }
+  | { type: "done"; status: string; output?: any };
+
+type RunEventListener = (event: RunEvent) => void;
+
+class RunEventHub {
+  private listeners = new Map<string, Set<RunEventListener>>();
+
+  subscribe(runId: string, listener: RunEventListener): () => void {
+    let set = this.listeners.get(runId);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(runId, set);
+    }
+    set.add(listener);
+    return () => {
+      set?.delete(listener);
+      if (set && set.size === 0) {
+        this.listeners.delete(runId);
+      }
+    };
+  }
+
+  publish(runId: string, event: RunEvent): void {
+    const set = this.listeners.get(runId);
+    if (set) {
+      for (const listener of set) {
+        try {
+          listener(event);
+        } catch (e) {
+          console.error("Error in run event listener:", e);
+        }
+      }
+    }
+  }
+}
+
+export const runEventHub = new RunEventHub();
+

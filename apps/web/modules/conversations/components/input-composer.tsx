@@ -1,19 +1,19 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { Textarea } from "@openbots/ui/components/textarea";
-import { IconArrowUp, IconPlayerStop } from "@tabler/icons-react";
-import * as React from "react";
+import { Button } from "@openbots/ui/components/button"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { Textarea } from "@openbots/ui/components/textarea"
+import { IconArrowUp, IconPlayerStop } from "@tabler/icons-react"
+import * as React from "react"
 
 interface InputComposerProps {
-  onSend: (prompt: string) => void;
-  isSubmitting?: boolean;
-  isActiveRun?: boolean;
-  onCancelRun?: () => void;
-  isCancelling?: boolean;
-  placeholder?: string;
-  disabled?: boolean;
+  onSend: (prompt: string) => void
+  isSubmitting?: boolean
+  isActiveRun?: boolean
+  onCancelRun?: () => void
+  isCancelling?: boolean
+  placeholder?: string
+  disabled?: boolean
 }
 
 export function InputComposer({
@@ -25,67 +25,56 @@ export function InputComposer({
   placeholder = "Message your agent...",
   disabled = false,
 }: InputComposerProps) {
-  const [text, setText] = React.useState("");
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const [text, setText] = React.useState("")
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
-  const isDisabled = disabled || isSubmitting;
-  const canSubmit = text.trim().length > 0 && !isDisabled && !isActiveRun;
+  const isDisabled = disabled || isSubmitting
+  const canSubmit = text.trim().length > 0 && !isDisabled && !isActiveRun
 
-  const resizeTextarea = React.useCallback(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
+  React.useLayoutEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
 
-    textarea.style.height = "0px";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`;
-  }, []);
-
-  React.useEffect(() => {
-    resizeTextarea();
-  }, [resizeTextarea]);
+    textarea.style.height = "auto"
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`
+  }, [text])
 
   const handleSubmit = React.useCallback(() => {
-    const prompt = text.trim();
-    if (!prompt || !canSubmit) {
-      return;
-    }
+    const prompt = text.trim()
 
-    onSend(prompt);
-    setText("");
+    if (!prompt || !canSubmit) return
+
+    onSend(prompt)
+    setText("")
 
     requestAnimationFrame(() => {
-      textareaRef.current?.focus();
-    });
-  }, [text, canSubmit, onSend]);
+      textareaRef.current?.focus()
+    })
+  }, [text, canSubmit, onSend])
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.nativeEvent.isComposing) {
-      return;
-    }
+    if (event.nativeEvent.isComposing) return
 
     if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      handleSubmit();
+      event.preventDefault()
+      handleSubmit()
     }
-  };
-
-  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(event.target.value);
-  };
+  }
 
   return (
     <div className="w-full px-3 pb-3">
       <div className="mx-auto max-w-3xl">
         <form
           onSubmit={(event) => {
-            event.preventDefault();
-            handleSubmit();
+            event.preventDefault()
+            handleSubmit()
           }}
         >
           <div className="relative overflow-hidden rounded-3xl border border-border bg-background transition focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
             <Textarea
               ref={textareaRef}
               value={text}
-              onChange={handleChange}
+              onChange={(event) => setText(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               disabled={isDisabled || isActiveRun}
@@ -130,5 +119,5 @@ export function InputComposer({
         </form>
       </div>
     </div>
-  );
+  )
 }

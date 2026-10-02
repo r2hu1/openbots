@@ -56,13 +56,29 @@ export function useReconciledMessages({
     }
 
     if (optimisticMessages.length > 0) {
-      const reconciledUser = optimisticMessages.filter((opt) => {
+      const reconciledOptimistic = optimisticMessages.filter((opt) => {
         const optText =
           typeof opt.content === "object" &&
           opt.content &&
           "text" in opt.content
             ? (opt.content as { text: string }).text
             : String(opt.content);
+
+        // If it's a streaming assistant message, do not duplicate if the final message has arrived in serverMessages
+        if (opt.role === "assistant") {
+          return !result.some((srv) => {
+            if (srv.role !== "assistant") return false;
+            const srvText =
+              typeof srv.content === "object" &&
+              srv.content &&
+              "text" in srv.content
+                ? (srv.content as { text: string }).text
+                : String(srv.content);
+            return srvText.trim() === optText.trim();
+          });
+        }
+
+        // For user messages, ensure not already persisted in serverMessages
         return !result.some((srv) => {
           const srvText =
             typeof srv.content === "object" &&
@@ -73,7 +89,7 @@ export function useReconciledMessages({
           return srv.role === "user" && srvText === optText;
         });
       });
-      result = [...result, ...reconciledUser];
+      result = [...result, ...reconciledOptimistic];
     }
 
     return result;
@@ -89,6 +105,7 @@ export function useReconciledMessages({
           "text" in opt.content
             ? (opt.content as { text: string }).text
             : String(opt.content);
+
         return serverMessages.some((srv) => {
           const srvText =
             typeof srv.content === "object" &&
@@ -96,7 +113,7 @@ export function useReconciledMessages({
             "text" in srv.content
               ? (srv.content as { text: string }).text
               : String(srv.content);
-          return srv.role === "user" && srvText === optText;
+          return srv.role === opt.role && (srvText === optText || srvText.trim() === optText.trim());
         });
       });
       if (allReconciled) {

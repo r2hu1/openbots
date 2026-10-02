@@ -71,11 +71,93 @@ export function useAgentExecution({
   const { data: activeRunData } = useRunDetailQuery(activeRunId, {
     refetchInterval: (query) => {
       const status = query.state.data?.run?.status;
-      return status === "queued" || status === "running" ? 1200 : false;
+      return status === "queued" || status === "running" ? 1500 : false;
     },
   });
 
   const activeRunStatus = activeRunData?.run?.status;
+
+  // SSE Live Streaming for real-time text tokens and instant response
+  React.useEffect(() => {
+    if (!activeRunId) return;
+
+    let isMounted = true;
+    const eventSource = new EventSource(`/api/runs/${activeRunId}/stream`, {
+      withCredentials: true,
+    });
+
+    eventSource.addEventListener("delta", (e) => {
+      if (!isMounted) return;
+      try {
+        const data = JSON.parse(e.data);
+        if (data.text) {
+          const assistantOptId = `opt-streaming-${activeRunId}`;
+          setOptimisticMessages((prev) => {
+            const existingIndex = prev.findIndex((m) => m.id === assistantOptId);
+            if (existingIndex >= 0) {
+              const updated = [...prev];
+              const currentContent =
+                typeof updated[existingIndex]?.content === "object" &&
+                updated[existingIndex]?.content &&
+                "text" in (updated[existingIndex]!.content as any)
+                  ? (updated[existingIndex]!.content as any).text
+                  : String(updated[existingIndex]?.content ?? "");
+              updated[existingIndex] = {
+                ...updated[existingIndex]!,
+                content: { text: currentContent + data.text },
+              };
+              return updated;
+            } else {
+              return [
+                ...prev,
+                {
+                  id: assistantOptId,
+                  conversationId: activeConversationId || "temp",
+                  role: "assistant",
+                  content: { text: data.text },
+                  createdAt: new Date(),
+                },
+              ];
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Error parsing stream delta:", err);
+      }
+    });
+
+    eventSource.addEventListener("status", (e) => {
+      if (!isMounted) return;
+      try {
+        const data = JSON.parse(e.data);
+        if (
+          data.status === "completed" ||
+          data.status === "failed" ||
+          data.status === "cancelled"
+        ) {
+          setIsOptimisticRunning(false);
+          eventSource.close();
+        }
+      } catch (err) {
+        console.warn("Error parsing status event:", err);
+      }
+    });
+
+    eventSource.addEventListener("done", () => {
+      if (!isMounted) return;
+      setIsOptimisticRunning(false);
+      eventSource.close();
+    });
+
+    eventSource.onerror = () => {
+      // EventSource will auto-reconnect or fall back gracefully to useRunDetailQuery polling
+    };
+
+    return () => {
+      isMounted = false;
+      eventSource.close();
+    };
+  }, [activeRunId, activeConversationId]);
 
   React.useEffect(() => {
     if (

@@ -90,6 +90,7 @@ export function ConversationTimeline({
                   activeRun={activeRun}
                   activeRunSteps={activeRunSteps}
                   isActiveRunOngoing={isActiveRunOngoing}
+                  hasStreamingContent={messages.some((m) => m.id.startsWith("opt-streaming-"))}
                 />
               </MessageScrollerItem>
             )}

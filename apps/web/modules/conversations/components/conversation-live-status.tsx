@@ -22,6 +22,7 @@ interface ConversationLiveStatusProps {
   activeRun: RunRecord | null;
   activeRunSteps: StepItem[];
   isActiveRunOngoing: boolean;
+  hasStreamingContent?: boolean;
 }
 
 export function ConversationLiveStatus({
@@ -29,6 +30,7 @@ export function ConversationLiveStatus({
   activeRun,
   activeRunSteps,
   isActiveRunOngoing,
+  hasStreamingContent = false,
 }: ConversationLiveStatusProps) {
   if (isActiveRunOngoing) {
     return (
@@ -40,30 +42,32 @@ export function ConversationLiveStatus({
           />
         )}
 
-        <MessageGroup>
-          <Message align="start" className="gap-2">
-            <MessageContent>
-              <Bubble variant="secondary" align="start">
-                <BubbleContent className="flex items-center gap-1.5 px-3 py-2 text-foreground">
-                  <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
-                  <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
-                  <span className="size-1.5 animate-bounce rounded-full bg-foreground/60" />
-                </BubbleContent>
-              </Bubble>
+        {!hasStreamingContent && (
+          <MessageGroup>
+            <Message align="start" className="gap-2">
+              <MessageContent>
+                <Bubble variant="secondary" align="start">
+                  <BubbleContent className="flex items-center gap-1.5 px-3 py-2 text-foreground">
+                    <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
+                    <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
+                    <span className="size-1.5 animate-bounce rounded-full bg-foreground/60" />
+                  </BubbleContent>
+                </Bubble>
 
-              <MessageFooter className="gap-px px-0">
-                <Blobatar
-                  name={agentName}
-                  className="size-6 shrink-0"
-                  blobatar={{ animate: "always" }}
-                />
-                <span className="text-xs font-medium text-foreground">
-                  {agentName}
-                </span>
-              </MessageFooter>
-            </MessageContent>
-          </Message>
-        </MessageGroup>
+                <MessageFooter className="gap-px px-0">
+                  <Blobatar
+                    name={agentName}
+                    className="size-6 shrink-0"
+                    blobatar={{ animate: "always" }}
+                  />
+                  <span className="text-xs font-medium text-foreground">
+                    {agentName}
+                  </span>
+                </MessageFooter>
+              </MessageContent>
+            </Message>
+          </MessageGroup>
+        )}
       </div>
     );
   }

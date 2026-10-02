@@ -1,75 +1,127 @@
 # OpenBots
 
-OpenBots lets you build, configure, and operate a team of specialized AI agents. Give each agent a distinct role, instructions, autonomy level, and toolset. Connect them to your everyday apps (Gmail, Notion, Slack, GitHub, and more) or let them run local and scheduled automations on your behalf.
+An open-source autonomous multi-agent platform for building, orchestrating, and operating teams of specialized AI agents with durable tool execution, scheduled workflows, and third-party SaaS integrations.
+
+## Overview
+
+OpenBots provides a complete infrastructure stack for deploying autonomous agents in production. Agents operate with distinct system instructions, configurable reasoning models, loop boundaries, and access to a rich set of native utilities and SaaS integrations.
+
+### Core Capabilities
+
+- **Autonomous Agent Runtime**: Multi-step reasoning loops governed by the Vercel AI SDK (`ToolLoopAgent`) with bounded execution, structured tool calls, and error boundaries.
+- **Durable Scheduling and Background Execution**: Delayed tasks, future timestamp execution, and recurring cron schedules powered by Trigger.dev and PostgreSQL persistence.
+- **Extensible Tool Registry**: 17+ zero-dependency internal tools spanning network research, compute sandboxes, math, live weather, encyclopedic data, currency conversions, and DNS diagnostics.
+- **SaaS Ecosystem via Composio and MCP**: Verified OAuth-managed access to Gmail, Google Sheets, Google Docs, Google Calendar, Google Drive, Outlook, Twitter (X), Slack, GitHub, Notion, Discord, Jira, Linear, Firecrawl, Hacker News, LinkedIn, ElevenLabs, Google Maps, PostHog, Stripe, and custom Model Context Protocol (MCP) servers.
+- **Type-Safe Contract**: End-to-end type safety connecting Hono backend routes directly to the Next.js client via typed RPC contracts.
+- **Authentication & Security**: Multi-tenant session security via Better Auth, strict database constraints, at-most-once atomic run claiming, and automated secret redaction for run traces.
 
 ---
 
-### Highlights
+## Architecture
 
-- 🤖 **Multi-Agent Orchestration** — Create custom agents with dedicated instructions, system prompts, models, and execution boundaries.
-- 🧠 **Flexible Intelligence** — Powered by the Vercel AI SDK and extensible provider support.
-- 🛠️ **13+ Built-in Standard Tools** — Web search, page extraction, arbitrary HTTP requests, sandboxed JavaScript code execution, mathematical calculations, unit conversion, text analysis, UUID & token generation, JSON parsing, and more.
-- ⏰ **Automated Scheduling** — Native Trigger.dev integration for relative delays (`"in 2 minutes"`), specific timestamps, and recurring cron schedules.
-- 🔌 **Composio & MCP Ecosystem** — OAuth integrations with Gmail, Notion, Slack, GitHub, Linear, Google Calendar, Discord, Jira, and custom Model Context Protocol (MCP) servers.
-- ⚡ **Real-Time Interactive UI** — Ultra-smooth optimistic messaging, live step-by-step tool inspection, thinking indicators, and robust error recovery.
-- 🔒 **Secure by Default** — Session authentication powered by Better Auth, environment variable sanitization, and at-most-once atomic run claiming.
-- 🏠 **Self-Hostable & Open** — Fully open-source monorepo built with Bun, Next.js, Hono, Drizzle ORM, and PostgreSQL.
+```
+                                  +------------------------------+
+                                  |      Next.js Frontend        |
+                                  |  (React 19 / App Router)     |
+                                  +--------------+---------------+
+                                                 |
+                                     Typed RPC / REST API
+                                                 |
+                                  +--------------v---------------+
+                                  |        Hono API Server       |
+                                  |     (@openbots/api-contract) |
+                                  +--------------+---------------+
+                                                 |
+                 +-------------------------------+-------------------------------+
+                 |                                                               |
+                 v                                                               v
+  +------------------------------+                                +------------------------------+
+  |    Direct Agent Executor     |                                |      Trigger.dev Worker      |
+  |  (In-process fast path)      |                                |  (Durable background runs)   |
+  +--------------+---------------+                                +--------------+---------------+
+                 |                                                               |
+                 +-------------------------------+-------------------------------+
+                                                 |
+                 +-------------------------------+-------------------------------+
+                 |                               |                               |
+                 v                               v                               v
+  +------------------------------+ +---------------------------+ +-------------------------------+
+  |        PostgreSQL DB         | |       Upstash Redis       | |       External Providers        |
+  | (Agents, Runs, Steps, Auth)  | | (Pub/Sub & Event Caching) | | (Google AI, Composio, MCP)    |
+  +------------------------------+ +---------------------------+ +-------------------------------+
+```
 
 ---
 
 ## Tech Stack
 
-| Layer                  | Technologies                                                                                                     |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Frontend**           | [Next.js](https://nextjs.org/) (App Router), React 19, Tailwind CSS v4, shadcn/ui                                |
-| **API & RPC**          | [Hono](https://hono.dev/) with end-to-end typed client RPC                                                       |
-| **Agent Engine**       | [Vercel AI SDK](https://sdk.vercel.ai/) (`ToolLoopAgent`), Google Generative AI                                  |
-| **Background Jobs**    | [Trigger.dev](https://trigger.dev/) (durable async execution & delayed scheduling)                               |
-| **Database & Cache**   | PostgreSQL, [Drizzle ORM](https://orm.drizzle.team/), Upstash Redis                                              |
-| **Auth**               | [Better Auth](https://better-auth.com/) (email/password & sessions)                                              |
-| **SaaS Tools**         | [Composio](https://composio.dev/) Platform SDK, Model Context Protocol ([MCP](https://modelcontextprotocol.io/)) |
-| **Runtime & Monorepo** | [Bun](https://bun.sh/) ≥ 1.2, [Turborepo](https://turbo.build/)                                                  |
+| Domain                            | Technology                                                      |
+| --------------------------------- | --------------------------------------------------------------- |
+| **Frontend Framework**            | Next.js (App Router), React 19, TypeScript                      |
+| **Styling & Components**          | Tailwind CSS v4, Radix/Base UI primitives, `@openbots/ui`       |
+| **Server & Routing**              | Hono, `@hono/zod-validator`, Bun HTTP server                    |
+| **Agent Reasoning Engine**        | Vercel AI SDK (`ai`), `@ai-sdk/google` (Gemini 2.5 Flash / Pro) |
+| **Background & Scheduling**       | Trigger.dev v4 (durable tasks, delayed schedules, cron jobs)    |
+| **Database & Persistence**        | PostgreSQL, Drizzle ORM (`@openbots/db`), Drizzle Kit           |
+| **Cache & State Synchronization** | Upstash Redis / IORedis                                         |
+| **Authentication**                | Better Auth (session cookies, email/password, RBAC)             |
+| **Integrations**                  | Composio Platform SDK, Model Context Protocol (MCP)             |
+| **Monorepo Tooling**              | Turborepo, Bun workspaces, Biome (linting & formatting)         |
 
 ---
 
-## Project Structure
+## Repository Structure
 
 ```
 openbots/
 ├── apps/
-│   ├── web/                 → Next.js frontend (workspace UI, agent chat, settings)
-│   └── api/                 → Bun HTTP server & Trigger.dev agent runner tasks
+│   ├── web/                    # Next.js web application (workspaces, chat, tools, history)
+│   └── api/                    # Bun HTTP service & Trigger.dev agent task executor
 │
 ├── packages/
-│   ├── api-contract/        → Hono route definitions, Zod validation, domain logic
-│   ├── api-client/          → Strongly-typed RPC client consumed by web app
-│   ├── db/                  → Drizzle ORM schema, migrations, connection pool, Redis
-│   ├── ui/                  → Shared component library (shadcn primitives, icons)
-│   └── typescript-config/   → Centralized TypeScript configurations
+│   ├── api-contract/           # Shared Hono route declarations, Zod schemas, domain business logic
+│   ├── api-client/             # End-to-end typed RPC client for the frontend
+│   ├── db/                     # Drizzle ORM schemas, database migrations, connection client, Redis
+│   ├── ui/                     # Reusable design system, UI components, and icons
+│   └── typescript-config/      # Shared TypeScript configuration baselines
 ```
 
 ---
 
-## Built-in Tools
+## Tool Registry
 
-Agents can be configured with any combination of standard internal tools, SaaS apps, and MCP servers:
+Agents can be configured with fine-grained tool permissions. When an agent executes a multi-step task, it dynamically selects appropriate tools to resolve the query.
 
-| Tool                   | Category    | Capabilities                                                                                 |
-| ---------------------- | ----------- | -------------------------------------------------------------------------------------------- |
-| **`create_schedule`**  | Automation  | Triggers delayed executions (e.g. "remind me in 5 minutes"), alarms, and recurring cron jobs |
-| **`web_search`**       | Research    | Live public web searches with snippets & source links via DuckDuckGo                         |
-| **`fetch_web_page`**   | Research    | Extracts readable text, documentation, or JSON data from any public URL                      |
-| **`http_request`**     | Integration | Makes custom `GET`, `POST`, `PUT`, `PATCH`, or `DELETE` API requests                         |
-| **`execute_code`**     | Computing   | Evaluates sandboxed JavaScript/TypeScript expressions for logic and data processing          |
-| **`get_current_time`** | Utilities   | Real-time timestamps, calendar components, and timezone calculations                         |
-| **`calculate`**        | Utilities   | Arithmetic expressions parser without code execution                                         |
-| **`unit_converter`**   | Utilities   | Converts metric, imperial, temperature, weight, volume, and data sizes                       |
-| **`transform_text`**   | Utilities   | Case formatting (camelCase, snake_case), Base64/URL encoding, slugification                  |
-| **`generate_uuid`**    | Utilities   | Cryptographic UUIDs, API tokens, and numeric PINs                                            |
-| **`json_parser`**      | Utilities   | Parses and queries specific dot-notation paths from JSON payloads                            |
-| **`text_analyzer`**    | Analysis    | Word count, character count, readability, and keyword frequency map                          |
-| **`random_generator`** | Utilities   | Random numbers in range, choice picker, dice roller, and array shuffler                      |
-| **Composio Apps**      | SaaS        | Gmail, Notion, Slack, GitHub, Google Calendar, Discord, Jira, etc.                           |
+### Internal Tools
+
+| Tool Identifier      | Category     | Description                                                                                                   |
+| -------------------- | ------------ | ------------------------------------------------------------------------------------------------------------- |
+| `create_schedule`    | Automation   | Creates delayed executions (e.g. "in 10 minutes"), timestamp triggers, or recurring cron jobs.                |
+| `get_weather`        | Intelligence | Fetches real-time weather conditions, humidity, wind, and multi-day forecasts for any city via Open-Meteo.    |
+| `wikipedia_search`   | Research     | Direct encyclopedia search retrieving article extracts, conceptual summaries, and canonical links.            |
+| `currency_converter` | Utilities    | Converts monetary values with real-time global foreign exchange rates (USD, EUR, INR, GBP, etc.).             |
+| `dns_lookup`         | Diagnostics  | Performs DNS record queries (`A`, `AAAA`, `MX`, `TXT`, `CNAME`, `NS`) using Google Public DNS over HTTPS.     |
+| `web_search`         | Research     | Real-time public web search returning result titles, snippets, and source links via DuckDuckGo.               |
+| `fetch_web_page`     | Extraction   | Fetches and cleans readable text, articles, or JSON documentation from any public URL.                        |
+| `http_request`       | Integration  | Executes arbitrary REST API calls (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) with custom headers and payloads. |
+| `execute_code`       | Computing    | Evaluates JavaScript/TypeScript code snippets in an isolated, safe execution context.                         |
+| `get_current_time`   | Utilities    | Returns ISO timestamps, local timezone offsets, and granular calendar structures.                             |
+| `calculate`          | Utilities    | Safely evaluates arithmetic expressions (`+`, `-`, `*`, `/`, `%`, `^`, parentheses) without `eval`.           |
+| `unit_converter`     | Utilities    | Converts length, weight, volume, temperature, and digital storage units.                                      |
+| `transform_text`     | Utilities    | String transformations (uppercase, lowercase, camelCase, snake_case, base64, URL encoding, slugify).          |
+| `generate_uuid`      | Utilities    | Cryptographically secure UUIDv4 identifiers, hex tokens, and numeric PINs.                                    |
+| `json_parser`        | Utilities    | Parses raw JSON text and queries nested dot-notation paths.                                                   |
+| `text_analyzer`      | Utilities    | Computes word counts, character counts, readability statistics, and keyword frequency maps.                   |
+| `random_generator`   | Utilities    | Generates random numbers, picks from choices, flips coins, rolls dice, or shuffles lists.                     |
+
+### SaaS & Third-Party Integrations (Composio)
+
+Integrations can be authorized per-user via Composio's managed connection layer:
+
+- **Productivity & Docs**: Gmail, Google Calendar, Google Drive, Google Docs, Google Sheets, Outlook, Notion.
+- **Developer & Engineering**: GitHub, Jira, Trello, Asana, Linear, PostHog.
+- **Social, Messaging & Content**: Slack, Discord, Twitter (X), LinkedIn, YouTube, Hacker News.
+- **Media, Audio & Geo**: ElevenLabs, Google Maps, Zoom, Firecrawl, Stripe.
 
 ---
 
@@ -77,86 +129,155 @@ Agents can be configured with any combination of standard internal tools, SaaS a
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) ≥ 1.2
-- [PostgreSQL](https://www.postgresql.org/) (or a [Supabase](https://supabase.com/) project)
-- [Trigger.dev](https://trigger.dev/) account (for background task execution & delayed runs)
-- _(Optional)_ [Composio](https://composio.dev/) API key (for connected third-party SaaS apps)
-- _(Optional)_ [Google AI Studio](https://aistudio.google.com/) API key (for Gemini models)
+- **Runtime**: [Bun](https://bun.sh/) >= 1.2.0
+- **Database**: PostgreSQL (local or hosted via Supabase, Neon, AWS RDS)
+- **Node.js**: Node 20+ (for Next.js dev server tooling)
+- **API Keys**:
+  - `GEMINI_API_KEY` (required for Google Gemini models)
+  - `TRIGGER_SECRET_KEY` & `TRIGGER_PROJECT_REF` (required for durable background runs)
+  - `COMPOSIO_API_KEY` (optional, for third-party SaaS tool execution)
+  - `UPSTASH_REDIS_REST_URL` & `UPSTASH_REDIS_REST_TOKEN` (optional, for distributed cross-process pub/sub)
+
+---
 
 ### Installation
 
+Clone the repository and install all monorepo dependencies:
+
 ```bash
-# Clone the repository
 git clone https://github.com/your-org/openbots.git
 cd openbots
-
-# Install dependencies across all monorepo packages
 bun install
-```
-
-### Environment Configuration
-
-Configure `.env` in the root or package directories:
-
-```bash
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/openbots"
-
-# LLM Providers
-GEMINI_API_KEY="your-gemini-api-key"
-
-# Trigger.dev (Background execution & timers)
-TRIGGER_SECRET_KEY="tr_dev_your_secret_key"
-TRIGGER_PROJECT_REF="your-project-ref"
-
-# Composio (Optional: Third-party apps like Gmail, Slack, Notion)
-COMPOSIO_API_KEY="your-composio-api-key"
-
-# Frontend (apps/web/.env.local)
-NEXT_PUBLIC_API_URL="http://localhost:3001"
-```
-
-### Database Setup
-
-```bash
-cd packages/db
-bun run db:push       # Push Drizzle schema to your PostgreSQL database
-bun run db:studio     # (Optional) Open Drizzle Studio web GUI
-```
-
-### Running Locally
-
-Run both the API and Web apps in development mode:
-
-```bash
-# Start all services concurrently via Turborepo
-bun run dev
-
-# Or start services individually:
-# API server (port 3001)
-cd apps/api && bun run dev
-
-# Next.js web application (port 3000)
-cd apps/web && bun run dev
-
-# Trigger.dev dev worker (for task execution)
-cd apps/api && bun x @trigger.dev/cli@latest dev
 ```
 
 ---
 
-## Monorepo Commands
+### Environment Setup
+
+Create the root configuration `.env` file (or copy from `.env.example`):
 
 ```bash
-bun run dev         # Start all applications in watch mode
-bun run build       # Build all packages and applications
-bun run typecheck   # Typecheck TypeScript across all 6 packages
-bun run lint        # Lint files with Biome
-bun run format      # Format codebase with Biome
+# PostgreSQL Connection String
+DATABASE_URL="postgresql://user:password@localhost:5432/openbots"
+
+# LLM Providers
+GEMINI_API_KEY="AIzaSy..."
+
+# Trigger.dev Credentials
+TRIGGER_SECRET_KEY="tr_dev_..."
+TRIGGER_PROJECT_REF="proj_..."
+
+# Better Auth Session Secret
+BETTER_AUTH_SECRET="your-32-character-random-secret"
+BETTER_AUTH_URL="http://localhost:3000"
+
+# Composio Integration Platform (Optional)
+COMPOSIO_API_KEY="ak_..."
+
+# Upstash Redis (Optional for distributed pub/sub)
+UPSTASH_REDIS_REST_URL="https://...upstash.io"
+UPSTASH_REDIS_REST_TOKEN="..."
 ```
+
+Also verify `apps/web/.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL="http://localhost:3001"
+```
+
+---
+
+### Database Migration
+
+Push schemas directly to your PostgreSQL database using Drizzle:
+
+```bash
+# Push schemas to PostgreSQL
+cd packages/db
+bun run db:push
+
+# Optional: Open visual Drizzle Studio database GUI
+bun run db:studio
+```
+
+---
+
+### Running the Development Environment
+
+Start all applications and background workers concurrently using Turborepo:
+
+```bash
+# From repository root
+bun run dev
+```
+
+Alternatively, services can be launched individually:
+
+```bash
+# 1. API Server (Port 3001)
+cd apps/api && bun run dev
+
+# 2. Next.js Web Frontend (Port 3000)
+cd apps/web && bun run dev
+
+# 3. Trigger.dev Background Worker
+cd apps/api && bun x @trigger.dev/cli@latest dev
+```
+
+The web application is accessible at `http://localhost:3000`.
+
+---
+
+## Monorepo Scripts
+
+| Command             | Action                                                     |
+| ------------------- | ---------------------------------------------------------- |
+| `bun run dev`       | Starts all applications in watch mode via Turborepo        |
+| `bun run build`     | Compiles packages and generates Next.js production bundles |
+| `bun run typecheck` | Runs `tsc --noEmit` across all 7 workspace packages        |
+| `bun run lint`      | Runs Biome code analysis and checks formatting             |
+| `bun run format`    | Applies Biome formatting across the monorepo               |
+| `bun run check`     | Checks and fixes linting and formatting issues             |
+
+---
+
+## Production Deployment
+
+### API Server (`apps/api`)
+
+The API service runs natively on Bun or Node.js containers:
+
+```bash
+cd apps/api
+bun run build
+NODE_ENV=production bun run start
+```
+
+### Web Application (`apps/web`)
+
+The Next.js frontend can be deployed to Vercel, AWS ECS, or any container runtime:
+
+```bash
+cd apps/web
+bun run build
+bun run start
+```
+
+### Database & Background Jobs
+
+1. Apply database migrations: `bun run --filter @openbots/db db:push`
+2. Deploy Trigger.dev tasks: `cd apps/api && bun x @trigger.dev/cli@latest deploy`
+
+---
+
+## Security & Reliability
+
+- **At-Most-Once Execution Guarantee**: Claims agent runs atomically using database transaction locks (`UPDATE runs SET status = 'running' WHERE id = ... AND status = 'queued'`) to prevent split-brain worker races.
+- **Sensitive Data Sanitization**: Execution logs automatically mask API keys, database connection URIs, and authorization tokens before writing run steps to storage.
+- **Isolated Compute**: Custom script evaluation tools run in non-privileged scopes without access to host file systems, network sockets, or process environments.
 
 ---
 
 ## License
 
-OpenBots is open-source software licensed under the [MIT License](./LICENSE).
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.

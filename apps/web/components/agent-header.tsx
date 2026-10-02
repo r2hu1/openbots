@@ -32,10 +32,10 @@ export function AgentHeader({
     <header className="relative top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-10 after:bg-gradient-to-b after:from-background after:via-background/50 after:to-transparent">
       <div className="flex items-center gap-3">
         {selectedAgent ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-px rounded-sm bg-secondary pr-1.5 pl-px">
             <Blobatar
               name={selectedAgent.name || selectedAgent.id}
-              className="size-7 shrink-0"
+              className="size-6.5! shrink-0"
             />
             <span className="text-sm font-semibold text-foreground">
               {selectedAgent.name}
@@ -68,7 +68,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenConnections}
-                className="h-6 gap-1.5 text-xs"
+                className="h-7 gap-1.5 text-xs"
                 title="Integrations & Tools"
               >
                 <IconPlug className="size-3.5" />
@@ -81,7 +81,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenSchedules}
-                className="h-6 gap-1.5 text-xs"
+                className="h-7 gap-1.5 text-xs"
                 title="Scheduled Autonomous Tasks"
               >
                 <IconCalendar className="size-3.5" />
@@ -93,7 +93,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenHistory}
-              className="h-6 gap-1.5 text-xs"
+              className="h-7 gap-1.5 text-xs"
               title="Execution History"
             >
               <IconHistory className="size-3.5" />
@@ -104,7 +104,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenConfigure}
-              className="h-6 gap-1.5 text-xs"
+              className="h-7 gap-1.5 text-xs"
               title="Agent Settings"
             >
               <IconSettings className="size-3.5" />

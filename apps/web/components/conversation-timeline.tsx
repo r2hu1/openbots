@@ -130,18 +130,18 @@ export function ConversationTimeline({
               </div>
             ) : messages.length === 0 && !activeRun ? (
               <MessageScrollerItem>
-                <div className="py-16 text-center">
+                <div className="mx-auto max-w-lg py-20 text-center">
                   <div className="flex items-center justify-center">
                     <Blobatar
                       name={agentName}
                       alt={agentName}
-                      className={"size-10!"}
+                      className={"size-14!"}
                     />
                   </div>
-                  <h3 className="font-heading text-sm font-medium text-foreground">
+                  <h3 className="font-heading text-base font-medium text-foreground">
                     Ready to chat with {agentName}
                   </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Send a task or query below. The agent will execute tool
                     steps as needed and return the verified output.
                   </p>
@@ -170,8 +170,8 @@ export function ConversationTimeline({
                             <BubbleContent
                               className={
                                 isUser
-                                  ? "p-1.5 px-2.5 text-xs whitespace-pre-wrap text-foreground sm:text-sm"
-                                  : "typeset typeset-chat p-1.5 px-2.5 text-xs text-foreground sm:text-sm"
+                                  ? "p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground"
+                                  : "typeset typeset-chat p-1.5 px-2.5 text-sm text-foreground"
                               }
                             >
                               {isUser ? text : <Markdown>{text}</Markdown>}

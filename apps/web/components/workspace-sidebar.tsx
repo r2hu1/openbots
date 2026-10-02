@@ -77,6 +77,7 @@ function BrandRow({ onClickButton }: { onClickButton: () => void }) {
             <Button
               size="icon-xs"
               className="ml-auto"
+              variant="secondary"
               onClick={onClickButton}
               title="New agent"
             >
@@ -105,21 +106,10 @@ function UserMenu({
   const { isMobile } = useSidebar()
 
   return (
-    <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-none">
+    <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <SidebarMenuButton
-                size="lg"
-                tooltip={name}
-                className={cn(
-                  rowClass,
-                  "group-data-[collapsible=icon]:p-0! data-popup-open:bg-sidebar-accent"
-                )}
-              />
-            }
-          >
+          <DropdownMenuTrigger className="flex items-center gap-2">
             <Avatar className="size-8 shrink-0 group-data-[collapsible=icon]:size-7">
               <AvatarFallback className="bg-sidebar-accent text-xs font-semibold">
                 {initials}
@@ -211,11 +201,11 @@ export function WorkspaceSidebar({
   }, [session])
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="px-3 group-data-[collapsible=icon]:px-2">
+    <Sidebar collapsible="icon" variant="floating">
+      <SidebarHeader className="px-4 group-data-[collapsible=icon]:px-2">
         <BrandRow onClickButton={onOpenCreate} />
 
-        <InputGroup className="mt-2 h-8 bg-background shadow-none group-data-[collapsible=icon]:hidden">
+        <InputGroup className="h-8 bg-background shadow-none group-data-[collapsible=icon]:hidden">
           <InputGroupAddon>
             <IconSearch />
           </InputGroupAddon>
@@ -227,7 +217,7 @@ export function WorkspaceSidebar({
         </InputGroup>
       </SidebarHeader>
 
-      <SidebarContent className="mt-1 px-1 group-data-[collapsible=icon]:px-0">
+      <SidebarContent className="mt-2 px-2 group-data-[collapsible=icon]:px-0">
         <SidebarGroup>
           <SidebarGroupContent>
             {filteredAgents.length === 0 ? (
@@ -288,7 +278,7 @@ export function WorkspaceSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex items-center gap-1 group-data-[collapsible=icon]:flex-col">
+        <div className="flex items-center group-data-[collapsible=icon]:flex-col">
           <UserMenu
             name={session?.user?.name || "User"}
             email={session?.user?.email}

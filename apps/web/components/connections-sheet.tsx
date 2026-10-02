@@ -480,7 +480,7 @@ export function ConnectionsSheet({
         <SheetFooter>
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             onClick={() => onOpenChange(false)}
           >
             Close

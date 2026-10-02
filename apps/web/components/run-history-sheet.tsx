@@ -381,7 +381,7 @@ export function RunHistorySheet({
         </div>
 
         <SheetFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
           {inspectedRunId && isInspectedActive && run && (

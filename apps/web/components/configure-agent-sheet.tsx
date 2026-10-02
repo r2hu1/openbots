@@ -25,7 +25,7 @@ import {
   TabsTrigger,
 } from "@openbots/ui/components/tabs"
 import { Textarea } from "@openbots/ui/components/textarea"
-import { IconCheck, IconSettings } from "@tabler/icons-react"
+import { IconCheck, IconSettings, IconTrash } from "@tabler/icons-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import { getClient } from "@/lib/api"
@@ -64,8 +64,13 @@ const SCROLL_CLASS =
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
   get_current_time: "Provides real-time timestamp and timezone calculations.",
-  calculate: "Evaluates mathematical expressions safely.",
-  create_schedule: "Creates recurring scheduled tasks and automated runs.",
+  calculate: "Evaluates mathematical expressions safely without code evaluation.",
+  create_schedule: "Creates delayed, relative, timestamped, or recurring scheduled runs.",
+  web_search: "Performs live web searches with snippets and source links via DuckDuckGo.",
+  fetch_web_page: "Extracts readable text content and articles from public web pages.",
+  http_request: "Makes direct REST API calls (GET, POST, PUT, DELETE) to any webhook or URL.",
+  json_parser: "Parses, queries, and extracts specific fields from JSON payloads.",
+  text_analyzer: "Calculates word counts, line counts, readability, and key terms.",
 }
 
 export function ConfigureAgentSheet({
@@ -424,11 +429,11 @@ export function ConfigureAgentSheet({
           </TabsContent>
         </Tabs>
 
-        <SheetFooter className="flex flex-col gap-2 border-t border-border p-3">
+        <SheetFooter className="w-full flex-row">
           <Button
             type="submit"
             form="configure-agent-form"
-            className="h-8 w-full text-xs"
+            className="flex-1"
             disabled={updateAgentMutation.isPending}
           >
             {updateAgentMutation.isPending && (
@@ -439,8 +444,7 @@ export function ConfigureAgentSheet({
 
           <Button
             type="button"
-            variant="ghost"
-            className="h-8 w-full text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+            variant="destructive"
             disabled={deleteAgentMutation.isPending}
             onClick={() => {
               if (
@@ -452,10 +456,11 @@ export function ConfigureAgentSheet({
               }
             }}
           >
+            Delete
             {deleteAgentMutation.isPending ? (
               <Spinner data-icon="inline-start" />
             ) : (
-              "Delete agent"
+              <IconTrash />
             )}
           </Button>
         </SheetFooter>

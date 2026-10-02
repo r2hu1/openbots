@@ -49,28 +49,16 @@ export async function createAgent(userId: string, data: CreateAgentInput) {
     })
     .returning();
 
-  // Automatically enable default internal tools (get_current_time, calculate, create_schedule) for newly created agents
+  // Automatically enable all default internal tools for newly created agents
   if (agent) {
-    await db.insert(agentTools).values([
-      {
+    await db.insert(agentTools).values(
+      ALL_INTERNAL_TOOLS.map((toolName) => ({
         agentId: agent.id,
         provider: "internal",
-        toolName: "get_current_time",
+        toolName,
         enabled: true,
-      },
-      {
-        agentId: agent.id,
-        provider: "internal",
-        toolName: "calculate",
-        enabled: true,
-      },
-      {
-        agentId: agent.id,
-        provider: "internal",
-        toolName: "create_schedule",
-        enabled: true,
-      },
-    ]);
+      })),
+    );
   }
 
   return { agent };
@@ -115,6 +103,17 @@ export async function deleteAgent(id: string, userId: string) {
   return { agent: deleted };
 }
 
+export const ALL_INTERNAL_TOOLS = [
+  "get_current_time",
+  "calculate",
+  "create_schedule",
+  "web_search",
+  "fetch_web_page",
+  "http_request",
+  "json_parser",
+  "text_analyzer",
+] as const;
+
 export async function getAgentTools(agentId: string, userId: string) {
   const [agent] = await db
     .select()
@@ -125,12 +124,41 @@ export async function getAgentTools(agentId: string, userId: string) {
     return null;
   }
 
-  const tools = await db
+  const configured = await db
     .select()
     .from(agentTools)
     .where(eq(agentTools.agentId, agentId));
 
-  return { tools };
+  const configuredMap = new Map(configured.map((t) => [t.toolName, t]));
+
+  // Ensure all standard internal tools appear in the list with their actual configured or default state
+  const mergedTools: typeof configured = [];
+
+  for (const internalName of ALL_INTERNAL_TOOLS) {
+    const existing = configuredMap.get(internalName);
+    if (existing) {
+      mergedTools.push(existing);
+      configuredMap.delete(internalName);
+    } else {
+      mergedTools.push({
+        id: `virtual-${internalName}`,
+        agentId,
+        provider: "internal",
+        toolName: internalName,
+        enabled: true, // Default enabled for all standard internal capabilities
+        config: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+    }
+  }
+
+  // Append any remaining custom/mcp/composio tools
+  for (const remaining of configuredMap.values()) {
+    mergedTools.push(remaining);
+  }
+
+  return { tools: mergedTools };
 }
 
 export async function toggleAgentTool(

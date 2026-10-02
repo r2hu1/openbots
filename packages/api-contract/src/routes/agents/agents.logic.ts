@@ -118,6 +118,10 @@ export const ALL_INTERNAL_TOOLS = [
   "transform_text",
   "unit_converter",
   "random_generator",
+  "get_weather",
+  "wikipedia_search",
+  "currency_converter",
+  "dns_lookup",
 ] as const;
 
 export async function getAgentTools(agentId: string, userId: string) {

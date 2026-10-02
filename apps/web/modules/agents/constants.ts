@@ -24,6 +24,14 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
     "Converts metric, imperial, temperature, weight, volume, or digital storage units.",
   random_generator:
     "Generates random numbers, picks from choices, rolls dice, or shuffles lists.",
+  get_weather:
+    "Fetches live real-time weather, temperature, humidity, wind, and multi-day forecasts.",
+  wikipedia_search:
+    "Searches Wikipedia for articles, facts, biographies, concepts, and encyclopedia summaries.",
+  currency_converter:
+    "Fetches live global foreign exchange rates and converts currency amounts.",
+  dns_lookup:
+    "Performs DNS record lookups (A, AAAA, MX, TXT, CNAME, NS) via Google Public DNS.",
 };
 
 export const DEFAULT_MODELS = [

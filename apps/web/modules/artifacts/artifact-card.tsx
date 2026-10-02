@@ -1,26 +1,26 @@
-"use client"
+"use client";
 
 import {
   IconChartDots3,
   IconChevronRight,
   IconCode,
   IconVectorTriangle,
-} from "@tabler/icons-react"
-import type { ParsedArtifact } from "./parser"
+} from "@tabler/icons-react";
+import type { ParsedArtifact } from "./parser";
 
 interface ArtifactCardProps {
-  artifact: ParsedArtifact
-  onClick: () => void
+  artifact: ParsedArtifact;
+  onClick: () => void;
 }
 
 function ArtifactIcon({ type }: { type: ParsedArtifact["type"] }) {
   switch (type) {
     case "svg":
-      return <IconVectorTriangle className="size-4" />
+      return <IconVectorTriangle className="size-4" />;
     case "mermaid":
-      return <IconChartDots3 className="size-4" />
+      return <IconChartDots3 className="size-4" />;
     default:
-      return <IconCode className="size-4" />
+      return <IconCode className="size-4" />;
   }
 }
 
@@ -50,5 +50,5 @@ export function ArtifactCard({ artifact, onClick }: ArtifactCardProps) {
 
       <IconChevronRight className="size-4 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" />
     </button>
-  )
+  );
 }

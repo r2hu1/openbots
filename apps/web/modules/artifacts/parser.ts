@@ -6,6 +6,7 @@ export interface ParsedArtifact {
 }
 
 export interface ContentSegment {
+  id: string;
   type: "text" | "artifact";
   text?: string;
   artifact?: ParsedArtifact;
@@ -34,7 +35,11 @@ export function parseArtifacts(content: string): {
     if (matchIndex > lastIndex) {
       const text = content.slice(lastIndex, matchIndex);
       if (text.trim().length > 0) {
-        segments.push({ type: "text", text });
+        segments.push({
+          id: `seg-text-${segments.length}-${lastIndex}`,
+          type: "text",
+          text,
+        });
       }
     }
 
@@ -53,7 +58,11 @@ export function parseArtifacts(content: string): {
     };
 
     artifacts.push(artifact);
-    segments.push({ type: "artifact", artifact });
+    segments.push({
+      id: `seg-art-${artifact.id}`,
+      type: "artifact",
+      artifact,
+    });
 
     lastIndex = matchIndex + fullMatch.length;
     match = ARTIFACT_REGEX.exec(content);
@@ -63,7 +72,11 @@ export function parseArtifacts(content: string): {
   if (lastIndex < content.length) {
     const text = content.slice(lastIndex);
     if (text.trim().length > 0) {
-      segments.push({ type: "text", text });
+      segments.push({
+        id: `seg-text-end-${lastIndex}`,
+        type: "text",
+        text,
+      });
     }
   }
 

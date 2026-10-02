@@ -36,10 +36,12 @@ export function ConversationMessageItem({
 
   const { segments } = React.useMemo(() => {
     if (isUser) {
-      return { segments: [{ type: "text" as const, text }] };
+      return {
+        segments: [{ id: `usr-${message.id}`, type: "text" as const, text }],
+      };
     }
     return parseArtifacts(text);
-  }, [isUser, text]);
+  }, [isUser, message.id, text]);
 
   const [copied, setCopied] = React.useState(false);
   const [shared, setShared] = React.useState(false);
@@ -79,40 +81,39 @@ export function ConversationMessageItem({
     <MessageGroup className="group">
       <Message align={isUser ? "end" : "start"} className="gap-2">
         <MessageContent>
-          <Bubble
-            variant={isUser ? "default" : "outline"}
-            align={isUser ? "end" : "start"}
-          >
-            <BubbleContent
-              className={
-                isUser
-                  ? "p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground"
-                  : "typeset typeset-chat p-1.5 px-2.5 text-sm text-foreground"
-              }
-            >
-              {isUser ? (
-                text
-              ) : (
-                <div className="space-y-2">
-                  {segments.map((seg, idx) => {
-                    if (seg.type === "artifact" && seg.artifact) {
-                      return (
-                        <ArtifactCard
-                          key={seg.artifact.id || idx}
-                          artifact={seg.artifact}
-                          onClick={() => onOpenArtifact?.(seg.artifact!)}
-                        />
-                      );
-                    }
-                    if (seg.text) {
-                      return <Markdown key={idx}>{seg.text}</Markdown>;
-                    }
-                    return null;
-                  })}
-                </div>
-              )}
-            </BubbleContent>
-          </Bubble>
+          {isUser ? (
+            <Bubble variant="default" align="end">
+              <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
+                {text}
+              </BubbleContent>
+            </Bubble>
+          ) : (
+            <div className="flex w-full flex-col gap-2">
+              {segments.map((seg) => {
+                if (seg.type === "artifact" && seg.artifact) {
+                  const artifact = seg.artifact;
+                  return (
+                    <div key={seg.id} className="max-w-md">
+                      <ArtifactCard
+                        artifact={artifact}
+                        onClick={() => onOpenArtifact?.(artifact)}
+                      />
+                    </div>
+                  );
+                }
+                if (seg.text) {
+                  return (
+                    <Bubble key={seg.id} variant="outline" align="start">
+                      <BubbleContent className="typeset typeset-chat p-1.5 px-2.5 text-sm text-foreground">
+                        <Markdown>{seg.text}</Markdown>
+                      </BubbleContent>
+                    </Bubble>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          )}
 
           <MessageFooter
             className={

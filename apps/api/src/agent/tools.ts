@@ -158,6 +158,9 @@ export const calculate = tool({
         error: err instanceof Error ? err.message : "Calculation failed",
       };
     }
+  },
+});
+
 export const webSearch = tool({
   description:
     "Search the public web for real-time information, current events, technical documentation, or facts using DuckDuckGo. Returns search result snippets and source URLs.",
@@ -436,6 +439,8 @@ export const textAnalyzer = tool({
     };
   },
 });
+
+export function createScheduleTool(
   userId: string,
   agentId: string,
   conversationId?: string | null,

@@ -54,7 +54,7 @@ export async function createAgent(userId: string, data: CreateAgentInput) {
     await db.insert(agentTools).values(
       ALL_INTERNAL_TOOLS.map((toolName) => ({
         agentId: agent.id,
-        provider: "internal",
+        provider: "internal" as const,
         toolName,
         enabled: true,
       })),

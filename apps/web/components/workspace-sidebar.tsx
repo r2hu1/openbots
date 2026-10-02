@@ -260,14 +260,6 @@ export function WorkspaceSidebar({
                             name={agent.name || agent.id}
                             className="size-7 group-data-[collapsible=icon]:size-6"
                           />
-                          <span
-                            className={cn(
-                              "absolute -right-0.5 -bottom-0.5 hidden size-2 rounded-full ring-2 ring-sidebar group-data-[collapsible=icon]:block",
-                              isOnline
-                                ? "bg-emerald-500"
-                                : "bg-muted-foreground/40"
-                            )}
-                          />
                         </span>
 
                         <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">

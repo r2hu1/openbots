@@ -172,6 +172,9 @@ export async function executeAgentRun(
       return cancelledRun ?? current ?? runRecord;
     }
 
+    // Clear any previous partial steps if this run is being retried
+    await db.delete(runSteps).where(eq(runSteps.runId, runId));
+
     resolvedTools = await buildAgentTools({
       userId: runRecord.userId,
       agentId: agentRecord.id,

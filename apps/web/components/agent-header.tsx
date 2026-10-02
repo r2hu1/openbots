@@ -29,7 +29,7 @@ export function AgentHeader({
   onOpenSchedules,
 }: AgentHeaderProps) {
   return (
-    <header className="relative sticky top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-10 after:bg-gradient-to-b after:from-background after:via-background/50 after:to-transparent">
+    <header className="relative top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-10 after:bg-gradient-to-b after:from-background after:via-background/50 after:to-transparent">
       <div className="flex items-center gap-3">
         {selectedAgent ? (
           <div className="flex items-center gap-2">

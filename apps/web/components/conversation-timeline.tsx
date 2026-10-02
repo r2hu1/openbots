@@ -196,7 +196,7 @@ export function ConversationTimeline({
                               <span className="text-xs font-medium text-foreground">
                                 {agentName}
                               </span>
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="ml-1 text-[10px] text-muted-foreground">
                                 {formatMsgTime(msg.createdAt)}
                               </span>
                             </MessageFooter>

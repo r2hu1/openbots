@@ -175,6 +175,7 @@ export async function executeAgentRun(
     resolvedTools = await buildAgentTools({
       userId: runRecord.userId,
       agentId: agentRecord.id,
+      conversationId: runRecord.conversationId,
     });
 
     // Prepare conversation messages
@@ -257,9 +258,17 @@ export async function executeAgentRun(
 
     // Construct ToolLoopAgent using AI SDK
     const model = resolveModel(agentRecord.model);
+    const systemInstructions = `${agentRecord.instructions || "You are an AI assistant."}
+
+## Scheduling & Reminders:
+- You have access to the 'create_schedule' tool.
+- ALWAYS use 'create_schedule' whenever the user asks for a reminder, alarm, delayed task, or recurring execution (e.g. "remind me in 1 minute to have tea", "schedule a check in 2 hours", "run every Monday at 9am").
+- For one-off reminders/delays, specify type="delay" with delaySeconds (e.g. 60 for 1 minute).
+- NEVER prompt the user to connect external services (like Slack, Google Calendar, or Notion) for reminders or timers unless they specifically ask to be notified on that external app.`;
+
     const agent = new ToolLoopAgent({
       model,
-      instructions: agentRecord.instructions,
+      instructions: systemInstructions,
       tools: resolvedTools.tools,
       stopWhen: stepCountIs(agentRecord.maxSteps ?? 10),
     });

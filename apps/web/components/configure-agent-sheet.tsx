@@ -78,6 +78,16 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
     "Parses, queries, and extracts specific fields from JSON payloads.",
   text_analyzer:
     "Calculates word counts, line counts, readability, and key terms.",
+  execute_code:
+    "Executes safe JavaScript/TypeScript logic, transformations, or data algorithms.",
+  generate_uuid:
+    "Generates cryptographic UUIDs, unique session tokens, or numeric IDs.",
+  transform_text:
+    "Transforms text formats: case conversion, Base64/URL encoding, slugify, or reverse.",
+  unit_converter:
+    "Converts metric, imperial, temperature, weight, volume, or digital storage units.",
+  random_generator:
+    "Generates random numbers, picks from choices, rolls dice, or shuffles lists.",
 }
 
 export function ConfigureAgentSheet({

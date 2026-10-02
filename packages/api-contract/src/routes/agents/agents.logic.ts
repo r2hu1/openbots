@@ -112,6 +112,11 @@ export const ALL_INTERNAL_TOOLS = [
   "http_request",
   "json_parser",
   "text_analyzer",
+  "execute_code",
+  "generate_uuid",
+  "transform_text",
+  "unit_converter",
+  "random_generator",
 ] as const;
 
 export async function getAgentTools(agentId: string, userId: string) {

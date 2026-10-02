@@ -35,6 +35,17 @@ export async function getAgent(id: string, userId: string) {
   return { agent };
 }
 
+export async function getAgentSummary(id: string) {
+  const [agent] = await db
+    .select({
+      name: agents.name,
+      description: agents.description,
+    })
+    .from(agents)
+    .where(eq(agents.id, id));
+  return agent ?? null;
+}
+
 export async function createAgent(userId: string, data: CreateAgentInput) {
   const [agent] = await db
     .insert(agents)

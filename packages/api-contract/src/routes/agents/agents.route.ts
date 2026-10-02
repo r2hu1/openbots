@@ -6,6 +6,7 @@ import {
   createAgentRun,
   deleteAgent,
   getAgent,
+  getAgentSummary,
   getAgentTools,
   listAgents,
   listAvailableModels,
@@ -26,6 +27,15 @@ type Env = {
 };
 
 export const agentsRoute = new Hono<Env>()
+  .get("/:id/summary", async (c) => {
+    const id = c.req.param("id");
+    const summary = await getAgentSummary(id);
+    if (!summary) {
+      return c.json({ error: "Agent not found" }, 404);
+    }
+    return c.json({ agent: summary });
+  })
+
   .use("*", authMiddleware)
 
   .get("/models", async (c) => {

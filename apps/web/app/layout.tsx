@@ -1,8 +1,21 @@
+import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 
 import "@openbots/ui/globals.css";
 import "@openbots/ui/styles/typeset.css";
 import { cn } from "@openbots/ui/lib/utils";
+
+export const metadata: Metadata = {
+  title: {
+    default: "OpenBots — Autonomous Agent Workspace",
+    template: "%s | OpenBots",
+  },
+  description:
+    "Autonomous AI agent workspace with multi-tool execution, streaming, and visual artifact rendering.",
+  icons: {
+    icon: "/favicon.ico",
+  },
+};
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 

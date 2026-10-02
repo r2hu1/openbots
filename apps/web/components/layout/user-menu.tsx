@@ -6,6 +6,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@openbots/ui/components/dropdown-menu";
 import {
@@ -13,7 +16,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@openbots/ui/components/sidebar";
-import { IconLogout, IconPlug, IconSettings } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconDeviceLaptop,
+  IconLogout,
+  IconMoon,
+  IconPlug,
+  IconSettings,
+  IconSun,
+} from "@tabler/icons-react";
+import { useTheme } from "next-themes";
 
 interface UserMenuProps {
   name: string;
@@ -33,6 +45,7 @@ export function UserMenu({
   onSignOut,
 }: UserMenuProps) {
   const { isMobile } = useSidebar();
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
   return (
     <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
@@ -83,6 +96,34 @@ export function UserMenu({
                 Connections
               </DropdownMenuItem>
             )}
+
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                {resolvedTheme === "dark" ? (
+                  <IconMoon />
+                ) : (
+                  <IconSun />
+                )}
+                Theme
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="min-w-36 rounded-xl">
+                <DropdownMenuItem onClick={() => setTheme("light")}>
+                  <IconSun />
+                  Light
+                  {theme === "light" && <IconCheck className="ml-auto size-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                  <IconMoon />
+                  Dark
+                  {theme === "dark" && <IconCheck className="ml-auto size-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>
+                  <IconDeviceLaptop />
+                  System
+                  {theme === "system" && <IconCheck className="ml-auto size-4" />}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
 
             <DropdownMenuItem onClick={onSettings}>
               <IconSettings />

@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
+import { Button } from "@openbots/ui/components/button"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "@openbots/ui/components/input-group";
+} from "@openbots/ui/components/input-group"
 import {
   Sidebar,
   SidebarContent,
@@ -18,73 +18,73 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
-} from "@openbots/ui/components/sidebar";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
-import { cn } from "@openbots/ui/lib/utils";
-import { IconPlus, IconSearch } from "@tabler/icons-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import * as React from "react";
-import { signOut, useSession } from "@/lib/auth-client";
-import type { Agent } from "@/modules/agents/types";
-import { ConnectionsSheet } from "@/modules/connections/components/connections-sheet";
-import { BrandRow } from "./brand-row";
-import { UserMenu } from "./user-menu";
+} from "@openbots/ui/components/sidebar"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
+import { cn } from "@openbots/ui/lib/utils"
+import { IconPlus, IconSearch } from "@tabler/icons-react"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import * as React from "react"
+import { signOut, useSession } from "@/lib/auth-client"
+import type { Agent } from "@/modules/agents/types"
+import { ConnectionsSheet } from "@/modules/connections/components/connections-sheet"
+import { BrandRow } from "./brand-row"
+import { UserMenu } from "./user-menu"
 
 interface WorkspaceSidebarProps {
-  agents: Agent[];
-  onOpenCreate: () => void;
-  onOpenConnections?: () => void;
+  agents: Agent[]
+  onOpenCreate: () => void
+  onOpenConnections?: () => void
 }
 
 const rowClass =
-  "rounded-xl text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground";
+  "rounded-xl text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
 
 export function WorkspaceSidebar({
   agents,
   onOpenCreate,
   onOpenConnections,
 }: WorkspaceSidebarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { data: session } = useSession();
-  const [search, setSearch] = React.useState("");
+  const pathname = usePathname()
+  const router = useRouter()
+  const { data: session } = useSession()
+  const [search, setSearch] = React.useState("")
   const [internalConnectionsOpen, setInternalConnectionsOpen] =
-    React.useState(false);
+    React.useState(false)
 
   const filteredAgents = React.useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return agents;
+    const query = search.trim().toLowerCase()
+    if (!query) return agents
 
     return agents.filter(
       (agent) =>
         agent.name.toLowerCase().includes(query) ||
-        agent.description?.toLowerCase().includes(query),
-    );
-  }, [agents, search]);
+        agent.description?.toLowerCase().includes(query)
+    )
+  }, [agents, search])
 
   const handleSignOut = async () => {
-    await signOut();
-    router.replace("/login");
-  };
+    await signOut()
+    router.replace("/login")
+  }
 
   const handleOpenConnections = () => {
     if (onOpenConnections) {
-      onOpenConnections();
+      onOpenConnections()
     } else {
-      setInternalConnectionsOpen(true);
+      setInternalConnectionsOpen(true)
     }
-  };
+  }
 
   const userInitials = React.useMemo(() => {
-    const name = session?.user?.name || session?.user?.email || "U";
+    const name = session?.user?.name || session?.user?.email || "U"
     return name
       .split(" ")
       .map((part) => part[0])
       .join("")
       .slice(0, 2)
-      .toUpperCase();
-  }, [session]);
+      .toUpperCase()
+  }, [session])
 
   return (
     <>
@@ -126,7 +126,7 @@ export function WorkspaceSidebar({
               ) : (
                 <SidebarMenu className="gap-0.5 gap-2">
                   {filteredAgents.map((agent) => {
-                    const isActive = pathname === `/agent/${agent.id}`;
+                    const isActive = pathname === `/agent/${agent.id}`
 
                     return (
                       <SidebarMenuItem key={agent.id}>
@@ -136,7 +136,7 @@ export function WorkspaceSidebar({
                           tooltip={agent.name}
                           className={cn(
                             rowClass,
-                            "h-11 rounded-md group-data-[collapsible=icon]:p-0!",
+                            "h-11 rounded-md group-data-[collapsible=icon]:p-0!"
                           )}
                         >
                           <span className="relative flex shrink-0 group-data-[collapsible=icon]:mx-auto">
@@ -156,7 +156,7 @@ export function WorkspaceSidebar({
                           </span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                    );
+                    )
                   })}
                 </SidebarMenu>
               )}
@@ -175,7 +175,7 @@ export function WorkspaceSidebar({
               onSignOut={handleSignOut}
             />
 
-            <SidebarTrigger className="size-8" />
+            <SidebarTrigger className="size-8 group-data-[collapsible=icon]:hidden" />
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -185,5 +185,5 @@ export function WorkspaceSidebar({
         onOpenChange={setInternalConnectionsOpen}
       />
     </>
-  );
+  )
 }

@@ -1,23 +1,28 @@
-"use client";
+"use client"
 
-import { Badge } from "@openbots/ui/components/badge";
-import { Button } from "@openbots/ui/components/button";
-import { SidebarTrigger } from "@openbots/ui/components/sidebar";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
+import { Badge } from "@openbots/ui/components/badge"
+import { Button } from "@openbots/ui/components/button"
+import { SidebarTrigger } from "@openbots/ui/components/sidebar"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 import {
   IconCalendar,
   IconHistory,
   IconPlug,
   IconSettings,
-} from "@tabler/icons-react";
-import type { Agent } from "../types";
+} from "@tabler/icons-react"
+import type { Agent } from "../types"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@openbots/ui/components/tooltip"
 
 interface AgentHeaderProps {
-  selectedAgent: Agent | null;
-  onOpenConfigure: () => void;
-  onOpenHistory: () => void;
-  onOpenConnections?: () => void;
-  onOpenSchedules?: () => void;
+  selectedAgent: Agent | null
+  onOpenConfigure: () => void
+  onOpenHistory: () => void
+  onOpenConnections?: () => void
+  onOpenSchedules?: () => void
 }
 
 export function AgentHeader({
@@ -32,26 +37,36 @@ export function AgentHeader({
       <div className="flex items-center gap-1.5">
         <SidebarTrigger className="size-7 md:hidden" />
         {selectedAgent ? (
-          <div className="flex items-center gap-px rounded-sm bg-sidebar pr-1.5 pl-px">
-            <Blobatar
-              name={selectedAgent.name || selectedAgent.id}
-              className="size-6.5! shrink-0"
-            />
-            <span className="text-sm font-semibold text-foreground">
-              {selectedAgent.name}
-            </span>
-            <div className="hidden items-center gap-1.5">
-              <Badge variant="secondary" className="font-mono text-[10px]">
-                {selectedAgent.model.replace("google/", "")}
-              </Badge>
-              <Badge variant="secondary" className="text-[10px]">
-                {selectedAgent.autonomy}
-              </Badge>
-              <Badge variant="secondary" className="text-[10px]">
-                {selectedAgent.maxSteps} steps
-              </Badge>
-            </div>
-          </div>
+          <Tooltip>
+            <TooltipTrigger>
+              <div className="flex items-center gap-px rounded-md border border-border bg-sidebar pr-1.5 pl-px">
+                <Blobatar
+                  name={selectedAgent.name || selectedAgent.id}
+                  className="size-6.5! shrink-0"
+                />
+                <span className="text-sm font-semibold text-foreground">
+                  {selectedAgent.name}
+                </span>
+                <div className="hidden items-center gap-1.5">
+                  <Badge variant="secondary" className="font-mono text-[10px]">
+                    {selectedAgent.model.replace("google/", "")}
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {selectedAgent.autonomy}
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {selectedAgent.maxSteps} steps
+                  </Badge>
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className={"grid gap-0"}>
+              <p>{selectedAgent.description}</p>
+              <span className="text-[11px] text-background/70">
+                {selectedAgent.model}
+              </span>
+            </TooltipContent>
+          </Tooltip>
         ) : null}
       </div>
 
@@ -63,7 +78,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenConnections}
-                className="h-7 gap-1.5 bg-sidebar text-xs"
+                className="h-7 gap-1.5 border border-border bg-sidebar text-xs"
                 title="Integrations & Tools"
               >
                 <IconPlug className="size-3.5" />
@@ -76,7 +91,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenSchedules}
-                className="h-7 gap-1.5 bg-sidebar text-xs"
+                className="h-7 gap-1.5 border border-border bg-sidebar text-xs"
                 title="Scheduled Autonomous Tasks"
               >
                 <IconCalendar className="size-3.5" />
@@ -88,7 +103,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenHistory}
-              className="h-7 gap-1.5 bg-sidebar text-xs"
+              className="h-7 gap-1.5 border border-border bg-sidebar text-xs"
               title="Execution History"
             >
               <IconHistory className="size-3.5" />
@@ -99,7 +114,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenConfigure}
-              className="size-7 gap-1.5 bg-sidebar text-xs"
+              className="size-7 gap-1.5 border border-border bg-sidebar text-xs"
               title="Agent Settings"
             >
               <IconSettings className="size-3.5" />
@@ -108,5 +123,5 @@ export function AgentHeader({
         )}
       </div>
     </header>
-  );
+  )
 }

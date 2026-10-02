@@ -224,7 +224,7 @@ export function WorkspaceSidebar({
             My Agents
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            {filteredAgents.length === 2 ? (
+            {filteredAgents.length === 0 ? (
               <p className="flex flex-col gap-2 rounded-md border px-3 py-6 text-center text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
                 {search
                   ? "No agents match your search"

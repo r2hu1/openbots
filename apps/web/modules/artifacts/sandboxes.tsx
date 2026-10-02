@@ -2,7 +2,13 @@
 
 import * as React from "react";
 
-export function HtmlSandbox({ code }: { code: string }) {
+export function HtmlSandbox({
+  code,
+  className,
+}: {
+  code: string;
+  className?: string;
+}) {
   // Construct clean self-contained HTML document with Tailwind CDN
   const srcDoc = React.useMemo(() => {
     if (code.includes("<html") || code.includes("<!DOCTYPE")) {
@@ -29,7 +35,12 @@ export function HtmlSandbox({ code }: { code: string }) {
   }, [code]);
 
   return (
-    <div className="flex h-full min-h-[400px] w-full flex-col overflow-hidden rounded-md border border-border bg-background">
+    <div
+      className={
+        className ||
+        "flex h-full min-h-[400px] w-full flex-col overflow-hidden rounded-md border border-border bg-background"
+      }
+    >
       <iframe
         srcDoc={srcDoc}
         sandbox="allow-scripts allow-modals allow-forms"
@@ -40,9 +51,20 @@ export function HtmlSandbox({ code }: { code: string }) {
   );
 }
 
-export function SvgSandbox({ svg }: { svg: string }) {
+export function SvgSandbox({
+  svg,
+  className,
+}: {
+  svg: string;
+  className?: string;
+}) {
   return (
-    <div className="flex h-full min-h-[400px] w-full items-center justify-center overflow-auto rounded-md border border-border bg-background p-6">
+    <div
+      className={
+        className ||
+        "flex h-full min-h-[400px] w-full items-center justify-center overflow-auto rounded-md border border-border bg-background p-6"
+      }
+    >
       <div
         className="max-h-full max-w-full [&_svg]:h-auto [&_svg]:max-h-full [&_svg]:max-w-full"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: Sandboxed vector artifact rendering
@@ -52,7 +74,13 @@ export function SvgSandbox({ svg }: { svg: string }) {
   );
 }
 
-export function MermaidSandbox({ code }: { code: string }) {
+export function MermaidSandbox({
+  code,
+  className,
+}: {
+  code: string;
+  className?: string;
+}) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -105,7 +133,12 @@ export function MermaidSandbox({ code }: { code: string }) {
   }
 
   return (
-    <div className="flex h-full min-h-[400px] w-full items-center justify-center overflow-auto rounded-md border border-border bg-background p-6">
+    <div
+      className={
+        className ||
+        "flex h-full min-h-[400px] w-full items-center justify-center overflow-auto rounded-md border border-border bg-background p-6"
+      }
+    >
       <div
         ref={containerRef}
         className="max-h-full max-w-full [&_svg]:h-auto [&_svg]:max-h-full [&_svg]:max-w-full"

@@ -93,7 +93,7 @@ export function ConversationMessageItem({
                 if (seg.type === "artifact" && seg.artifact) {
                   const artifact = seg.artifact;
                   return (
-                    <div key={seg.id} className="max-w-md">
+                    <div key={seg.id} className="w-full max-w-2xl">
                       <ArtifactCard
                         artifact={artifact}
                         onClick={() => onOpenArtifact?.(artifact)}

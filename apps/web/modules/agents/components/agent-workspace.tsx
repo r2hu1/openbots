@@ -12,7 +12,10 @@ import { CreateAgentDialog } from "@/modules/agents/components/create-agent-dial
 import { useAgentExecution } from "@/modules/agents/hooks/use-agent-execution";
 import { useAgentsQuery } from "@/modules/agents/queries";
 import { ArtifactSheet } from "@/modules/artifacts/artifact-sheet";
-import type { ParsedArtifact } from "@/modules/artifacts/parser";
+import {
+  type ParsedArtifact,
+  parseArtifacts,
+} from "@/modules/artifacts/parser";
 import { ConnectionsSheet } from "@/modules/connections/components/connections-sheet";
 import { ConversationTimeline } from "@/modules/conversations/components/conversation-timeline";
 import { InputComposer } from "@/modules/conversations/components/input-composer";
@@ -21,6 +24,7 @@ import {
   useConversationDetailQuery,
   useConversationsQuery,
 } from "@/modules/conversations/queries";
+import { getMessageText } from "@/modules/conversations/utils";
 import { RunHistorySheet } from "@/modules/runs/components/run-history-sheet";
 
 interface AgentWorkspaceProps {

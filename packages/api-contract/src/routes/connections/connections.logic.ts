@@ -133,7 +133,39 @@ export async function initiateConnection(userId: string, appName: string) {
   if (!authConfigId) {
     try {
       const toolkit = (await composio.toolkits.get(appName.toLowerCase())) as any;
-      const authConfigs: any[] = toolkit.authConfigDetails?.items ?? [];
+      const authConfigs: any[] =
+        toolkit.authConfigDetails?.items ?? toolkit.authConfigDetails ?? [];
+      const isNoAuth =
+        toolkit.noAuth ||
+        toolkit.authScheme === "NO_AUTH" ||
+        authConfigs.some((c: any) => c.mode === "NO_AUTH");
+
+      if (isNoAuth) {
+        await db
+          .insert(connections)
+          .values({
+            userId,
+            provider: appName.toLowerCase(),
+            externalAccountId: `no_auth_${appName.toLowerCase()}`,
+            status: "active",
+            metadata: { noAuth: true, activatedAt: new Date().toISOString() },
+          })
+          .onConflictDoUpdate({
+            target: [
+              connections.userId,
+              connections.provider,
+              connections.externalAccountId,
+            ],
+            set: {
+              status: "active",
+              metadata: { noAuth: true, activatedAt: new Date().toISOString() },
+              updatedAt: new Date(),
+            },
+          });
+
+        return { redirectUrl: "/connections" };
+      }
+
       const primaryConfig =
         authConfigs.find((c: any) => c.status === "ENABLED") ?? authConfigs[0];
       if (primaryConfig?.id) {

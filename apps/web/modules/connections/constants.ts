@@ -5,14 +5,24 @@ import {
   IconBrandGithub,
   IconBrandGmail,
   IconBrandGoogleDrive,
+  IconBrandGoogleMaps,
   IconBrandJira,
+  IconBrandLinkedin,
   IconBrandNotion,
+  IconBrandOffice,
   IconBrandSlack,
   IconBrandStripe,
   IconBrandTrello,
+  IconBrandTwitter,
   IconBrandYoutube,
   IconBrandZoom,
   IconCalendar,
+  IconChartBar,
+  IconFileSpreadsheet,
+  IconFileText,
+  IconFlame,
+  IconNews,
+  IconWaveSine,
 } from "@tabler/icons-react";
 import type { IntegrationApp } from "./types";
 
@@ -123,5 +133,85 @@ export const AVAILABLE_INTEGRATIONS: readonly IntegrationApp[] = [
       "Create video meetings, manage recordings, and access schedule links.",
     icon: IconBrandZoom,
     accountId: "zoom_connected_account",
+  },
+  {
+    id: "googlesheets",
+    name: "Google Sheets",
+    description:
+      "Read, write, format spreadsheets, append rows, and manage worksheets.",
+    icon: IconFileSpreadsheet,
+    accountId: "googlesheets_connected_account",
+  },
+  {
+    id: "twitter",
+    name: "Twitter (X)",
+    description:
+      "Post tweets, search feeds, send direct messages, and track mentions.",
+    icon: IconBrandTwitter,
+    accountId: "twitter_connected_account",
+  },
+  {
+    id: "outlook",
+    name: "Outlook",
+    description:
+      "Send emails, manage Outlook inbox, calendar invites, and contacts.",
+    icon: IconBrandOffice,
+    accountId: "outlook_connected_account",
+  },
+  {
+    id: "googledocs",
+    name: "Google Docs",
+    description:
+      "Create documents, read paragraphs, format text, and insert content.",
+    icon: IconFileText,
+    accountId: "googledocs_connected_account",
+  },
+  {
+    id: "firecrawl",
+    name: "Firecrawl",
+    description:
+      "Scrape, crawl, and convert any website into clean markdown or structured data.",
+    icon: IconFlame,
+    accountId: "firecrawl_connected_account",
+  },
+  {
+    id: "hackernews",
+    name: "Hacker News",
+    description:
+      "Fetch top stories, search discussions, get user profiles, and comments.",
+    icon: IconNews,
+    accountId: "hackernews_connected_account",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    description:
+      "Share company updates, publish posts, view profiles, and manage engagements.",
+    icon: IconBrandLinkedin,
+    accountId: "linkedin_connected_account",
+  },
+  {
+    id: "elevenlabs",
+    name: "ElevenLabs",
+    description:
+      "Generate realistic AI speech, synthesize voices, and convert text to audio.",
+    icon: IconWaveSine,
+    accountId: "elevenlabs_connected_account",
+  },
+  {
+    id: "google_maps",
+    name: "Google Maps",
+    description:
+      "Search places, get navigation directions, calculate routes, and find points of interest.",
+    icon: IconBrandGoogleMaps,
+    accountId: "google_maps_connected_account",
+  },
+  {
+    id: "posthog",
+    name: "PostHog",
+    description:
+      "Query product analytics, track custom events, view session recordings, and feature flags.",
+    icon: IconChartBar,
+    accountId: "posthog_connected_account",
   },
 ];

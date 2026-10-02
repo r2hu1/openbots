@@ -1,29 +1,29 @@
-"use client"
+"use client";
 
-import { Button } from "@openbots/ui/components/button"
+import { Button } from "@openbots/ui/components/button";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@openbots/ui/components/sheet"
+} from "@openbots/ui/components/sheet";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@openbots/ui/components/tabs"
-import { IconCheck, IconCopy, IconMaximize, IconX } from "@tabler/icons-react"
-import * as React from "react"
-import type { ParsedArtifact } from "./parser"
-import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes"
-import { cn } from "@/lib/utils"
+} from "@openbots/ui/components/tabs";
+import { IconCheck, IconCopy, IconMaximize, IconX } from "@tabler/icons-react";
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import type { ParsedArtifact } from "./parser";
+import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes";
 
 interface ArtifactSheetProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  artifact: ParsedArtifact | null
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  artifact: ParsedArtifact | null;
 }
 
 export function ArtifactSheet({
@@ -31,28 +31,32 @@ export function ArtifactSheet({
   onOpenChange,
   artifact,
 }: ArtifactSheetProps) {
-  const [copied, setCopied] = React.useState(false)
-  const [maximized, setMaximized] = React.useState(false)
+  const [copied, setCopied] = React.useState(false);
+  const [maximized, setMaximized] = React.useState(false);
 
   const handleCopy = React.useCallback(async () => {
-    if (!artifact?.content) return
+    if (!artifact?.content) return;
     try {
-      await navigator.clipboard.writeText(artifact.content)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(artifact.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy code:", err)
+      console.error("Failed to copy code:", err);
     }
-  }, [artifact])
+  }, [artifact]);
 
-  if (!artifact) return null
+  if (!artifact) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         showCloseButton={false}
         side="right"
-        className={cn("w-full md:max-w-3xl!", maximized && "max-w-full!")}
+        className={cn(
+          "w-full data-[side=right]:w-3/4 data-[side=right]:sm:max-w-4xl",
+          maximized &&
+            "data-[side=right]:w-full! data-[side=right]:max-w-none!",
+        )}
       >
         <SheetHeader>
           <SheetTitle className="flex items-center justify-between">
@@ -127,5 +131,5 @@ export function ArtifactSheet({
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

@@ -1,54 +1,54 @@
-"use client";
+"use client"
 
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from "@openbots/ui/components/item";
 import {
   IconChartDots3,
+  IconChevronRight,
   IconCode,
-  IconEye,
   IconVectorTriangle,
-} from "@tabler/icons-react";
-import type { ParsedArtifact } from "./parser";
+} from "@tabler/icons-react"
+import type { ParsedArtifact } from "./parser"
 
 interface ArtifactCardProps {
-  artifact: ParsedArtifact;
-  onClick: () => void;
+  artifact: ParsedArtifact
+  onClick: () => void
+}
+
+function ArtifactIcon({ type }: { type: ParsedArtifact["type"] }) {
+  switch (type) {
+    case "svg":
+      return <IconVectorTriangle className="size-4" />
+    case "mermaid":
+      return <IconChartDots3 className="size-4" />
+    default:
+      return <IconCode className="size-4" />
+  }
 }
 
 export function ArtifactCard({ artifact, onClick }: ArtifactCardProps) {
-  const getIcon = () => {
-    switch (artifact.type) {
-      case "svg":
-        return <IconVectorTriangle className="size-4" />;
-      case "mermaid":
-        return <IconChartDots3 className="size-4" />;
-      default:
-        return <IconCode className="size-4" />;
-    }
-  };
-
   return (
-    <Item
-      variant="outline"
-      size="sm"
+    <button
+      type="button"
       onClick={onClick}
-      className="my-1.5 cursor-pointer hover:bg-muted/50"
+      className="group flex w-full items-center gap-2.5 rounded-lg bg-muted/50 px-2.5 py-2 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <ItemMedia variant="icon">{getIcon()}</ItemMedia>
-      <ItemContent>
-        <ItemTitle>{artifact.title}</ItemTitle>
-        <ItemDescription>
-          {artifact.type.toUpperCase()} · Click to inspect and preview
-        </ItemDescription>
-      </ItemContent>
-      <ItemMedia variant="icon">
-        <IconEye className="size-4 opacity-60" />
-      </ItemMedia>
-    </Item>
-  );
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-background text-foreground shadow-xs">
+        <ArtifactIcon type={artifact.type} />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] font-medium text-foreground">
+          {artifact.title}
+        </p>
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          <span className="font-medium tracking-wide uppercase">
+            {artifact.type}
+          </span>
+          <span className="mx-1.5">·</span>
+          Click to preview
+        </p>
+      </div>
+
+      <IconChevronRight className="size-4 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" />
+    </button>
+  )
 }

@@ -9,14 +9,13 @@ import {
   EmptyTitle,
 } from "@openbots/ui/components/empty"
 import { Button } from "@openbots/ui/components/button"
-import { SidebarInset, SidebarProvider } from "@openbots/ui/components/sidebar"
+import { SidebarInset } from "@openbots/ui/components/sidebar"
 import { Spinner } from "@openbots/ui/components/spinner"
 import { IconPlus, IconRobot } from "@tabler/icons-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useParams, useRouter } from "next/navigation"
 import * as React from "react"
 import { AgentHeader } from "@/components/agent-header"
-import { AuthGuard } from "@/components/auth-guard"
 import {
   type AgentData,
   ConfigureAgentSheet,
@@ -30,8 +29,8 @@ import { CreateAgentDialog } from "@/components/create-agent-dialog"
 import type { StepItem } from "@/components/execution-steps-card"
 import { InputComposer } from "@/components/input-composer"
 import { RunHistorySheet, type RunRecord } from "@/components/run-history-sheet"
-import { WorkspaceSidebar } from "@/components/workspace-sidebar"
 import { getClient } from "@/lib/api"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 
 interface AgentWorkspaceProps {
   initialAgentId?: string
@@ -49,6 +48,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     string | null
   >(null)
   const [activeRunId, setActiveRunId] = React.useState<string | null>(null)
+  const [lastTerminalRun, setLastTerminalRun] = React.useState<RunRecord | null>(null)
   const [isOptimisticRunning, setIsOptimisticRunning] = React.useState(false)
   const [optimisticMessages, setOptimisticMessages] = React.useState<
     MessageItem[]
@@ -96,6 +96,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
       prevAgentIdRef.current = selectedAgentId
       setActiveConversationId(null)
       setActiveRunId(null)
+      setLastTerminalRun(null)
       setIsOptimisticRunning(false)
       setOptimisticMessages([])
     }
@@ -164,13 +165,11 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
 
   // Reconcile synchronously in useMemo — no extra render frame with duplicates
   const messages = React.useMemo(() => {
-    if (optimisticMessages.length === 0) return serverMessages;
+    if (optimisticMessages.length === 0) return serverMessages
 
     const reconciled = optimisticMessages.filter((opt) => {
       const optText =
-        typeof opt.content === "object" &&
-        opt.content &&
-        "text" in opt.content
+        typeof opt.content === "object" && opt.content && "text" in opt.content
           ? (opt.content as { text: string }).text
           : String(opt.content)
       return !serverMessages.some((srv) => {
@@ -215,8 +214,10 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
 
   // 4. Discover and Poll Active Run across reloads
   // Track dismissed runs to prevent cleanup → auto-connect infinite loop
-  const dismissedRunIds = React.useRef<Set<string>>(new Set());
-  React.useEffect(() => { dismissedRunIds.current.clear(); }, [selectedAgentId]);
+  const dismissedRunIds = React.useRef<Set<string>>(new Set())
+  React.useEffect(() => {
+    dismissedRunIds.current.clear()
+  }, [selectedAgentId])
   // Fetch latest runs for selected agent to resume any in-flight queued/running task on refresh
   const { data: runsData } = useQuery({
     queryKey: ["runs", selectedAgentId],
@@ -241,13 +242,13 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
           !dismissedRunIds.current.has(r.id) &&
           (r.status === "running" ||
             (r.status === "queued" && r.triggerType !== "schedule")) &&
-          (!activeConversationId || r.conversationId === activeConversationId),
-      );
+          (!activeConversationId || r.conversationId === activeConversationId)
+      )
       if (ongoingRun) {
-        setActiveRunId(ongoingRun.id);
+        setActiveRunId(ongoingRun.id)
       }
     }
-  }, [activeRunId, runsData?.runs, activeConversationId]);
+  }, [activeRunId, runsData?.runs, activeConversationId])
 
   const { data: activeRunData } = useQuery({
     queryKey: ["run", activeRunId],
@@ -278,8 +279,11 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
       activeRunStatus === "cancelled"
     ) {
       setIsOptimisticRunning(false)
+      if (activeRunData?.run) {
+        setLastTerminalRun(activeRunData.run)
+      }
       if (activeRunId) {
-        dismissedRunIds.current.add(activeRunId);
+        dismissedRunIds.current.add(activeRunId)
       }
       if (activeConversationId) {
         queryClient.invalidateQueries({
@@ -293,12 +297,20 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
       }
       setActiveRunId(null)
     }
-  }, [activeRunStatus, activeRunId, activeConversationId, selectedAgentId, queryClient])
+  }, [
+    activeRunStatus,
+    activeRunData?.run,
+    activeRunId,
+    activeConversationId,
+    selectedAgentId,
+    queryClient,
+  ])
 
   // 5. Submit Run Mutation with Optimistic UI updates
   const runMutation = useMutation({
     onMutate: async (prompt: string) => {
       setIsOptimisticRunning(true)
+      setLastTerminalRun(null)
       const tempId = `optimistic-${Date.now()}`
       const optimisticMsg: MessageItem = {
         id: tempId,
@@ -398,114 +410,110 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     activeRunStatus === "running"
 
   return (
-    <AuthGuard>
-      <SidebarProvider defaultOpen>
-        <div className="flex h-svh w-full overflow-hidden bg-background">
-          {/* Narrow Persistent Sidebar */}
-          <WorkspaceSidebar
-            agents={agents}
-            onOpenCreate={() => setCreateDialogOpen(true)}
-          />
+    <>
+      {/* Large Agent Workspace */}
+      <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+        <AgentHeader
+          selectedAgent={selectedAgent}
+          onOpenConfigure={() => setConfigureSheetOpen(true)}
+          onOpenHistory={() => {
+            setInspectedRunId(null)
+            setHistorySheetOpen(true)
+          }}
+          onOpenConnections={() => setConnectionsSheetOpen(true)}
+        />
 
-          {/* Large Agent Workspace */}
-          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-            <AgentHeader
-              selectedAgent={selectedAgent}
-              onOpenConfigure={() => setConfigureSheetOpen(true)}
-              onOpenHistory={() => {
-                setInspectedRunId(null)
-                setHistorySheetOpen(true)
-              }}
-              onOpenConnections={() => setConnectionsSheetOpen(true)}
-            />
+        <main className="flex flex-1 flex-col overflow-hidden">
+          {isLoadingAgents ? (
+            <div className="flex flex-1 items-center justify-center">
+              <Spinner className="size-6 text-muted-foreground" />
+            </div>
+          ) : !selectedAgent ? (
+            <div className="flex flex-1 items-center justify-center p-6">
+              <Empty className="max-w-md rounded-xl border bg-card p-8 shadow-xs">
+                <EmptyHeader>
+                  <EmptyMedia variant="default">
+                    <Blobatar
+                      className="size-14!"
+                      name="OpenBots"
+                      blobatar={{
+                        animate: "always",
+                      }}
+                    />
+                  </EmptyMedia>
+                  <EmptyTitle>Zero Agents Configured</EmptyTitle>
+                  <EmptyDescription>
+                    Create your first autonomous agent to coordinate tools and
+                    multi-step tasks.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button
+                    onClick={() => setCreateDialogOpen(true)}
+                    className="gap-1.5"
+                  >
+                    <IconPlus className="size-4" />
+                    Create Agent
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <ConversationTimeline
+                messages={messages}
+                activeRun={activeRunData?.run || lastTerminalRun}
+                activeRunSteps={activeRunData?.steps || []}
+                onCancelRun={() => cancelMutation.mutate()}
+                isCancelling={cancelMutation.isPending}
+                agentName={selectedAgent.name}
+                isOptimisticRunning={isOptimisticRunning}
+                isLoading={isChatLoading}
+              />
 
-            <main className="flex flex-1 flex-col overflow-hidden">
-              {isLoadingAgents ? (
-                <div className="flex flex-1 items-center justify-center">
-                  <Spinner className="size-6 text-muted-foreground" />
-                </div>
-              ) : !selectedAgent ? (
-                <div className="flex flex-1 items-center justify-center p-6">
-                  <Empty className="max-w-md rounded-xl border bg-card p-8 shadow-xs">
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <IconRobot className="size-6 text-primary" />
-                      </EmptyMedia>
-                      <EmptyTitle>Zero Agents Configured</EmptyTitle>
-                      <EmptyDescription>
-                        Create your first autonomous agent to coordinate tools
-                        and multi-step tasks.
-                      </EmptyDescription>
-                    </EmptyHeader>
-                    <EmptyContent>
-                      <Button
-                        onClick={() => setCreateDialogOpen(true)}
-                        className="gap-1.5"
-                      >
-                        <IconPlus className="size-4" />
-                        Create Agent
-                      </Button>
-                    </EmptyContent>
-                  </Empty>
-                </div>
-              ) : (
-                <div className="flex flex-1 flex-col overflow-hidden">
-                  <ConversationTimeline
-                    messages={messages}
-                    activeRun={activeRunData?.run || null}
-                    activeRunSteps={activeRunData?.steps || []}
-                    onCancelRun={() => cancelMutation.mutate()}
-                    isCancelling={cancelMutation.isPending}
-                    agentName={selectedAgent.name}
-                    isOptimisticRunning={isOptimisticRunning}
-                    isLoading={isChatLoading}
-                  />
+              <InputComposer
+                onSend={(prompt) => runMutation.mutate(prompt)}
+                isSubmitting={runMutation.isPending}
+                isActiveRun={isActiveRun}
+                onCancelRun={() => cancelMutation.mutate()}
+                isCancelling={cancelMutation.isPending}
+                placeholder={`Send task to ${selectedAgent.name}...`}
+              />
+            </div>
+          )}
+        </main>
+      </SidebarInset>
 
-                  <InputComposer
-                    onSend={(prompt) => runMutation.mutate(prompt)}
-                    isSubmitting={runMutation.isPending}
-                    isActiveRun={isActiveRun}
-                    onCancelRun={() => cancelMutation.mutate()}
-                    isCancelling={cancelMutation.isPending}
-                    placeholder={`Send task to ${selectedAgent.name}...`}
-                  />
-                </div>
-              )}
-            </main>
-          </SidebarInset>
+      {/* Modals & Sheets */}
+      <CreateAgentDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onAgentCreated={(newId) => {
+          setSelectedAgentId(newId)
+          setActiveConversationId(null)
+          setActiveRunId(null)
+          router.push(`/agent/${newId}`)
+        }}
+      />
 
-          {/* Modals & Sheets */}
-          <CreateAgentDialog
-            open={createDialogOpen}
-            onOpenChange={setCreateDialogOpen}
-            onAgentCreated={(newId) => {
-              setSelectedAgentId(newId)
-              setActiveConversationId(null)
-              setActiveRunId(null)
-              router.push(`/agent/${newId}`)
-            }}
-          />
+      <ConfigureAgentSheet
+        agent={selectedAgent}
+        open={configureSheetOpen}
+        onOpenChange={setConfigureSheetOpen}
+      />
 
-          <ConfigureAgentSheet
-            agent={selectedAgent}
-            open={configureSheetOpen}
-            onOpenChange={setConfigureSheetOpen}
-          />
+      <RunHistorySheet
+        agentId={selectedAgentId}
+        open={historySheetOpen}
+        onOpenChange={setHistorySheetOpen}
+        selectedRunId={inspectedRunId}
+        onSelectRunId={setInspectedRunId}
+      />
 
-          <RunHistorySheet
-            agentId={selectedAgentId}
-            open={historySheetOpen}
-            onOpenChange={setHistorySheetOpen}
-            selectedRunId={inspectedRunId}
-            onSelectRunId={setInspectedRunId}
-          />
-
-          <ConnectionsSheet
-            open={connectionsSheetOpen}
-            onOpenChange={setConnectionsSheetOpen}
-          />
-        </div>
-      </SidebarProvider>
-    </AuthGuard>
+      <ConnectionsSheet
+        open={connectionsSheetOpen}
+        onOpenChange={setConnectionsSheetOpen}
+      />
+    </>
   )
 }

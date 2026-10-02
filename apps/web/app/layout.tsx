@@ -3,8 +3,6 @@ import { Geist_Mono, Inter } from "next/font/google";
 import "@openbots/ui/globals.css";
 import "@openbots/ui/styles/typeset.css";
 import { cn } from "@openbots/ui/lib/utils";
-import { QueryProvider } from "@/components/query-provider";
-import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -29,11 +27,7 @@ export default function RootLayout({
         inter.variable,
       )}
     >
-      <body>
-        <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </ThemeProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

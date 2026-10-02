@@ -275,7 +275,7 @@ export function WorkspaceSidebar({
                             {agent.name}
                           </span>
                           <span className="block truncate text-[11px] text-muted-foreground">
-                            {agent.description}
+                            {agent.description ?? agent.model}
                           </span>
                         </span>
                       </SidebarMenuButton>

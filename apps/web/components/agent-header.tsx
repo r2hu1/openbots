@@ -53,11 +53,7 @@ export function AgentHeader({
               </Badge>
             </div>
           </div>
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            No agent selected
-          </span>
-        )}
+        ) : null}
       </div>
 
       {/* Header Actions */}
@@ -105,11 +101,10 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenConfigure}
-              className="h-7 gap-1.5 bg-sidebar text-xs"
+              className="size-7 gap-1.5 bg-sidebar text-xs"
               title="Agent Settings"
             >
               <IconSettings className="size-3.5" />
-              <span className="hidden sm:inline">Settings</span>
             </Button>
           </>
         )}

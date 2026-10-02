@@ -264,7 +264,7 @@ function SidebarTrigger({
       data-slot="sidebar-trigger"
       variant="secondary"
       size="icon-sm"
-      className={cn(className)}
+      className={cn(className, "bg-sidebar")}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()

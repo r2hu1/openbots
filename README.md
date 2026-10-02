@@ -2,6 +2,10 @@
 
 An open-source autonomous multi-agent platform for building, orchestrating, and operating teams of specialized AI agents with durable tool execution, scheduled workflows, and third-party SaaS integrations.
 
+
+https://github.com/user-attachments/assets/bc64f150-2b03-4c32-a173-38765f38f40c
+
+
 ## Overview
 
 OpenBots provides a complete infrastructure stack for deploying autonomous agents in production. Agents operate with distinct system instructions, configurable reasoning models, loop boundaries, and access to a rich set of native utilities and SaaS integrations.

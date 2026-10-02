@@ -175,11 +175,34 @@ export async function executeAgentRun(
     // Clear any previous partial steps if this run is being retried
     await db.delete(runSteps).where(eq(runSteps.runId, runId));
 
-    resolvedTools = await buildAgentTools({
-      userId: runRecord.userId,
-      agentId: agentRecord.id,
-      conversationId: runRecord.conversationId,
-    });
+    // Parallelize preparation: tool resolution, conversation message loading, and connection queries
+    const [resolvedToolsResult, historyMessages, activeConnections] =
+      await Promise.all([
+        buildAgentTools({
+          userId: runRecord.userId,
+          agentId: agentRecord.id,
+          conversationId: runRecord.conversationId,
+        }),
+        runRecord.conversationId
+          ? db
+              .select()
+              .from(messages)
+              .where(eq(messages.conversationId, runRecord.conversationId))
+              .orderBy(asc(messages.createdAt))
+          : Promise.resolve([]),
+        db
+          .select({ provider: connections.provider })
+          .from(connections)
+          .where(
+            and(
+              eq(connections.userId, runRecord.userId),
+              eq(connections.status, "active"),
+              ne(connections.provider, "composio"),
+            ),
+          ),
+      ]);
+
+    resolvedTools = resolvedToolsResult;
 
     // Prepare conversation messages
     const inputMessages: Array<{
@@ -187,33 +210,25 @@ export async function executeAgentRun(
       content: string;
     }> = [];
 
-    if (runRecord.conversationId) {
-      const history = await db
-        .select()
-        .from(messages)
-        .where(eq(messages.conversationId, runRecord.conversationId))
-        .orderBy(asc(messages.createdAt));
-
-      for (const m of history) {
-        if (
-          m.role === "user" ||
-          m.role === "assistant" ||
-          m.role === "system"
-        ) {
-          let textContent = "";
-          if (typeof m.content === "string") {
-            textContent = m.content;
-          } else if (m.content && typeof m.content === "object") {
-            textContent =
-              (m.content as any).text ??
-              (m.content as any).prompt ??
-              JSON.stringify(m.content);
-          }
-          inputMessages.push({
-            role: m.role,
-            content: textContent,
-          });
+    for (const m of historyMessages) {
+      if (
+        m.role === "user" ||
+        m.role === "assistant" ||
+        m.role === "system"
+      ) {
+        let textContent = "";
+        if (typeof m.content === "string") {
+          textContent = m.content;
+        } else if (m.content && typeof m.content === "object") {
+          textContent =
+            (m.content as any).text ??
+            (m.content as any).prompt ??
+            JSON.stringify(m.content);
         }
+        inputMessages.push({
+          role: m.role,
+          content: textContent,
+        });
       }
     }
 
@@ -227,49 +242,19 @@ export async function executeAgentRun(
           (inputObj?.messages ? null : JSON.stringify(inputObj ?? "")));
 
     if (promptText) {
-      inputMessages.push({
-        role: "user",
-        content: promptText,
-      });
-
-      // If tied to a conversation, check if already persisted (e.g. at route trigger time)
-      if (runRecord.conversationId) {
-        const [existing] = await db
-          .select()
-          .from(messages)
-          .where(
-            and(
-              eq(messages.conversationId, runRecord.conversationId),
-              eq(messages.role, "user"),
-            ),
-          )
-          .limit(1);
-
-        if (!existing) {
-          await db.insert(messages).values({
-            conversationId: runRecord.conversationId,
-            role: "user",
-            content: { text: promptText },
-          });
-        }
+      // Check if promptText is already the last message in history to prevent duplicates
+      const lastMsg = inputMessages[inputMessages.length - 1];
+      if (!lastMsg || lastMsg.role !== "user" || lastMsg.content !== promptText) {
+        inputMessages.push({
+          role: "user",
+          content: promptText,
+        });
       }
     } else if (Array.isArray(inputObj?.messages)) {
       for (const m of inputObj.messages) {
         inputMessages.push(m);
       }
     }
-
-    // Query user's active app connections to inform the agent
-    const activeConnections = await db
-      .select({ provider: connections.provider })
-      .from(connections)
-      .where(
-        and(
-          eq(connections.userId, runRecord.userId),
-          eq(connections.status, "active"),
-          ne(connections.provider, "composio"),
-        ),
-      );
 
     const connectedApps = activeConnections.map((c) => c.provider);
 
@@ -302,61 +287,66 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
     });
 
     let currentStepNumber = 0;
+    const pendingStepPersistTasks: Array<Promise<any>> = [];
 
     const result = await agent.generate({
       messages: inputMessages as any,
       abortSignal: abortController.signal,
       onStepFinish: async (step) => {
-        // Cooperative DB cancellation check between steps
-        const [liveRun] = await db
-          .select({ status: runs.status })
-          .from(runs)
-          .where(eq(runs.id, runRecord.id));
+        // Fast in-memory check first
+        if (abortController.signal.aborted) return;
 
-        if (liveRun?.status === "cancelled") {
-          abortController.abort(new Error("Run was cancelled"));
-          return;
+        // Batch steps to insert in a single DB roundtrip
+        const stepsToInsert: Array<typeof runSteps.$inferInsert> = [];
+
+        stepsToInsert.push({
+          runId: runRecord.id,
+          stepNumber: currentStepNumber++,
+          type: "model",
+          status: "completed",
+          model: agentRecord.model,
+          output: {
+            text: step.text,
+            finishReason: step.finishReason,
+            usage: step.usage,
+          },
+        });
+
+        if (step.toolResults && step.toolResults.length > 0) {
+          for (const tr of step.toolResults) {
+            stepsToInsert.push({
+              runId: runRecord.id,
+              stepNumber: currentStepNumber++,
+              type: "tool",
+              status: "completed",
+              toolName: tr.toolName,
+              toolCallId: tr.toolCallId,
+              toolInput: ((tr as any).input ??
+                (tr as any).args ??
+                null) as any,
+              toolOutput: ((tr as any).output ??
+                (tr as any).result ??
+                null) as any,
+            });
+          }
         }
 
-        try {
-          // Record model step
-          await db.insert(runSteps).values({
-            runId: runRecord.id,
-            stepNumber: currentStepNumber++,
-            type: "model",
-            status: "completed",
-            model: agentRecord.model,
-            output: {
-              text: step.text,
-              finishReason: step.finishReason,
-              usage: step.usage,
-            },
+        // Fire-and-track async step insertion without stalling the model generate loop
+        const insertPromise = db
+          .insert(runSteps)
+          .values(stepsToInsert)
+          .catch((err) => {
+            console.warn("Failed to persist step batch:", err);
           });
 
-          // Record any tool execution steps
-          if (step.toolResults && step.toolResults.length > 0) {
-            for (const tr of step.toolResults) {
-              await db.insert(runSteps).values({
-                runId: runRecord.id,
-                stepNumber: currentStepNumber++,
-                type: "tool",
-                status: "completed",
-                toolName: tr.toolName,
-                toolCallId: tr.toolCallId,
-                toolInput: ((tr as any).input ??
-                  (tr as any).args ??
-                  null) as any,
-                toolOutput: ((tr as any).output ??
-                  (tr as any).result ??
-                  null) as any,
-              });
-            }
-          }
-        } catch (stepErr) {
-          console.warn("Failed to persist run step metadata:", stepErr);
-        }
+        pendingStepPersistTasks.push(insertPromise);
       },
     });
+
+    // Wait for any remaining background step writes before completing
+    if (pendingStepPersistTasks.length > 0) {
+      await Promise.allSettled(pendingStepPersistTasks);
+    }
 
     const finalOutput = {
       text: result.text,
@@ -364,17 +354,27 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       usage: result.usage,
     };
 
-    // Conditional completion update: ONLY complete if run is still in 'running' state.
-    // If run was cancelled while model was finishing, this update affects 0 rows.
-    const [completedRun] = await db
-      .update(runs)
-      .set({
-        status: "completed",
-        output: finalOutput,
-        completedAt: new Date(),
-      })
-      .where(and(eq(runs.id, runId), eq(runs.status, "running")))
-      .returning();
+    // Parallelize run completion update and assistant message persistence
+    const [completedRunRows] = await Promise.all([
+      db
+        .update(runs)
+        .set({
+          status: "completed",
+          output: finalOutput,
+          completedAt: new Date(),
+        })
+        .where(and(eq(runs.id, runId), eq(runs.status, "running")))
+        .returning(),
+      runRecord.conversationId && result.text
+        ? db.insert(messages).values({
+            conversationId: runRecord.conversationId,
+            role: "assistant",
+            content: { text: result.text },
+          })
+        : Promise.resolve(),
+    ]);
+
+    const completedRun = completedRunRows[0];
 
     if (!completedRun) {
       // Race: run was cancelled or modified concurrently
@@ -382,15 +382,6 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       return (
         finalRun ?? { id: runId, status: "cancelled", output: finalOutput }
       );
-    }
-
-    // If part of conversation, persist assistant's final response
-    if (runRecord.conversationId && result.text) {
-      await db.insert(messages).values({
-        conversationId: runRecord.conversationId,
-        role: "assistant",
-        content: { text: result.text },
-      });
     }
 
     return completedRun;

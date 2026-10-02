@@ -161,63 +161,13 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
       (Boolean(conversationsData?.conversations?.length) &&
         !activeConversationId))
 
-  const serverMessages = conversationDetail?.messages || []
-
-  // Reconcile synchronously in useMemo — no extra render frame with duplicates
-  const messages = React.useMemo(() => {
-    if (optimisticMessages.length === 0) return serverMessages
-
-    const reconciled = optimisticMessages.filter((opt) => {
-      const optText =
-        typeof opt.content === "object" && opt.content && "text" in opt.content
-          ? (opt.content as { text: string }).text
-          : String(opt.content)
-      return !serverMessages.some((srv) => {
-        const srvText =
-          typeof srv.content === "object" &&
-          srv.content &&
-          "text" in srv.content
-            ? (srv.content as { text: string }).text
-            : String(srv.content)
-        return srv.role === "user" && srvText === optText
-      })
-    })
-
-    return [...serverMessages, ...reconciled]
-  }, [serverMessages, optimisticMessages])
-
-  // Clear optimistic messages once fully reconciled with server
-  React.useEffect(() => {
-    if (serverMessages.length > 0 && optimisticMessages.length > 0) {
-      const allReconciled = optimisticMessages.every((opt) => {
-        const optText =
-          typeof opt.content === "object" &&
-          opt.content &&
-          "text" in opt.content
-            ? (opt.content as { text: string }).text
-            : String(opt.content)
-        return serverMessages.some((srv) => {
-          const srvText =
-            typeof srv.content === "object" &&
-            srv.content &&
-            "text" in srv.content
-              ? (srv.content as { text: string }).text
-              : String(srv.content)
-          return srv.role === "user" && srvText === optText
-        })
-      })
-      if (allReconciled) {
-        setOptimisticMessages([])
-      }
-    }
-  }, [serverMessages, optimisticMessages])
-
   // 4. Discover and Poll Active Run across reloads
   // Track dismissed runs to prevent cleanup → auto-connect infinite loop
   const dismissedRunIds = React.useRef<Set<string>>(new Set())
   React.useEffect(() => {
     dismissedRunIds.current.clear()
   }, [selectedAgentId])
+
   // Fetch latest runs for selected agent to resume any in-flight queued/running task on refresh
   const { data: runsData } = useQuery({
     queryKey: ["runs", selectedAgentId],
@@ -305,6 +255,97 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     selectedAgentId,
     queryClient,
   ])
+
+  const serverMessages = conversationDetail?.messages || []
+
+  // Reconcile synchronously in useMemo — no extra render frame with duplicates or visual delay gaps
+  const messages = React.useMemo(() => {
+    let result = [...serverMessages]
+
+    // If an active or recently completed run has output.text, ensure it is immediately visible
+    // without waiting for the conversation query refetch network roundtrip
+    const completedRun =
+      (activeRunData?.run?.status === "completed" ? activeRunData.run : null) ||
+      (lastTerminalRun?.status === "completed" ? lastTerminalRun : null)
+
+    if (completedRun) {
+      const completedOutputText =
+        completedRun.output &&
+        typeof completedRun.output === "object" &&
+        "text" in (completedRun.output as any) &&
+        typeof (completedRun.output as any).text === "string"
+          ? (completedRun.output as any).text.trim()
+          : null
+
+      if (completedOutputText) {
+        const hasResponseAlready = result.some((m) => {
+          if (m.role !== "assistant") return false
+          const t =
+            typeof m.content === "object" && m.content && "text" in m.content
+              ? (m.content as { text: string }).text
+              : String(m.content)
+          return t.trim() === completedOutputText
+        })
+
+        if (!hasResponseAlready) {
+          result.push({
+            id: `opt-assistant-${completedRun.id}`,
+            conversationId: activeConversationId || "temp",
+            role: "assistant",
+            content: { text: completedOutputText },
+            createdAt: completedRun.completedAt || new Date(),
+          })
+        }
+      }
+    }
+
+    if (optimisticMessages.length > 0) {
+      const reconciledUser = optimisticMessages.filter((opt) => {
+        const optText =
+          typeof opt.content === "object" && opt.content && "text" in opt.content
+            ? (opt.content as { text: string }).text
+            : String(opt.content)
+        return !result.some((srv) => {
+          const srvText =
+            typeof srv.content === "object" &&
+            srv.content &&
+            "text" in srv.content
+              ? (srv.content as { text: string }).text
+              : String(srv.content)
+          return srv.role === "user" && srvText === optText
+        })
+      })
+      result = [...result, ...reconciledUser]
+    }
+
+    return result
+  }, [serverMessages, optimisticMessages, activeRunData?.run, lastTerminalRun, activeConversationId])
+
+  // Clear optimistic messages once fully reconciled with server
+  React.useEffect(() => {
+    if (serverMessages.length > 0 && optimisticMessages.length > 0) {
+      const allReconciled = optimisticMessages.every((opt) => {
+        const optText =
+          typeof opt.content === "object" &&
+          opt.content &&
+          "text" in opt.content
+            ? (opt.content as { text: string }).text
+            : String(opt.content)
+        return serverMessages.some((srv) => {
+          const srvText =
+            typeof srv.content === "object" &&
+            srv.content &&
+            "text" in srv.content
+              ? (srv.content as { text: string }).text
+              : String(srv.content)
+          return srv.role === "user" && srvText === optText
+        })
+      })
+      if (allReconciled) {
+        setOptimisticMessages([])
+      }
+    }
+  }, [serverMessages, optimisticMessages])
 
   // 5. Submit Run Mutation with Optimistic UI updates
   const runMutation = useMutation({

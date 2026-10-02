@@ -8,6 +8,7 @@ import {
 } from "@openbots/db";
 import { tasks } from "@trigger.dev/sdk";
 import { and, eq } from "drizzle-orm";
+import { getDirectRunExecutor } from "../runs/runs.logic.js";
 import type {
   ConfigureToolInput,
   CreateAgentInput,
@@ -272,18 +273,26 @@ export async function createAgentRun(
     }
   }
 
-  // Enqueue durable task with Trigger.dev with idempotency deduplication
-  try {
-    await tasks.trigger(
-      "agent-run",
-      { runId: run.id },
-      {
-        idempotencyKey: run.id,
-        tags: [run.id, userId],
-      },
-    );
-  } catch (err) {
-    console.warn("Could not dispatch Trigger.dev task for run:", run.id, err);
+  // Fast path: if direct executor is registered in this process (API server), start execution immediately
+  const directExecutor = getDirectRunExecutor();
+  if (directExecutor) {
+    directExecutor(run.id).catch((err) => {
+      console.error("Direct run execution error:", err);
+    });
+  } else {
+    // Enqueue durable task with Trigger.dev with idempotency deduplication
+    try {
+      await tasks.trigger(
+        "agent-run",
+        { runId: run.id },
+        {
+          idempotencyKey: run.id,
+          tags: [run.id, userId],
+        },
+      );
+    } catch (err) {
+      console.warn("Could not dispatch Trigger.dev task for run:", run.id, err);
+    }
   }
 
   return {

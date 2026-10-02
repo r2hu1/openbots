@@ -13,13 +13,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@openbots/ui/components/sidebar";
-import { IconLogout, IconSettings } from "@tabler/icons-react";
+import { IconLogout, IconPlug, IconSettings } from "@tabler/icons-react";
 
 interface UserMenuProps {
   name: string;
   email?: string;
   initials: string;
   onSettings: () => void;
+  onConnections?: () => void;
   onSignOut: () => void;
 }
 
@@ -28,6 +29,7 @@ export function UserMenu({
   email,
   initials,
   onSettings,
+  onConnections,
   onSignOut,
 }: UserMenuProps) {
   const { isMobile } = useSidebar();
@@ -44,10 +46,10 @@ export function UserMenu({
             </Avatar>
 
             <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
-              <span className="block truncate text-[13px] font-medium">
+              <span className="block max-w-20 truncate text-[13px] font-medium">
                 {name}
               </span>
-              <span className="block truncate text-[11px] text-muted-foreground">
+              <span className="block max-w-35 truncate text-[11px] text-muted-foreground">
                 {email}
               </span>
             </span>
@@ -74,6 +76,13 @@ export function UserMenu({
             </div>
 
             <DropdownMenuSeparator />
+
+            {onConnections && (
+              <DropdownMenuItem onClick={onConnections}>
+                <IconPlug />
+                Connections
+              </DropdownMenuItem>
+            )}
 
             <DropdownMenuItem onClick={onSettings}>
               <IconSettings />

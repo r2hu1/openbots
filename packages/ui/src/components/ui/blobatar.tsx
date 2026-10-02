@@ -67,7 +67,7 @@ export function Blobatar({
     <Generated
       {...blobatar}
       name={name}
-      className={`m-0! size-7 rounded-full px-0! ${className}`}
+      className={`m-0! size-7 rounded-full px-0! grayscale ${className}`}
     />
   )
 }

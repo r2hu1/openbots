@@ -35,6 +35,11 @@ export const runsRoute = new Hono<Env>()
       return c.json({ error: "Run not found" }, 404);
     }
 
+    c.header("Content-Type", "text/event-stream");
+    c.header("Cache-Control", "no-cache, no-transform");
+    c.header("Connection", "keep-alive");
+    c.header("X-Accel-Buffering", "no");
+
     return streamSSE(c, async (stream) => {
       // If already terminal, emit current state and exit
       if (
@@ -88,14 +93,21 @@ export const runsRoute = new Hono<Env>()
 
       try {
         let lastDbCheck = Date.now();
-        while (!stream.aborted && !isDone) {
+        while (!stream.aborted) {
           if (queue.length > 0) {
             const item = queue.shift()!;
             await stream.writeSSE({
               event: item.event,
               data: item.data,
             });
+            if (item.event === "done") {
+              break;
+            }
             continue;
+          }
+
+          if (isDone) {
+            break;
           }
 
           // Periodic DB check every 1500ms as fallback in case worker ran on another process
@@ -126,11 +138,19 @@ export const runsRoute = new Hono<Env>()
             }
           }
 
-          // Wait for next event or 1000ms timeout
-          await new Promise<void>((resolve) => {
-            notifyResolver = resolve;
-            setTimeout(resolve, 1000);
-          });
+          if (queue.length === 0 && !isDone) {
+            // Wait for next event or 500ms timeout
+            await new Promise<void>((resolve) => {
+              let timer: any = null;
+              const cb = () => {
+                if (timer) clearTimeout(timer);
+                notifyResolver = null;
+                resolve();
+              };
+              notifyResolver = cb;
+              timer = setTimeout(cb, 500);
+            });
+          }
         }
       } finally {
         unsubscribe();

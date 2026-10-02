@@ -1,4 +1,4 @@
-import { db, runSteps, runs } from "@openbots/db";
+import { db, getRedis, runSteps, runs } from "@openbots/db";
 import { runs as triggerRuns } from "@trigger.dev/sdk";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
@@ -75,8 +75,8 @@ export async function cancelRun(runId: string, userId: string) {
   return { run: existingRun, status: 200 as const };
 }
 
-// In-process event emitter for real-time SSE streaming between executor and client
-type RunEvent =
+// Cross-process event emitter using Upstash Redis Pub/Sub with in-memory fallback
+export type RunEvent =
   | { type: "delta"; text: string }
   | { type: "tool_start"; toolName: string; stepNumber: number }
   | { type: "tool_finish"; toolName: string; stepNumber: number }
@@ -86,25 +86,95 @@ type RunEvent =
 type RunEventListener = (event: RunEvent) => void;
 
 class RunEventHub {
-  private listeners = new Map<string, Set<RunEventListener>>();
+  private localListeners = new Map<string, Set<RunEventListener>>();
+  private eventHistory = new Map<string, RunEvent[]>();
+  private redisPollIntervals = new Map<string, any>();
 
   subscribe(runId: string, listener: RunEventListener): () => void {
-    let set = this.listeners.get(runId);
+    let set = this.localListeners.get(runId);
     if (!set) {
       set = new Set();
-      this.listeners.set(runId, set);
+      this.localListeners.set(runId, set);
     }
     set.add(listener);
+
+    // Replay any events already emitted for this run in this process
+    const history = this.eventHistory.get(runId);
+    if (history && history.length > 0) {
+      for (const ev of [...history]) {
+        try {
+          listener(ev);
+        } catch {}
+      }
+    }
+
+    // If Upstash Redis is configured, start reading any events pushed to the run's Redis list
+    try {
+      const redis = getRedis();
+      if (redis && !this.redisPollIntervals.has(runId)) {
+        let lastLength = 0;
+        const channelKey = `run_events:${runId}`;
+
+        const pollEvents = async () => {
+          try {
+            const currentLen = await redis.llen(channelKey);
+            if (currentLen > lastLength) {
+              const newItems = await redis.lrange(channelKey, lastLength, currentLen - 1);
+              lastLength = currentLen;
+              for (const item of newItems) {
+                const parsed: RunEvent = typeof item === "string" ? JSON.parse(item) : item;
+                const activeSet = this.localListeners.get(runId);
+                if (activeSet) {
+                  for (const l of activeSet) {
+                    try {
+                      l(parsed);
+                    } catch {}
+                  }
+                }
+              }
+            }
+          } catch {
+            // Ignore Redis poll errors
+          }
+        };
+
+        // Immediate check
+        pollEvents();
+        const interval = setInterval(pollEvents, 100);
+        this.redisPollIntervals.set(runId, interval);
+      }
+    } catch {
+      // Redis not configured or error, in-process local listener is active
+    }
+
     return () => {
       set?.delete(listener);
       if (set && set.size === 0) {
-        this.listeners.delete(runId);
+        this.localListeners.delete(runId);
+        const poll = this.redisPollIntervals.get(runId);
+        if (poll) {
+          clearInterval(poll);
+          this.redisPollIntervals.delete(runId);
+        }
       }
     };
   }
 
-  publish(runId: string, event: RunEvent): void {
-    const set = this.listeners.get(runId);
+  async publish(runId: string, event: RunEvent): Promise<void> {
+    // 0. Cache event in memory history for late-joining subscribers
+    let history = this.eventHistory.get(runId);
+    if (!history) {
+      history = [];
+      this.eventHistory.set(runId, history);
+      // Clean up in-memory history after 15 minutes
+      setTimeout(() => {
+        this.eventHistory.delete(runId);
+      }, 15 * 60 * 1000);
+    }
+    history.push(event);
+
+    // 1. Dispatch locally to any in-process listeners
+    const set = this.localListeners.get(runId);
     if (set) {
       for (const listener of set) {
         try {
@@ -114,8 +184,32 @@ class RunEventHub {
         }
       }
     }
+
+    // 2. Publish to Redis list so other processes (Next.js server, Trigger worker, API server) receive it
+    try {
+      const redis = getRedis();
+      if (redis) {
+        const channelKey = `run_events:${runId}`;
+        await redis.rpush(channelKey, JSON.stringify(event));
+        // Set 1-hour expiration on event logs to keep Redis tidy
+        await redis.expire(channelKey, 3600);
+      }
+    } catch {
+      // Redis not configured or offline; local dispatch was already performed
+    }
   }
 }
 
 export const runEventHub = new RunEventHub();
+
+export type DirectRunExecutor = (runId: string) => Promise<any>;
+let directRunExecutor: DirectRunExecutor | null = null;
+
+export function registerDirectRunExecutor(executor: DirectRunExecutor) {
+  directRunExecutor = executor;
+}
+
+export function getDirectRunExecutor(): DirectRunExecutor | null {
+  return directRunExecutor;
+}
 

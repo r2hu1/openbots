@@ -4,7 +4,7 @@ import { Badge } from "@openbots/ui/components/badge"
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 import { Button } from "@openbots/ui/components/button"
 
-import { SidebarTrigger } from "@openbots/ui/components/sidebar"
+import { SidebarTrigger, useSidebar } from "@openbots/ui/components/sidebar"
 import {
   IconCalendar,
   IconHistory,
@@ -30,7 +30,8 @@ export function AgentHeader({
 }: AgentHeaderProps) {
   return (
     <header className="relative top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-10 after:bg-gradient-to-b after:from-background after:via-background/50 after:to-transparent">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5">
+        <SidebarTrigger className="size-7 md:hidden" />
         {selectedAgent ? (
           <div className="flex items-center gap-px rounded-sm bg-secondary pr-1.5 pl-px">
             <Blobatar

@@ -71,7 +71,7 @@ function BrandRow({ onClickButton }: { onClickButton: () => void }) {
         ) : (
           // Expanded: logo + wordmark, new agent button on the right
           <div className="mb-px flex items-center gap-1 rounded-md">
-            <Blobatar name="openbots" className="size-7" />
+            <Blobatar name="openbots" className="size-6!" />
             <span className="text-sm font-semibold tracking-tight">
               OpenBots
             </span>
@@ -206,7 +206,7 @@ export function WorkspaceSidebar({
       <SidebarHeader className="px-3 group-data-[collapsible=icon]:px-2">
         <BrandRow onClickButton={onOpenCreate} />
 
-        <InputGroup className="h-8 bg-background shadow-none group-data-[collapsible=icon]:hidden">
+        <InputGroup className="h-8 border border-border/40 bg-accent shadow-none group-data-[collapsible=icon]:hidden">
           <InputGroupAddon>
             <IconSearch />
           </InputGroupAddon>

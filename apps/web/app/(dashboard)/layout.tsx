@@ -1,6 +1,6 @@
-import { DashboardShell } from "@/components/dashboard-shell";
-import { QueryProvider } from "@/components/query-provider";
-import { ThemeProvider } from "@/components/theme-provider";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { QueryProvider } from "@/providers/query-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 
 export default function DashboardLayout({
   children,

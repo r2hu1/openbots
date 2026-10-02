@@ -1,24 +1,23 @@
-"use client"
+"use client";
 
-import { Badge } from "@openbots/ui/components/badge"
-import { Blobatar } from "@openbots/ui/components/ui/blobatar"
-import { Button } from "@openbots/ui/components/button"
-
-import { SidebarTrigger, useSidebar } from "@openbots/ui/components/sidebar"
+import { Badge } from "@openbots/ui/components/badge";
+import { Button } from "@openbots/ui/components/button";
+import { SidebarTrigger } from "@openbots/ui/components/sidebar";
+import { Blobatar } from "@openbots/ui/components/ui/blobatar";
 import {
   IconCalendar,
   IconHistory,
   IconPlug,
   IconSettings,
-} from "@tabler/icons-react"
-import type { AgentData } from "./configure-agent-sheet"
+} from "@tabler/icons-react";
+import type { Agent } from "../types";
 
 interface AgentHeaderProps {
-  selectedAgent: AgentData | null
-  onOpenConfigure: () => void
-  onOpenHistory: () => void
-  onOpenConnections?: () => void
-  onOpenSchedules?: () => void
+  selectedAgent: Agent | null;
+  onOpenConfigure: () => void;
+  onOpenHistory: () => void;
+  onOpenConnections?: () => void;
+  onOpenSchedules?: () => void;
 }
 
 export function AgentHeader({
@@ -56,7 +55,6 @@ export function AgentHeader({
         ) : null}
       </div>
 
-      {/* Header Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2">
         {selectedAgent && (
           <>
@@ -110,5 +108,5 @@ export function AgentHeader({
         )}
       </div>
     </header>
-  )
+  );
 }

@@ -1,1 +1,1 @@
-export { cn } from "@openbots/ui/lib/utils"
+export { cn } from "@openbots/ui/lib/utils";

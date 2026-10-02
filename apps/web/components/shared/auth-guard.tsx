@@ -1,6 +1,5 @@
 "use client";
 
-import { Spinner } from "@openbots/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useSession } from "@/lib/auth-client";
@@ -14,7 +13,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
 
   React.useEffect(() => {
-    if (!isPending && !session?.user) {
+    if (!isPending && !session) {
       router.replace("/login");
     }
   }, [session, isPending, router]);
@@ -22,12 +21,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (isPending) {
     return (
       <div className="flex h-svh w-full items-center justify-center bg-background">
-        <Spinner className="size-8 text-primary" />
+        <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
 
-  if (!session?.user) {
+  if (!session) {
     return null;
   }
 

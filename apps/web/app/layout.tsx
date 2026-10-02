@@ -4,7 +4,7 @@ import "@openbots/ui/globals.css";
 import "@openbots/ui/styles/typeset.css";
 import { cn } from "@openbots/ui/lib/utils";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],

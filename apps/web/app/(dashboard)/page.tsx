@@ -1,4 +1,4 @@
-import { AgentWorkspace } from "@/components/agent-workspace";
+import { AgentWorkspace } from "@/modules/agents/components/agent-workspace";
 
 export default function RootWorkspacePage() {
   return <AgentWorkspace />;

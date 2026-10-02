@@ -1,7 +1,5 @@
 "use client";
 
-import * as React from "react";
-import { Badge } from "@openbots/ui/components/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -13,47 +11,16 @@ import {
   MarkerIcon,
 } from "@openbots/ui/components/marker";
 import { Spinner } from "@openbots/ui/components/spinner";
-import {
-  IconCheck,
-  IconChevronDown,
-  IconTool,
-  IconX,
-} from "@tabler/icons-react";
-
-export type StepItem = {
-  id?: string;
-  stepNumber: number;
-  type: "model" | "tool";
-  status: "running" | "completed" | "failed";
-  toolName?: string | null;
-  toolCallId?: string | null;
-  toolInput?: unknown;
-  toolOutput?: unknown;
-  startedAt?: string | Date | null;
-  completedAt?: string | Date | null;
-};
+import { IconCheck, IconChevronDown, IconX } from "@tabler/icons-react";
+import type { StepItem } from "../types";
+import { sanitizeDisplayData } from "../utils";
 
 interface ExecutionStepsCardProps {
   steps: StepItem[];
   isLive?: boolean;
 }
 
-function sanitizeDisplayData(data: unknown): string {
-  if (data === undefined || data === null) return "None";
-  try {
-    const raw =
-      typeof data === "string" ? data : JSON.stringify(data, null, 2);
-    return raw
-      .replace(/AIzaSy[a-zA-Z0-9_-]{20,}/g, "[REDACTED_GEMINI_KEY]")
-      .replace(/tr_(dev|prod)_[a-zA-Z0-9_-]{20,}/g, "[REDACTED_TRIGGER_KEY]")
-      .replace(/sk-[a-zA-Z0-9_-]{20,}/g, "[REDACTED_API_KEY]")
-      .replace(/Bearer\s+[a-zA-Z0-9_.-]+/gi, "Bearer [REDACTED_TOKEN]");
-  } catch {
-    return String(data);
-  }
-}
-
-export function ExecutionStepsCard({ steps, isLive }: ExecutionStepsCardProps) {
+export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
   const toolSteps = steps.filter((s) => s.type === "tool" || s.toolName);
 
   if (toolSteps.length === 0) {

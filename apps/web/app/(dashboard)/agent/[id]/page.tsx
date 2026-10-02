@@ -1,4 +1,4 @@
-import { AgentWorkspace } from "@/components/agent-workspace";
+import { AgentWorkspace } from "@/modules/agents/components/agent-workspace";
 
 interface AgentPageProps {
   params: Promise<{ id: string }>;

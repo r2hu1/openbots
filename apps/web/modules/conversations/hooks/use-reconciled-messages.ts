@@ -22,6 +22,7 @@ export function useReconciledMessages({
   const messages = React.useMemo(() => {
     let result = [...serverMessages];
 
+    let completedAssistantText: string | null = null;
     // If an active or recently completed run has output.text, ensure it is immediately visible
     if (activeRun && activeRun.status === "completed") {
       const output = activeRun.output;
@@ -34,6 +35,7 @@ export function useReconciledMessages({
           : null;
 
       if (completedOutputText) {
+        completedAssistantText = completedOutputText;
         const hasResponseAlready = result.some((m) => {
           if (m.role !== "assistant") return false;
           const t =
@@ -64,8 +66,15 @@ export function useReconciledMessages({
             ? (opt.content as { text: string }).text
             : String(opt.content);
 
-        // If it's a streaming assistant message, do not duplicate if the final message has arrived in serverMessages
+        // If it's a streaming assistant message:
         if (opt.role === "assistant") {
+          // If the run has already completed or server has this content, omit the streaming message
+          if (completedAssistantText && completedAssistantText === optText.trim()) {
+            return false;
+          }
+          if (activeRun && activeRun.status === "completed" && opt.id.startsWith("opt-streaming-")) {
+            return false;
+          }
           return !result.some((srv) => {
             if (srv.role !== "assistant") return false;
             const srvText =
@@ -86,7 +95,7 @@ export function useReconciledMessages({
             "text" in srv.content
               ? (srv.content as { text: string }).text
               : String(srv.content);
-          return srv.role === "user" && srvText === optText;
+          return srv.role === "user" && srvText.trim() === optText.trim();
         });
       });
       result = [...result, ...reconciledOptimistic];

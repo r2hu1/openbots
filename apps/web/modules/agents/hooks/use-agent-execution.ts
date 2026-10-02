@@ -126,6 +126,26 @@ export function useAgentExecution({
       }
     });
 
+    const handleTerminalState = (status: string) => {
+      setIsOptimisticRunning(false);
+      if (activeConversationId) {
+        queryClient.invalidateQueries({
+          queryKey: ["conversation", activeConversationId],
+        });
+      }
+      if (agentId) {
+        queryClient.invalidateQueries({
+          queryKey: ["runs", agentId],
+        });
+      }
+      if (activeRunId) {
+        queryClient.invalidateQueries({
+          queryKey: ["run", activeRunId],
+        });
+      }
+      eventSource.close();
+    };
+
     eventSource.addEventListener("status", (e) => {
       if (!isMounted) return;
       try {
@@ -135,8 +155,7 @@ export function useAgentExecution({
           data.status === "failed" ||
           data.status === "cancelled"
         ) {
-          setIsOptimisticRunning(false);
-          eventSource.close();
+          handleTerminalState(data.status);
         }
       } catch (err) {
         console.warn("Error parsing status event:", err);
@@ -145,8 +164,7 @@ export function useAgentExecution({
 
     eventSource.addEventListener("done", () => {
       if (!isMounted) return;
-      setIsOptimisticRunning(false);
-      eventSource.close();
+      handleTerminalState("completed");
     });
 
     eventSource.onerror = () => {

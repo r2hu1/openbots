@@ -108,43 +108,46 @@ class RunEventHub {
       }
     }
 
-    // If Upstash Redis is configured, start reading any events pushed to the run's Redis list
-    try {
-      const redis = getRedis();
-      if (redis && !this.redisPollIntervals.has(runId)) {
-        let lastLength = 0;
-        const channelKey = `run_events:${runId}`;
+    // Only poll Redis if this process is NOT running the executor locally (i.e. separate process)
+    const isLocalExecution = this.eventHistory.has(runId);
+    if (!isLocalExecution) {
+      try {
+        const redis = getRedis();
+        if (redis && !this.redisPollIntervals.has(runId)) {
+          let lastLength = 0;
+          const channelKey = `run_events:${runId}`;
 
-        const pollEvents = async () => {
-          try {
-            const currentLen = await redis.llen(channelKey);
-            if (currentLen > lastLength) {
-              const newItems = await redis.lrange(channelKey, lastLength, currentLen - 1);
-              lastLength = currentLen;
-              for (const item of newItems) {
-                const parsed: RunEvent = typeof item === "string" ? JSON.parse(item) : item;
-                const activeSet = this.localListeners.get(runId);
-                if (activeSet) {
-                  for (const l of activeSet) {
-                    try {
-                      l(parsed);
-                    } catch {}
+          const pollEvents = async () => {
+            try {
+              const currentLen = await redis.llen(channelKey);
+              if (currentLen > lastLength) {
+                const newItems = await redis.lrange(channelKey, lastLength, currentLen - 1);
+                lastLength = currentLen;
+                for (const item of newItems) {
+                  const parsed: RunEvent = typeof item === "string" ? JSON.parse(item) : item;
+                  const activeSet = this.localListeners.get(runId);
+                  if (activeSet) {
+                    for (const l of activeSet) {
+                      try {
+                        l(parsed);
+                      } catch {}
+                    }
                   }
                 }
               }
+            } catch {
+              // Ignore Redis poll errors
             }
-          } catch {
-            // Ignore Redis poll errors
-          }
-        };
+          };
 
-        // Immediate check
-        pollEvents();
-        const interval = setInterval(pollEvents, 100);
-        this.redisPollIntervals.set(runId, interval);
+          // Immediate check
+          pollEvents();
+          const interval = setInterval(pollEvents, 100);
+          this.redisPollIntervals.set(runId, interval);
+        }
+      } catch {
+        // Redis not configured or error, in-process local listener is active
       }
-    } catch {
-      // Redis not configured or error, in-process local listener is active
     }
 
     return () => {

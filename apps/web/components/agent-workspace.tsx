@@ -92,35 +92,11 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
 
   const selectedAgent = agents.find((ag) => ag.id === selectedAgentId) || null;
 
-  // 2. Fetch Conversations for selected agent
-  const { data: conversationsData } = useQuery({
-    queryKey: ["conversations", selectedAgentId],
-    queryFn: async () => {
-      if (!selectedAgentId) return { conversations: [] };
-      const client = getClient();
-      const res = await client.api.conversations.$get({
-        query: { agentId: selectedAgentId },
-      });
-      if (!res.ok) return { conversations: [] };
-      return res.json() as Promise<{ conversations: Array<{ id: string }> }>;
-    },
-    enabled: !!selectedAgentId,
-  });
-
+  // Track previous selectedAgentId to only reset state when agent actually changes
+  const prevAgentIdRef = React.useRef(selectedAgentId);
   React.useEffect(() => {
-    if (
-      conversationsData?.conversations &&
-      conversationsData.conversations.length > 0 &&
-      !activeConversationId &&
-      conversationsData.conversations[0]?.id
-    ) {
-      setActiveConversationId(conversationsData.conversations[0].id);
-    }
-  }, [conversationsData, activeConversationId]);
-
-  // When agent switches, reset active conversation, run, and optimistic messages
-  React.useEffect(() => {
-    if (selectedAgentId) {
+    if (prevAgentIdRef.current !== selectedAgentId) {
+      prevAgentIdRef.current = selectedAgentId;
       setActiveConversationId(null);
       setActiveRunId(null);
       setIsOptimisticRunning(false);
@@ -128,8 +104,34 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     }
   }, [selectedAgentId]);
 
+  // 2. Fetch Conversations for selected agent
+  const { data: conversationsData, isLoading: isLoadingConversations } =
+    useQuery({
+      queryKey: ["conversations", selectedAgentId],
+      queryFn: async () => {
+        if (!selectedAgentId) return { conversations: [] };
+        const client = getClient();
+        const res = await client.api.conversations.$get({
+          query: { agentId: selectedAgentId },
+        });
+        if (!res.ok) return { conversations: [] };
+        return res.json() as Promise<{ conversations: Array<{ id: string }> }>;
+      },
+      enabled: !!selectedAgentId,
+    });
+
+  React.useEffect(() => {
+    const list = conversationsData?.conversations;
+    if (list && list.length > 0 && list[0]?.id) {
+      // If no active conversation or current active conversation doesn't belong to this agent's list
+      if (!activeConversationId || !list.some((c) => c.id === activeConversationId)) {
+        setActiveConversationId(list[0].id);
+      }
+    }
+  }, [conversationsData, activeConversationId]);
+
   // 3. Fetch Messages for active conversation
-  const { data: conversationDetail } = useQuery({
+  const { data: conversationDetail, isLoading: isLoadingMessages } = useQuery({
     queryKey: ["conversation", activeConversationId],
     queryFn: async () => {
       if (!activeConversationId) return { messages: [] };
@@ -145,6 +147,12 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     },
     enabled: !!activeConversationId,
   });
+
+  const isChatLoading =
+    Boolean(selectedAgentId) &&
+    (isLoadingConversations ||
+      (Boolean(activeConversationId) && isLoadingMessages) ||
+      (Boolean(conversationsData?.conversations?.length) && !activeConversationId));
 
   const serverMessages = conversationDetail?.messages || [];
 
@@ -177,7 +185,36 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     return [...serverMessages, ...optimisticMessages];
   }, [serverMessages, optimisticMessages]);
 
-  // 4. Poll Active Run
+  // 4. Discover and Poll Active Run across reloads
+  // Fetch latest runs for selected agent to resume any in-flight queued/running task on refresh
+  const { data: runsData } = useQuery({
+    queryKey: ["runs", selectedAgentId],
+    queryFn: async () => {
+      if (!selectedAgentId) return { runs: [] };
+      const client = getClient();
+      const res = await client.api.runs.$get({
+        query: { agentId: selectedAgentId },
+      });
+      if (!res.ok) return { runs: [] };
+      return res.json() as Promise<{ runs: RunRecord[] }>;
+    },
+    enabled: !!selectedAgentId,
+  });
+
+  // Auto-connect to in-flight run for the active conversation if present
+  React.useEffect(() => {
+    if (!activeRunId && runsData?.runs) {
+      const ongoingRun = runsData.runs.find(
+        (r) =>
+          (r.status === "queued" || r.status === "running") &&
+          (!activeConversationId || r.conversationId === activeConversationId),
+      );
+      if (ongoingRun) {
+        setActiveRunId(ongoingRun.id);
+      }
+    }
+  }, [activeRunId, runsData?.runs, activeConversationId]);
+
   const { data: activeRunData } = useQuery({
     queryKey: ["run", activeRunId],
     queryFn: async () => {
@@ -383,6 +420,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
                     isCancelling={cancelMutation.isPending}
                     agentName={selectedAgent.name}
                     isOptimisticRunning={isOptimisticRunning}
+                    isLoading={isChatLoading}
                   />
 
                   <InputComposer

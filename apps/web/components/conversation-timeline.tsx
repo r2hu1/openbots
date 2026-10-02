@@ -33,6 +33,7 @@ import {
   MessageScrollerViewport,
 } from "@openbots/ui/components/message-scroller"
 
+import { Skeleton } from "@openbots/ui/components/skeleton"
 import { Spinner } from "@openbots/ui/components/spinner"
 import {
   IconAlertCircle,
@@ -63,6 +64,7 @@ interface ConversationTimelineProps {
   isCancelling?: boolean
   agentName: string
   isOptimisticRunning?: boolean
+  isLoading?: boolean
 }
 
 function getMessageText(content: unknown): string {
@@ -103,6 +105,7 @@ export function ConversationTimeline({
   isCancelling,
   agentName,
   isOptimisticRunning,
+  isLoading = false,
 }: ConversationTimelineProps) {
   const isActiveRunOngoing =
     isOptimisticRunning ||
@@ -114,7 +117,18 @@ export function ConversationTimeline({
       <MessageScroller className="flex-1">
         <MessageScrollerViewport className="border-none! px-4 py-6 ring-2! outline-none!">
           <MessageScrollerContent className="mx-auto max-w-4xl space-y-6">
-            {messages.length === 0 && !activeRun && (
+            {isLoading ? (
+              <div className="space-y-6 py-4">
+                <Skeleton className="h-16 w-full rounded-2xl sm:w-[480px]" />
+                <Skeleton className="ml-auto h-16 w-full max-w-40 rounded-2xl sm:w-[480px]" />
+                <Skeleton className="h-16 w-full rounded-2xl sm:w-[480px]" />
+                <Skeleton className="ml-auto h-16 w-full max-w-40 rounded-2xl sm:w-[480px]" />
+                <Skeleton className="h-16 w-full rounded-2xl sm:w-[480px]" />
+                <Skeleton className="ml-auto h-16 w-full max-w-40 rounded-2xl sm:w-[480px]" />
+                <Skeleton className="h-16 w-full rounded-2xl sm:w-[480px]" />
+                <Skeleton className="ml-auto h-16 w-full max-w-40 rounded-2xl sm:w-[480px]" />
+              </div>
+            ) : messages.length === 0 && !activeRun ? (
               <MessageScrollerItem>
                 <div className="py-16 text-center">
                   <div className="flex items-center justify-center">
@@ -133,88 +147,71 @@ export function ConversationTimeline({
                   </p>
                 </div>
               </MessageScrollerItem>
-            )}
+            ) : null}
 
             {/* Existing Persisted Messages */}
-            <MessageGroup>
-              {messages.map((msg) => {
+            {!isLoading &&
+              messages.map((msg) => {
                 const isUser = msg.role === "user"
                 const text = getMessageText(msg.content)
 
                 return (
-                  <MessageScrollerItem key={msg.id}>
-                    <Message align={isUser ? "end" : "start"} className="gap-2">
-                      <MessageContent>
-                        <Bubble
-                          variant={isUser ? "default" : "secondary"}
-                          align={isUser ? "end" : "start"}
-                        >
-                          <BubbleContent
-                            className={
-                              isUser
-                                ? "p-1.5 px-2.5 text-xs whitespace-pre-wrap text-foreground sm:text-sm"
-                                : "typeset typeset-chat p-1.5 px-2.5 text-xs text-foreground sm:text-sm"
-                            }
+                  <MessageScrollerItem key={msg.id} messageId={msg.id}>
+                    <MessageGroup>
+                      <Message
+                        align={isUser ? "end" : "start"}
+                        className="gap-2"
+                      >
+                        <MessageContent>
+                          <Bubble
+                            variant={isUser ? "default" : "secondary"}
+                            align={isUser ? "end" : "start"}
                           >
-                            {isUser ? text : <Markdown>{text}</Markdown>}
-                          </BubbleContent>
-                        </Bubble>
+                            <BubbleContent
+                              className={
+                                isUser
+                                  ? "p-1.5 px-2.5 text-xs whitespace-pre-wrap text-foreground sm:text-sm"
+                                  : "typeset typeset-chat p-1.5 px-2.5 text-xs text-foreground sm:text-sm"
+                              }
+                            >
+                              {isUser ? text : <Markdown>{text}</Markdown>}
+                            </BubbleContent>
+                          </Bubble>
 
-                        {isUser ? (
-                          <MessageFooter className="justify-end gap-2 px-1 pt-0.5">
-                            <span className="text-xs font-medium text-foreground">
-                              You
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {formatMsgTime(msg.createdAt)}
-                            </span>
-                          </MessageFooter>
-                        ) : (
-                          <MessageFooter className="gap-2 px-1 pt-0.5">
-                            <Blobatar
-                              name={agentName}
-                              className="size-6 shrink-0"
-                            />
-                            <span className="text-xs font-medium text-foreground">
-                              {agentName}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {formatMsgTime(msg.createdAt)}
-                            </span>
-                          </MessageFooter>
-                        )}
-                      </MessageContent>
-                    </Message>
+                          {isUser ? (
+                            <MessageFooter className="justify-end gap-2 px-1 pt-0.5">
+                              <span className="text-xs font-medium text-foreground">
+                                You
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {formatMsgTime(msg.createdAt)}
+                              </span>
+                            </MessageFooter>
+                          ) : (
+                            <MessageFooter className="gap-2 px-1 pt-0.5">
+                              <Blobatar
+                                name={agentName}
+                                className="size-6 shrink-0"
+                              />
+                              <span className="text-xs font-medium text-foreground">
+                                {agentName}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {formatMsgTime(msg.createdAt)}
+                              </span>
+                            </MessageFooter>
+                          )}
+                        </MessageContent>
+                      </Message>
+                    </MessageGroup>
                   </MessageScrollerItem>
                 )
               })}
-            </MessageGroup>
 
             {/* Live Active In-Flight Run Stream */}
             {isActiveRunOngoing && (
               <MessageScrollerItem>
                 <div className="space-y-3 py-1">
-                  {/* Status Indicator using Marker */}
-                  <Marker className="text-xs">
-                    <MarkerIcon>
-                      {(!activeRun || activeRun.status === "queued") && (
-                        <IconClock className="size-3.5 text-muted-foreground" />
-                      )}
-                      {activeRun?.status === "running" && (
-                        <Spinner className="size-3.5 text-primary" />
-                      )}
-                    </MarkerIcon>
-                    <MarkerContent>
-                      {(!activeRun || activeRun.status === "queued") &&
-                        "Queued for execution"}
-                      {activeRun?.status === "running" && (
-                        <span className="font-medium text-foreground">
-                          {agentName} is thinking...
-                        </span>
-                      )}
-                    </MarkerContent>
-                  </Marker>
-
                   {/* Execution Tool Steps */}
                   {activeRunSteps.length > 0 && (
                     <ExecutionStepsCard
@@ -222,6 +219,36 @@ export function ConversationTimeline({
                       isLive={isActiveRunOngoing}
                     />
                   )}
+
+                  {/* Agent Typing Indicator Message */}
+                  <MessageGroup>
+                    <Message align="start" className="gap-2">
+                      <MessageContent>
+                        <Bubble variant="secondary" align="start">
+                          <BubbleContent className="flex items-center gap-1.5 px-3 py-2 text-foreground">
+                            <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
+                            <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
+                            <span className="size-1.5 animate-bounce rounded-full bg-foreground/60" />
+                          </BubbleContent>
+                        </Bubble>
+
+                        <MessageFooter className="gap-2 px-1 pt-0.5">
+                          <Blobatar
+                            name={agentName}
+                            className="size-6 shrink-0"
+                          />
+                          <span className="text-xs font-medium text-foreground">
+                            {agentName}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {activeRun?.status === "running"
+                              ? "thinking..."
+                              : "queued..."}
+                          </span>
+                        </MessageFooter>
+                      </MessageContent>
+                    </Message>
+                  </MessageGroup>
                 </div>
               </MessageScrollerItem>
             )}

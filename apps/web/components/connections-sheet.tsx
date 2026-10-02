@@ -169,7 +169,7 @@ const POLL_INTERVAL_MS = 3000
 const POLL_TIMEOUT_MS = 120_000
 
 const SCROLL_CLASS =
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2 " +
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
   "[scrollbar-gutter:stable] [scrollbar-width:thin]"
 
 export function ConnectionsSheet({
@@ -478,7 +478,11 @@ export function ConnectionsSheet({
           </div>
         </div>
         <SheetFooter>
-          <Button type="button" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+          >
             Close
           </Button>
         </SheetFooter>

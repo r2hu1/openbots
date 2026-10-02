@@ -1,6 +1,7 @@
 "use client"
 
 import type * as React from "react"
+import "blobatar/motion.css"
 /**
  * Aliased, because the component this file exports is also called `Blobatar` —
  * `BlobatarAvatar` says blob-avatar-avatar, and the name a shadcn project wants

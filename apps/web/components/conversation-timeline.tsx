@@ -136,6 +136,7 @@ export function ConversationTimeline({
                       name={agentName}
                       alt={agentName}
                       className={"size-14!"}
+                      blobatar={{ animate: "always" }}
                     />
                   </div>
                   <h3 className="font-heading text-base font-medium text-foreground">
@@ -236,6 +237,7 @@ export function ConversationTimeline({
                           <Blobatar
                             name={agentName}
                             className="size-6 shrink-0"
+                            blobatar={{ animate: "always" }}
                           />
                           <span className="text-xs font-medium text-foreground">
                             {agentName}

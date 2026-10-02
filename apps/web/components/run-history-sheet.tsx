@@ -244,8 +244,7 @@ export function RunHistorySheet({
                 <IconArrowLeft className="size-4" />
               </Button>
             )}
-            <SheetTitle className="flex items-center gap-2">
-              <IconHistory className="size-4" />
+            <SheetTitle>
               {inspectedRunId ? "Run details" : "Run history"}
             </SheetTitle>
           </div>
@@ -258,7 +257,7 @@ export function RunHistorySheet({
 
         <div className="flex min-h-0 flex-1 flex-col px-4">
           <ScrollArea className="min-h-0 flex-1">
-            <div className="pr-3 pb-4">
+            <div className="pb-4">
               {inspectedRunId ? (
                 isLoadingInspected ? (
                   <div className="flex items-center justify-center p-8">
@@ -381,12 +380,13 @@ export function RunHistorySheet({
           </ScrollArea>
         </div>
 
-        {inspectedRunId && isInspectedActive && run && (
-          <SheetFooter className="border-t border-border p-3">
+        <SheetFooter>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+          {inspectedRunId && isInspectedActive && run && (
             <Button
               variant="destructive"
-              size="sm"
-              className="h-8 w-full gap-1.5 text-xs"
               onClick={() => cancelMutation.mutate(run.id)}
               disabled={cancelMutation.isPending}
             >
@@ -397,8 +397,8 @@ export function RunHistorySheet({
               )}
               Cancel run
             </Button>
-          </SheetFooter>
-        )}
+          )}
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

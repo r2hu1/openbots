@@ -8,7 +8,6 @@ import {
   IconBrandJira,
   IconBrandNotion,
   IconBrandSlack,
-  IconBrandSpotify,
   IconBrandStripe,
   IconBrandTrello,
   IconBrandYoutube,
@@ -109,14 +108,6 @@ export const AVAILABLE_INTEGRATIONS: readonly IntegrationApp[] = [
       "View customer billing, search payments, invoices, and subscriptions.",
     icon: IconBrandStripe,
     accountId: "stripe_connected_account",
-  },
-  {
-    id: "spotify",
-    name: "Spotify",
-    description:
-      "Control playback, browse playlists, and search music libraries.",
-    icon: IconBrandSpotify,
-    accountId: "spotify_connected_account",
   },
   {
     id: "youtube",

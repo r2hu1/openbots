@@ -62,7 +62,7 @@ export function InputComposer({
   }
 
   return (
-    <div className="w-full px-3 pb-3">
+    <div className="w-full px-3 pb-4">
       <div className="mx-auto max-w-3xl">
         <form
           onSubmit={(event) => {
@@ -70,7 +70,7 @@ export function InputComposer({
             handleSubmit()
           }}
         >
-          <div className="relative overflow-hidden rounded-3xl border border-border bg-background transition focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-sidebar transition focus-within:border-ring focus-within:ring-3 focus-within:ring-border">
             <Textarea
               ref={textareaRef}
               value={text}

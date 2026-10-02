@@ -158,7 +158,7 @@ export function ConversationTimeline({
                       >
                         <MessageContent>
                           <Bubble
-                            variant={isUser ? "default" : "secondary"}
+                            variant={isUser ? "default" : "outline"}
                             align={isUser ? "end" : "start"}
                           >
                             <BubbleContent

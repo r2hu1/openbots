@@ -64,13 +64,20 @@ const SCROLL_CLASS =
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
   get_current_time: "Provides real-time timestamp and timezone calculations.",
-  calculate: "Evaluates mathematical expressions safely without code evaluation.",
-  create_schedule: "Creates delayed, relative, timestamped, or recurring scheduled runs.",
-  web_search: "Performs live web searches with snippets and source links via DuckDuckGo.",
-  fetch_web_page: "Extracts readable text content and articles from public web pages.",
-  http_request: "Makes direct REST API calls (GET, POST, PUT, DELETE) to any webhook or URL.",
-  json_parser: "Parses, queries, and extracts specific fields from JSON payloads.",
-  text_analyzer: "Calculates word counts, line counts, readability, and key terms.",
+  calculate:
+    "Evaluates mathematical expressions safely without code evaluation.",
+  create_schedule:
+    "Creates delayed, relative, timestamped, or recurring scheduled runs.",
+  web_search:
+    "Performs live web searches with snippets and source links via DuckDuckGo.",
+  fetch_web_page:
+    "Extracts readable text content and articles from public web pages.",
+  http_request:
+    "Makes direct REST API calls (GET, POST, PUT, DELETE) to any webhook or URL.",
+  json_parser:
+    "Parses, queries, and extracts specific fields from JSON payloads.",
+  text_analyzer:
+    "Calculates word counts, line counts, readability, and key terms.",
 }
 
 export function ConfigureAgentSheet({
@@ -235,7 +242,7 @@ export function ConfigureAgentSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex flex-col sm:max-w-md">
+      <SheetContent side="right" className="flex flex-col sm:max-w-md!">
         <SheetHeader>
           <SheetTitle>Configure agent</SheetTitle>
           <SheetDescription>

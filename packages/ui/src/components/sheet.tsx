@@ -47,7 +47,7 @@ function SheetContent({
   showCloseButton?: boolean
 }) {
   return (
-    <SheetPortal>
+    <SheetPortal className={"dark"}>
       <SheetOverlay />
       <SheetPrimitive.Popup
         data-slot="sheet-content"
@@ -70,8 +70,7 @@ function SheetContent({
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}

@@ -231,7 +231,7 @@ export function RunHistorySheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex flex-col sm:max-w-lg">
+      <SheetContent side="right" className="flex flex-col sm:max-w-md!">
         <SheetHeader>
           <div className="flex items-center gap-2">
             {inspectedRunId && (

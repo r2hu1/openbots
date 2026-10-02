@@ -20,10 +20,9 @@ export function useReconciledMessages({
   onClearOptimistic,
 }: UseReconciledMessagesOptions) {
   const messages = React.useMemo(() => {
-    let result = [...serverMessages];
+    const result: MessageItem[] = [...serverMessages];
 
-    let completedAssistantText: string | null = null;
-    // If an active or recently completed run has output.text, ensure it is immediately visible
+    // If an active run has just completed and serverMessages hasn't updated yet, show output
     if (activeRun && activeRun.status === "completed") {
       const output = activeRun.output;
       const completedOutputText =
@@ -35,7 +34,6 @@ export function useReconciledMessages({
           : null;
 
       if (completedOutputText) {
-        completedAssistantText = completedOutputText;
         const hasResponseAlready = result.some((m) => {
           if (m.role !== "assistant") return false;
           const t =
@@ -57,8 +55,10 @@ export function useReconciledMessages({
       }
     }
 
+    // Append optimistic user messages that are not yet in serverMessages
     if (optimisticMessages.length > 0) {
-      const reconciledOptimistic = optimisticMessages.filter((opt) => {
+      for (const opt of optimisticMessages) {
+        if (opt.role !== "user") continue;
         const optText =
           typeof opt.content === "object" &&
           opt.content &&
@@ -66,48 +66,44 @@ export function useReconciledMessages({
             ? (opt.content as { text: string }).text
             : String(opt.content);
 
-        // If it's a streaming assistant message:
-        if (opt.role === "assistant") {
-          // If the run has already completed or server has this content, omit the streaming message
-          if (completedAssistantText && completedAssistantText === optText.trim()) {
-            return false;
-          }
-          if (activeRun && activeRun.status === "completed" && opt.id.startsWith("opt-streaming-")) {
-            return false;
-          }
-          return !result.some((srv) => {
-            if (srv.role !== "assistant") return false;
-            const srvText =
-              typeof srv.content === "object" &&
-              srv.content &&
-              "text" in srv.content
-                ? (srv.content as { text: string }).text
-                : String(srv.content);
-            return srvText.trim() === optText.trim();
-          });
-        }
-
-        // For user messages, ensure not already persisted in serverMessages
-        return !result.some((srv) => {
+        const existsInServer = result.some((srv) => {
+          if (srv.role !== "user") return false;
           const srvText =
             typeof srv.content === "object" &&
             srv.content &&
             "text" in srv.content
               ? (srv.content as { text: string }).text
               : String(srv.content);
-          return srv.role === "user" && srvText.trim() === optText.trim();
+          return srvText.trim() === optText.trim();
         });
-      });
-      result = [...result, ...reconciledOptimistic];
+
+        if (!existsInServer) {
+          result.push(opt);
+        }
+      }
     }
 
-    return result;
+    // Final safety: deduplicate by id
+    const seenIds = new Set<string>();
+    return result.filter((m) => {
+      if (seenIds.has(m.id)) return false;
+      seenIds.add(m.id);
+      return true;
+    });
   }, [serverMessages, optimisticMessages, activeRun, activeConversationId]);
 
-  // Clear optimistic messages once server messages catch up
+  // Clear optimistic messages once server messages catch up or run finishes
   React.useEffect(() => {
-    if (serverMessages.length > 0 && optimisticMessages.length > 0) {
-      const allReconciled = optimisticMessages.every((opt) => {
+    if (optimisticMessages.length === 0) return;
+
+    if (activeRun && (activeRun.status === "completed" || activeRun.status === "failed")) {
+      onClearOptimistic();
+      return;
+    }
+
+    if (serverMessages.length > 0) {
+      const allUserMessagesSaved = optimisticMessages.every((opt) => {
+        if (opt.role !== "user") return true;
         const optText =
           typeof opt.content === "object" &&
           opt.content &&
@@ -116,20 +112,22 @@ export function useReconciledMessages({
             : String(opt.content);
 
         return serverMessages.some((srv) => {
+          if (srv.role !== "user") return false;
           const srvText =
             typeof srv.content === "object" &&
             srv.content &&
             "text" in srv.content
               ? (srv.content as { text: string }).text
               : String(srv.content);
-          return srv.role === opt.role && (srvText === optText || srvText.trim() === optText.trim());
+          return srvText.trim() === optText.trim();
         });
       });
-      if (allReconciled) {
+
+      if (allUserMessagesSaved) {
         onClearOptimistic();
       }
     }
-  }, [serverMessages, optimisticMessages, onClearOptimistic]);
+  }, [serverMessages, optimisticMessages, activeRun, onClearOptimistic]);
 
   return messages;
 }

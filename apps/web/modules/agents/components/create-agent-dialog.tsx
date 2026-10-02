@@ -40,7 +40,7 @@ export function CreateAgentDialog({
     "You are a helpful assistant. Use tools when helpful to answer questions.",
   );
   const [model, setModel] = React.useState("google/gemini-2.5-flash");
-  const [maxSteps, setMaxSteps] = React.useState(10);
+  const [maxSteps, setMaxSteps] = React.useState(25);
   const [autonomy, _setAutonomy] = React.useState<"manual">("manual");
   const [error, setError] = React.useState<string | null>(null);
 

@@ -5,7 +5,7 @@ export const createAgentSchema = z.object({
   description: z.string().optional(),
   instructions: z.string().min(1).default("You are a helpful assistant."),
   model: z.string().default("google/gemini-2.5-flash"),
-  maxSteps: z.number().int().min(1).max(100).default(10),
+  maxSteps: z.number().int().min(1).max(100).default(25),
   autonomy: z.enum(["manual", "approved", "autonomous"]).default("manual"),
 });
 

@@ -68,7 +68,7 @@ export function ConfigureAgentSheet({
   const [description, setDescription] = React.useState("");
   const [instructions, setInstructions] = React.useState("");
   const [model, setModel] = React.useState("google/gemini-2.5-flash");
-  const [maxSteps, setMaxSteps] = React.useState(10);
+  const [maxSteps, setMaxSteps] = React.useState(25);
   const [saveSuccess, setSaveSuccess] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
@@ -79,7 +79,7 @@ export function ConfigureAgentSheet({
       setDescription(agent.description || "");
       setInstructions(agent.instructions);
       setModel(agent.model);
-      setMaxSteps(agent.maxSteps || 10);
+      setMaxSteps(agent.maxSteps || 25);
       setSaveSuccess(false);
       setSaveError(null);
     }
@@ -111,7 +111,7 @@ export function ConfigureAgentSheet({
         description: description.trim() || undefined,
         instructions: instructions.trim(),
         model,
-        maxSteps: Number(maxSteps) || 10,
+        maxSteps: Number(maxSteps) || 25,
       },
       {
         onSuccess: () => {

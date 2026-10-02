@@ -382,9 +382,25 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       },
     });
 
-    const finalText = generateResult.text;
+    let finalText = generateResult.text?.trim() || "";
     const finalSteps = generateResult.steps;
     const finalUsage = generateResult.usage;
+
+    // If finalText is empty but steps were executed (e.g. maxSteps reached right after tool call),
+    // extract the last text or provide an informative completion summary so it never silently stops
+    if (!finalText && finalSteps && finalSteps.length > 0) {
+      for (let i = finalSteps.length - 1; i >= 0; i--) {
+        const s = finalSteps[i];
+        if (s?.text && s.text.trim()) {
+          finalText = s.text.trim();
+          break;
+        }
+      }
+
+      if (!finalText) {
+        finalText = "I finished executing the requested tool actions and reached the step limit.";
+      }
+    }
 
     // Wait for any remaining background step writes before completing
     if (pendingStepPersistTasks.length > 0) {

@@ -54,7 +54,7 @@ export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
               OpenBots
             </span>
             <Tooltip>
-              <TooltipTrigger className="ml-auto">
+              <TooltipTrigger render={<div />} className="ml-auto">
                 <Button
                   size="icon-xs"
                   variant="secondary"

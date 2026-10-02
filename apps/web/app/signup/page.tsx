@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
+import { Button } from "@openbots/ui/components/button"
 import {
   Card,
   CardContent,
@@ -8,58 +8,63 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@openbots/ui/components/card";
-import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field";
-import { Input } from "@openbots/ui/components/input";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { IconRobot } from "@tabler/icons-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-import { signUp } from "@/lib/auth-client";
+} from "@openbots/ui/components/card"
+import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field"
+import { Input } from "@openbots/ui/components/input"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { IconRobot } from "@tabler/icons-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import * as React from "react"
+import { signUp } from "@/lib/auth-client"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const router = useRouter()
+  const [name, setName] = React.useState("")
+  const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
 
     try {
       const res = await signUp.email({
         name,
         email,
         password,
-      });
+      })
 
       if (res.error) {
-        setError(res.error.message || "Failed to create account.");
-        return;
+        setError(res.error.message || "Failed to create account.")
+        return
       }
 
-      router.push("/");
-      router.refresh();
+      router.push("/")
+      router.refresh()
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "An unexpected error occurred.";
-      setError(message);
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      setError(message)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-4 bg-background">
+    <div className="flex min-h-svh w-full items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader className="text-center space-y-1">
-          <div className="mx-auto flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs mb-2">
-            <IconRobot className="size-6" />
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex items-center justify-center">
+            <Blobatar
+              className="size-14!"
+              blobatar={{ animate: "always" }}
+              name="openbots"
+            />
           </div>
           <CardTitle className="text-xl font-bold tracking-tight">
             Create OpenBots Account
@@ -111,16 +116,16 @@ export default function SignupPage() {
               </Field>
             </FieldGroup>
           </CardContent>
-          <CardFooter className="flex flex-col gap-3">
+          <CardFooter className="flex flex-col gap-3 pt-6">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Spinner data-icon="inline-start" />}
               Create Account
             </Button>
-            <p className="text-xs text-center text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="text-primary hover:underline font-medium"
+                className="font-medium text-primary hover:underline"
               >
                 Sign in
               </Link>
@@ -129,5 +134,5 @@ export default function SignupPage() {
         </form>
       </Card>
     </div>
-  );
+  )
 }

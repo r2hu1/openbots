@@ -1,19 +1,19 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { IconPlus } from "@tabler/icons-react";
-import type { Connection, IntegrationApp } from "../types";
+import { Button } from "@openbots/ui/components/button"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { IconPlus } from "@tabler/icons-react"
+import type { Connection, IntegrationApp } from "../types"
 
 interface IntegrationRowProps {
-  integration: IntegrationApp;
-  activeConnection?: Connection;
-  isConnected: boolean;
-  isConnecting: boolean;
-  isWaitingForAuth: boolean;
-  isDisconnecting: boolean;
-  onConnect: () => void;
-  onDisconnect: () => void;
+  integration: IntegrationApp
+  activeConnection?: Connection
+  isConnected: boolean
+  isConnecting: boolean
+  isWaitingForAuth: boolean
+  isDisconnecting: boolean
+  onConnect: () => void
+  onDisconnect: () => void
 }
 
 export function IntegrationRow({
@@ -25,8 +25,8 @@ export function IntegrationRow({
   onConnect,
   onDisconnect,
 }: IntegrationRowProps) {
-  const Icon = integration.icon;
-  const isPending = isConnecting || isWaitingForAuth || isDisconnecting;
+  const Icon = integration.icon
+  const isPending = isConnecting || isWaitingForAuth || isDisconnecting
 
   return (
     <div className="flex items-center gap-3 px-3 py-2.5">
@@ -76,7 +76,7 @@ export function IntegrationRow({
           onClick={onConnect}
         >
           {isConnecting || isWaitingForAuth ? (
-            <Spinner className="size-3" />
+            <Spinner className="size-3!" />
           ) : (
             <IconPlus className="size-3" />
           )}
@@ -84,5 +84,5 @@ export function IntegrationRow({
         </Button>
       )}
     </div>
-  );
+  )
 }

@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "start": "bun run src/index.ts",
+    "start": "bun ./dist/index.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:hono --external:@hono/node-server --external:better-auth --external:resend --external:drizzle-orm --external:postgres --external:ioredis",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
@@ -20,8 +21,13 @@
     "@openbots/db": "workspace:*",
     "@trigger.dev/sdk": "4.7.1",
     "ai": "^7.0.0",
+    "better-auth": "^1.7.7",
     "drizzle-orm": "^0.45.3",
+    "esbuild": "^0.28.2",
     "hono": "^4.7.11",
+    "ioredis": "^6.0.0",
+    "pg": "^8.23.1",
+    "postgres": "^3.4.9",
     "zod": "^4.6.5"
   },
   "devDependencies": {

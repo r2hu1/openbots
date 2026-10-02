@@ -21,6 +21,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -69,7 +70,7 @@ function BrandRow({ onClickButton }: { onClickButton: () => void }) {
           </SidebarMenuButton>
         ) : (
           // Expanded: logo + wordmark, new agent button on the right
-          <div className="flex h-8 items-center gap-1 rounded-md">
+          <div className="mb-px flex items-center gap-1 rounded-md">
             <Blobatar name="openbots" className="size-7" />
             <span className="text-sm font-semibold tracking-tight">
               OpenBots
@@ -202,7 +203,7 @@ export function WorkspaceSidebar({
 
   return (
     <Sidebar collapsible="icon" variant="floating">
-      <SidebarHeader className="px-4 group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="px-3 group-data-[collapsible=icon]:px-2">
         <BrandRow onClickButton={onOpenCreate} />
 
         <InputGroup className="h-8 bg-background shadow-none group-data-[collapsible=icon]:hidden">
@@ -217,14 +218,24 @@ export function WorkspaceSidebar({
         </InputGroup>
       </SidebarHeader>
 
-      <SidebarContent className="mt-2 px-2 group-data-[collapsible=icon]:px-0">
+      <SidebarContent className="px-1 group-data-[collapsible=icon]:px-0">
         <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px]">
+            My Agents
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            {filteredAgents.length === 0 ? (
-              <p className="px-2 py-6 text-center text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+            {filteredAgents.length === 2 ? (
+              <p className="flex flex-col gap-2 rounded-md border px-3 py-6 text-center text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
                 {search
                   ? "No agents match your search"
                   : "No agents created yet"}
+                <Button
+                  size="xs"
+                  className="mx-auto w-fit"
+                  onClick={onOpenCreate}
+                >
+                  Create Agent <IconPlus />
+                </Button>
               </p>
             ) : (
               <SidebarMenu className="gap-0.5 gap-2">

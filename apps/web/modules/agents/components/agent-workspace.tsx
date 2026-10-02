@@ -11,6 +11,8 @@ import { ConfigureAgentSheet } from "@/modules/agents/components/configure-agent
 import { CreateAgentDialog } from "@/modules/agents/components/create-agent-dialog";
 import { useAgentExecution } from "@/modules/agents/hooks/use-agent-execution";
 import { useAgentsQuery } from "@/modules/agents/queries";
+import { ArtifactSheet } from "@/modules/artifacts/artifact-sheet";
+import type { ParsedArtifact } from "@/modules/artifacts/parser";
 import { ConnectionsSheet } from "@/modules/connections/components/connections-sheet";
 import { ConversationTimeline } from "@/modules/conversations/components/conversation-timeline";
 import { InputComposer } from "@/modules/conversations/components/input-composer";
@@ -44,6 +46,8 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   const [inspectedRunId, setInspectedRunId] = React.useState<string | null>(
     null,
   );
+  const [selectedArtifact, setSelectedArtifact] =
+    React.useState<ParsedArtifact | null>(null);
 
   // 1. Fetch Agents
   const { data: agents = [], isLoading: isLoadingAgents } = useAgentsQuery();
@@ -170,6 +174,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
                 agentName={selectedAgent.name}
                 isOptimisticRunning={isOptimisticRunning}
                 isLoading={isChatLoading}
+                onOpenArtifact={(art) => setSelectedArtifact(art)}
               />
 
               <InputComposer
@@ -212,6 +217,14 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
       <ConnectionsSheet
         open={connectionsSheetOpen}
         onOpenChange={setConnectionsSheetOpen}
+      />
+
+      <ArtifactSheet
+        open={Boolean(selectedArtifact)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedArtifact(null);
+        }}
+        artifact={selectedArtifact}
       />
     </>
   );

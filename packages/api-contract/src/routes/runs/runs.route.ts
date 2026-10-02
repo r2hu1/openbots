@@ -82,7 +82,13 @@ export const runsRoute = new Hono<Env>()
           event: ev.type,
           data: JSON.stringify(ev),
         });
-        if (ev.type === "done" || (ev.type === "status" && (ev.status === "completed" || ev.status === "failed" || ev.status === "cancelled"))) {
+        if (
+          ev.type === "done" ||
+          (ev.type === "status" &&
+            (ev.status === "completed" ||
+              ev.status === "failed" ||
+              ev.status === "cancelled"))
+        ) {
           isDone = true;
         }
         if (notifyResolver) {

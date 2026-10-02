@@ -1,6 +1,13 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { runEventHub } from "@openbots/api-contract";
-import { agents, connections, db, messages, runSteps, runs } from "@openbots/db";
+import {
+  agents,
+  connections,
+  db,
+  messages,
+  runSteps,
+  runs,
+} from "@openbots/db";
 import { stepCountIs, ToolLoopAgent } from "ai";
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { buildAgentTools } from "./tools.js";
@@ -212,11 +219,7 @@ export async function executeAgentRun(
     }> = [];
 
     for (const m of historyMessages) {
-      if (
-        m.role === "user" ||
-        m.role === "assistant" ||
-        m.role === "system"
-      ) {
+      if (m.role === "user" || m.role === "assistant" || m.role === "system") {
         let textContent = "";
         if (typeof m.content === "string") {
           textContent = m.content;
@@ -245,7 +248,11 @@ export async function executeAgentRun(
     if (promptText) {
       // Check if promptText is already the last message in history to prevent duplicates
       const lastMsg = inputMessages[inputMessages.length - 1];
-      if (!lastMsg || lastMsg.role !== "user" || lastMsg.content !== promptText) {
+      if (
+        !lastMsg ||
+        lastMsg.role !== "user" ||
+        lastMsg.content !== promptText
+      ) {
         inputMessages.push({
           role: "user",
           content: promptText,
@@ -278,7 +285,28 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
 - You have access to the 'create_schedule' tool.
 - ALWAYS use 'create_schedule' whenever the user asks for a reminder, alarm, delayed task, or recurring execution (e.g. "remind me in 1 minute to have tea", "schedule a check in 2 hours", "run every Monday at 9am").
 - For one-off reminders/delays, specify type="delay" with delaySeconds (e.g. 60 for 1 minute).
-- NEVER prompt the user to connect external services (like Slack, Google Calendar, or Notion) for reminders or timers unless they specifically ask to be notified on that external app.${connectionsInstruction}`;
+- NEVER prompt the user to connect external services (like Slack, Google Calendar, or Notion) for reminders or timers unless they specifically ask to be notified on that external app.
+
+## Artifacts & Visual Rendering:
+- When asked to build, design, or render complete web pages, interactive tools/calculators, games, vector graphics, or diagrams, output a self-contained artifact using the <openbots-artifact> tag:
+  <openbots-artifact type="html" title="Title of Artifact">
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="p-4 bg-slate-900 text-white min-h-screen">
+    <!-- Clean HTML + Vanilla JavaScript + CSS -->
+  </body>
+  </html>
+  </openbots-artifact>
+- Supported types:
+  1. type="html" - Full web applications with standard HTML5, CSS, and Vanilla JavaScript (CDN Tailwind is supported). Do NOT use React.
+  2. type="svg" - Raw vector graphics (<svg ...>...</svg>).
+  3. type="mermaid" - Mermaid diagrams (e.g. flowchart TD, sequenceDiagram, erDiagram).
+- Always include an informative title attribute in the tag.${connectionsInstruction}`;
 
     const agent = new ToolLoopAgent({
       model,
@@ -328,9 +356,7 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
               status: "completed",
               toolName: tr.toolName,
               toolCallId: tr.toolCallId,
-              toolInput: ((tr as any).input ??
-                (tr as any).args ??
-                null) as any,
+              toolInput: ((tr as any).input ?? (tr as any).args ?? null) as any,
               toolOutput: ((tr as any).output ??
                 (tr as any).result ??
                 null) as any,

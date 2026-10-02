@@ -329,7 +329,10 @@ export function ConfigureAgentSheet({
             Save changes
           </Button>
 
-          <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialog
+            open={deleteConfirmOpen}
+            onOpenChange={setDeleteConfirmOpen}
+          >
             <AlertDialogTrigger
               render={
                 <Button
@@ -361,7 +364,9 @@ export function ConfigureAgentSheet({
                   onClick={handleDelete}
                   disabled={deleteMutation.isPending}
                 >
-                  {deleteMutation.isPending && <Spinner data-icon="inline-start" />}
+                  {deleteMutation.isPending && (
+                    <Spinner data-icon="inline-start" />
+                  )}
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>

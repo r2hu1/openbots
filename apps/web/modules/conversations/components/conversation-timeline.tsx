@@ -10,6 +10,7 @@ import {
 } from "@openbots/ui/components/message-scroller";
 import { Spinner } from "@openbots/ui/components/spinner";
 import { Blobatar } from "@openbots/ui/components/ui/blobatar";
+import type { ParsedArtifact } from "@/modules/artifacts/parser";
 import type { RunRecord, StepItem } from "@/modules/runs/types";
 import type { MessageItem } from "../types";
 import { ConversationLiveStatus } from "./conversation-live-status";
@@ -24,6 +25,7 @@ interface ConversationTimelineProps {
   agentName: string;
   isOptimisticRunning?: boolean;
   isLoading?: boolean;
+  onOpenArtifact?: (artifact: ParsedArtifact) => void;
 }
 
 export function ConversationTimeline({
@@ -33,6 +35,7 @@ export function ConversationTimeline({
   agentName,
   isOptimisticRunning = false,
   isLoading = false,
+  onOpenArtifact,
 }: ConversationTimelineProps) {
   const isActiveRunOngoing =
     isOptimisticRunning ||
@@ -76,6 +79,7 @@ export function ConversationTimeline({
                   <ConversationMessageItem
                     message={msg}
                     agentName={agentName}
+                    onOpenArtifact={onOpenArtifact}
                   />
                 </MessageScrollerItem>
               ))}

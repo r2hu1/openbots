@@ -7,10 +7,7 @@ export async function listConnections(userId: string) {
     .select()
     .from(connections)
     .where(
-      and(
-        eq(connections.userId, userId),
-        ne(connections.provider, "composio"),
-      ),
+      and(eq(connections.userId, userId), ne(connections.provider, "composio")),
     )
     .orderBy(desc(connections.createdAt));
 
@@ -121,8 +118,7 @@ export async function initiateConnection(userId: string, appName: string) {
       showDisabled: false,
     });
     const configs = listRes.items || [];
-    const active =
-      configs.find((c) => c.status === "ENABLED") ?? configs[0];
+    const active = configs.find((c) => c.status === "ENABLED") ?? configs[0];
     if (active?.id) {
       authConfigId = active.id;
     }
@@ -132,7 +128,9 @@ export async function initiateConnection(userId: string, appName: string) {
 
   if (!authConfigId) {
     try {
-      const toolkit = (await composio.toolkits.get(appName.toLowerCase())) as any;
+      const toolkit = (await composio.toolkits.get(
+        appName.toLowerCase(),
+      )) as any;
       const authConfigs: any[] =
         toolkit.authConfigDetails?.items ?? toolkit.authConfigDetails ?? [];
       const isNoAuth =
@@ -183,7 +181,10 @@ export async function initiateConnection(userId: string, appName: string) {
   }
 
   // 2. Link using POST /api/v3/connected_accounts/link
-  const linkResult = await composio.connectedAccounts.link(userId, authConfigId);
+  const linkResult = await composio.connectedAccounts.link(
+    userId,
+    authConfigId,
+  );
   const redirectUrl = linkResult.redirectUrl ?? null;
   const connectionRequestId = linkResult.id ?? null;
 
@@ -199,7 +200,8 @@ export async function initiateConnection(userId: string, appName: string) {
     .values({
       userId,
       provider: appName.toLowerCase(),
-      externalAccountId: connectionRequestId ?? `${appName.toLowerCase()}_${Date.now()}`,
+      externalAccountId:
+        connectionRequestId ?? `${appName.toLowerCase()}_${Date.now()}`,
       status: "disconnected",
       metadata: { initiatedAt: new Date().toISOString() },
     })

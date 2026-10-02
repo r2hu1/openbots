@@ -19,5 +19,5 @@ export function Spinner({ className }: { className?: string }) {
         strokeDashoffset="0"
       />
     </svg>
-  )
+  );
 }

@@ -96,7 +96,10 @@ export function useReconciledMessages({
   React.useEffect(() => {
     if (optimisticMessages.length === 0) return;
 
-    if (activeRun && (activeRun.status === "completed" || activeRun.status === "failed")) {
+    if (
+      activeRun &&
+      (activeRun.status === "completed" || activeRun.status === "failed")
+    ) {
       onClearOptimistic();
       return;
     }

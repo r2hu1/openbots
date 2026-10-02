@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { Badge } from "@openbots/ui/components/badge"
-import { Button } from "@openbots/ui/components/button"
-import { SidebarTrigger } from "@openbots/ui/components/sidebar"
-import { Blobatar } from "@openbots/ui/components/ui/blobatar"
+import { Badge } from "@openbots/ui/components/badge";
+import { Button } from "@openbots/ui/components/button";
+import { SidebarTrigger } from "@openbots/ui/components/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@openbots/ui/components/tooltip";
+import { Blobatar } from "@openbots/ui/components/ui/blobatar";
 import {
   IconCalendar,
   IconHistory,
   IconPlug,
   IconSettings,
-} from "@tabler/icons-react"
-import type { Agent } from "../types"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@openbots/ui/components/tooltip"
+} from "@tabler/icons-react";
+import type { Agent } from "../types";
 
 interface AgentHeaderProps {
-  selectedAgent: Agent | null
-  onOpenConfigure: () => void
-  onOpenHistory: () => void
-  onOpenConnections?: () => void
-  onOpenSchedules?: () => void
+  selectedAgent: Agent | null;
+  onOpenConfigure: () => void;
+  onOpenHistory: () => void;
+  onOpenConnections?: () => void;
+  onOpenSchedules?: () => void;
 }
 
 export function AgentHeader({
@@ -35,7 +35,7 @@ export function AgentHeader({
   return (
     <header className="relative top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background/60 after:via-background/30 after:to-transparent">
       <div className="flex items-center gap-1.5">
-        <SidebarTrigger className="size-7 md:hidden" />
+        <SidebarTrigger className="size-7 border-border! md:hidden" />
         {selectedAgent ? (
           <Tooltip>
             <TooltipTrigger>
@@ -44,7 +44,7 @@ export function AgentHeader({
                   name={selectedAgent.name || selectedAgent.id}
                   className="size-6.5! shrink-0"
                 />
-                <span className="text-sm font-semibold text-foreground">
+                <span className="text-xs font-medium text-foreground">
                   {selectedAgent.name}
                 </span>
                 <div className="hidden items-center gap-1.5">
@@ -123,5 +123,5 @@ export function AgentHeader({
         )}
       </div>
     </header>
-  )
+  );
 }

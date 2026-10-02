@@ -21,6 +21,4 @@ export const initiateConnectionSchema = z.object({
   appName: z.string().min(1),
 });
 
-export type InitiateConnectionInput = z.infer<
-  typeof initiateConnectionSchema
->;
+export type InitiateConnectionInput = z.infer<typeof initiateConnectionSchema>;

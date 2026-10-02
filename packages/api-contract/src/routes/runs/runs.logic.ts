@@ -121,10 +121,15 @@ class RunEventHub {
             try {
               const currentLen = await redis.llen(channelKey);
               if (currentLen > lastLength) {
-                const newItems = await redis.lrange(channelKey, lastLength, currentLen - 1);
+                const newItems = await redis.lrange(
+                  channelKey,
+                  lastLength,
+                  currentLen - 1,
+                );
                 lastLength = currentLen;
                 for (const item of newItems) {
-                  const parsed: RunEvent = typeof item === "string" ? JSON.parse(item) : item;
+                  const parsed: RunEvent =
+                    typeof item === "string" ? JSON.parse(item) : item;
                   const activeSet = this.localListeners.get(runId);
                   if (activeSet) {
                     for (const l of activeSet) {
@@ -170,9 +175,12 @@ class RunEventHub {
       history = [];
       this.eventHistory.set(runId, history);
       // Clean up in-memory history after 15 minutes
-      setTimeout(() => {
-        this.eventHistory.delete(runId);
-      }, 15 * 60 * 1000);
+      setTimeout(
+        () => {
+          this.eventHistory.delete(runId);
+        },
+        15 * 60 * 1000,
+      );
     }
     history.push(event);
 
@@ -215,4 +223,3 @@ export function registerDirectRunExecutor(executor: DirectRunExecutor) {
 export function getDirectRunExecutor(): DirectRunExecutor | null {
   return directRunExecutor;
 }
-

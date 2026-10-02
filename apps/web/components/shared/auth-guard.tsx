@@ -1,35 +1,35 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import * as React from "react"
-import { useSession } from "@/lib/auth-client"
-import { Spinner } from "@openbots/ui/components/spinner"
+import { Spinner } from "@openbots/ui/components/spinner";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { useSession } from "@/lib/auth-client";
 
 interface AuthGuardProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { data: session, isPending } = useSession()
-  const router = useRouter()
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
 
   React.useEffect(() => {
     if (!isPending && !session) {
-      router.replace("/login")
+      router.replace("/login");
     }
-  }, [session, isPending, router])
+  }, [session, isPending, router]);
 
   if (isPending) {
     return (
       <div className="flex h-svh w-full items-center justify-center bg-background">
         <Spinner className="size-6" />
       </div>
-    )
+    );
   }
 
   if (!session) {
-    return null
+    return null;
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }

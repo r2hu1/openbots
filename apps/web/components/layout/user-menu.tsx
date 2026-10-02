@@ -99,18 +99,16 @@ export function UserMenu({
 
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
-                {resolvedTheme === "dark" ? (
-                  <IconMoon />
-                ) : (
-                  <IconSun />
-                )}
+                {resolvedTheme === "dark" ? <IconMoon /> : <IconSun />}
                 Theme
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="min-w-36 rounded-xl">
                 <DropdownMenuItem onClick={() => setTheme("light")}>
                   <IconSun />
                   Light
-                  {theme === "light" && <IconCheck className="ml-auto size-4" />}
+                  {theme === "light" && (
+                    <IconCheck className="ml-auto size-4" />
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("dark")}>
                   <IconMoon />
@@ -120,7 +118,9 @@ export function UserMenu({
                 <DropdownMenuItem onClick={() => setTheme("system")}>
                   <IconDeviceLaptop />
                   System
-                  {theme === "system" && <IconCheck className="ml-auto size-4" />}
+                  {theme === "system" && (
+                    <IconCheck className="ml-auto size-4" />
+                  )}
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>

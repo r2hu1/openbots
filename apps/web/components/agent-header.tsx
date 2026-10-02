@@ -33,7 +33,7 @@ export function AgentHeader({
       <div className="flex items-center gap-1.5">
         <SidebarTrigger className="size-7 md:hidden" />
         {selectedAgent ? (
-          <div className="flex items-center gap-px rounded-sm bg-secondary pr-1.5 pl-px">
+          <div className="flex items-center gap-px rounded-sm bg-sidebar pr-1.5 pl-px">
             <Blobatar
               name={selectedAgent.name || selectedAgent.id}
               className="size-6.5! shrink-0"

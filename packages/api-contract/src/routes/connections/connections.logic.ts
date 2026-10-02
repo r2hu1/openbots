@@ -1,13 +1,49 @@
 import { Composio } from "@composio/core";
 import { connections, db } from "@openbots/db";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 
 export async function listConnections(userId: string) {
   const userConnections = await db
     .select()
     .from(connections)
-    .where(eq(connections.userId, userId))
+    .where(
+      and(
+        eq(connections.userId, userId),
+        ne(connections.provider, "composio"),
+      ),
+    )
     .orderBy(desc(connections.createdAt));
+
+  // Verify pending/active connections against Composio's actual state
+  const apiKey = process.env.COMPOSIO_API_KEY;
+  if (apiKey && userConnections.length > 0) {
+    const composio = new Composio({ apiKey });
+    try {
+      const composioAccounts = await composio.connectedAccounts.list({
+        userIds: [userId],
+      });
+      const activeAccountIds = new Set(
+        (composioAccounts.items ?? [])
+          .filter((a: any) => a.status === "ACTIVE")
+          .map((a: any) => a.id),
+      );
+
+      for (const conn of userConnections) {
+        const isActive = activeAccountIds.has(conn.externalAccountId);
+        const shouldBeStatus = isActive ? "active" : "disconnected";
+
+        if (conn.status !== shouldBeStatus) {
+          await db
+            .update(connections)
+            .set({ status: shouldBeStatus, updatedAt: new Date() })
+            .where(eq(connections.id, conn.id));
+          (conn as any).status = shouldBeStatus;
+        }
+      }
+    } catch {
+      // If Composio is unreachable, return cached DB state
+    }
+  }
 
   return { connections: userConnections };
 }
@@ -125,13 +161,14 @@ export async function initiateConnection(userId: string, appName: string) {
     );
   }
 
+  // Store as 'disconnected' until OAuth callback confirms the connection
   await db
     .insert(connections)
     .values({
       userId,
       provider: appName.toLowerCase(),
       externalAccountId: connectionRequestId ?? `${appName.toLowerCase()}_${Date.now()}`,
-      status: "active",
+      status: "disconnected",
       metadata: { initiatedAt: new Date().toISOString() },
     })
     .onConflictDoUpdate({
@@ -141,7 +178,7 @@ export async function initiateConnection(userId: string, appName: string) {
         connections.externalAccountId,
       ],
       set: {
-        status: "active",
+        status: "disconnected",
         metadata: { initiatedAt: new Date().toISOString() },
         updatedAt: new Date(),
       },

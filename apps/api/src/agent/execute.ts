@@ -1,7 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { agents, db, messages, runSteps, runs } from "@openbots/db";
+import { agents, connections, db, messages, runSteps, runs } from "@openbots/db";
 import { stepCountIs, ToolLoopAgent } from "ai";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { buildAgentTools } from "./tools.js";
 
 function getGoogleClient() {
@@ -259,15 +259,40 @@ export async function executeAgentRun(
       }
     }
 
+    // Query user's active app connections to inform the agent
+    const activeConnections = await db
+      .select({ provider: connections.provider })
+      .from(connections)
+      .where(
+        and(
+          eq(connections.userId, runRecord.userId),
+          eq(connections.status, "active"),
+          ne(connections.provider, "composio"),
+        ),
+      );
+
+    const connectedApps = activeConnections.map((c) => c.provider);
+
     // Construct ToolLoopAgent using AI SDK
     const model = resolveModel(agentRecord.model);
+
+    let connectionsInstruction = "";
+    if (connectedApps.length > 0) {
+      connectionsInstruction = `
+## Connected Apps:
+The user has already connected the following apps: ${connectedApps.join(", ")}.
+- Use the corresponding Composio tools (e.g. GMAIL_*, NOTION_*, SLACK_*, GITHUB_*) directly to perform actions on these apps.
+- DO NOT ask the user to connect or authorize these apps again. They are already authenticated and ready to use.
+- If a tool call fails with an auth error for a connected app, inform the user of the specific error instead of asking them to reconnect.`;
+    }
+
     const systemInstructions = `${agentRecord.instructions || "You are an AI assistant."}
 
 ## Scheduling & Reminders:
 - You have access to the 'create_schedule' tool.
 - ALWAYS use 'create_schedule' whenever the user asks for a reminder, alarm, delayed task, or recurring execution (e.g. "remind me in 1 minute to have tea", "schedule a check in 2 hours", "run every Monday at 9am").
 - For one-off reminders/delays, specify type="delay" with delaySeconds (e.g. 60 for 1 minute).
-- NEVER prompt the user to connect external services (like Slack, Google Calendar, or Notion) for reminders or timers unless they specifically ask to be notified on that external app.`;
+- NEVER prompt the user to connect external services (like Slack, Google Calendar, or Notion) for reminders or timers unless they specifically ask to be notified on that external app.${connectionsInstruction}`;
 
     const agent = new ToolLoopAgent({
       model,

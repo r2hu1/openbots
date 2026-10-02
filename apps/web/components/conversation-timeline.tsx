@@ -118,15 +118,8 @@ export function ConversationTimeline({
         <MessageScrollerViewport className="border-none! px-4 py-6 ring-2! outline-none!">
           <MessageScrollerContent className="mx-auto max-w-4xl space-y-6">
             {isLoading ? (
-              <div className="space-y-6 py-4">
-                <Skeleton className="h-16 w-full rounded-2xl sm:w-[480px]" />
-                <Skeleton className="ml-auto h-16 w-full max-w-40 rounded-2xl sm:w-[480px]" />
-                <Skeleton className="h-16 w-full rounded-2xl sm:w-[480px]" />
-                <Skeleton className="ml-auto h-16 w-full max-w-40 rounded-2xl sm:w-[480px]" />
-                <Skeleton className="h-16 w-full rounded-2xl sm:w-[480px]" />
-                <Skeleton className="ml-auto h-16 w-full max-w-40 rounded-2xl sm:w-[480px]" />
-                <Skeleton className="h-16 w-full rounded-2xl sm:w-[480px]" />
-                <Skeleton className="ml-auto h-16 w-full max-w-40 rounded-2xl sm:w-[480px]" />
+              <div className="space-y-6 py-30">
+                <Spinner className="mx-auto size-6" />
               </div>
             ) : messages.length === 0 && !activeRun ? (
               <MessageScrollerItem>

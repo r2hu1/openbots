@@ -1,5 +1,16 @@
 "use client";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@openbots/ui/components/alert-dialog";
 import { Badge } from "@openbots/ui/components/badge";
 import { Button } from "@openbots/ui/components/button";
 import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field";
@@ -60,6 +71,7 @@ export function ConfigureAgentSheet({
   const [maxSteps, setMaxSteps] = React.useState(10);
   const [saveSuccess, setSaveSuccess] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (agent) {
@@ -114,23 +126,19 @@ export function ConfigureAgentSheet({
   };
 
   const handleDelete = () => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete "${agent.name}"? This cannot be undone.`,
-      )
-    ) {
-      deleteMutation.mutate(undefined, {
-        onSuccess: () => {
-          onOpenChange(false);
-          if (typeof window !== "undefined") {
-            window.location.href = "/";
-          }
-        },
-        onError: (err) => {
-          setSaveError(err.message);
-        },
-      });
-    }
+    deleteMutation.mutate(undefined, {
+      onSuccess: () => {
+        setDeleteConfirmOpen(false);
+        onOpenChange(false);
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
+      },
+      onError: (err) => {
+        setDeleteConfirmOpen(false);
+        setSaveError(err.message);
+      },
+    });
   };
 
   return (
@@ -321,19 +329,44 @@ export function ConfigureAgentSheet({
             Save changes
           </Button>
 
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={deleteMutation.isPending}
-            onClick={handleDelete}
-          >
-            Delete
-            {deleteMutation.isPending ? (
-              <Spinner data-icon="inline-start" />
-            ) : (
-              <IconTrash />
-            )}
-          </Button>
+          <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleteMutation.isPending}
+                />
+              }
+            >
+              Delete
+              {deleteMutation.isPending ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <IconTrash />
+              )}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete agent</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete &ldquo;{agent.name}&rdquo;?
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending && <Spinner data-icon="inline-start" />}
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </SheetFooter>
       </SheetContent>
     </Sheet>

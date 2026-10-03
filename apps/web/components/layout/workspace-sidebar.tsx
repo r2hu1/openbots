@@ -88,7 +88,7 @@ export function WorkspaceSidebar({
 
   return (
     <>
-      <Sidebar>
+      <Sidebar collapsible="icon">
         <SidebarHeader className="px-3 group-data-[collapsible=icon]:px-2">
           <BrandRow onOpenCreate={onOpenCreate} rowClass={rowClass} />
 
@@ -142,7 +142,10 @@ export function WorkspaceSidebar({
                           <span className="relative flex shrink-0 group-data-[collapsible=icon]:mx-auto">
                             <Blobatar
                               name={agent.name || agent.id}
-                              className="size-7 group-data-[collapsible=icon]:size-6"
+                              className="size-7! group-data-[collapsible=icon]:size-6"
+                              blobatar={{
+                                animate: isActive ? "always" : "hover",
+                              }}
                             />
                           </span>
 

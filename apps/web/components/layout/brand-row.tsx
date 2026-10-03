@@ -1,29 +1,29 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
+import { Button } from "@openbots/ui/components/button"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@openbots/ui/components/sidebar";
+} from "@openbots/ui/components/sidebar"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@openbots/ui/components/tooltip";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
-import { IconLayoutSidebarLeftExpand, IconPlus } from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
+} from "@openbots/ui/components/tooltip"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
+import { IconLayoutSidebarLeftExpand, IconPlus } from "@tabler/icons-react"
+import { cn } from "@/lib/utils"
 
 interface BrandRowProps {
-  onOpenCreate: () => void;
-  rowClass: string;
+  onOpenCreate: () => void
+  rowClass: string
 }
 
 export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
-  const { state, isMobile, toggleSidebar } = useSidebar();
-  const collapsed = state === "collapsed" && !isMobile;
+  const { state, isMobile, toggleSidebar } = useSidebar()
+  const collapsed = state === "collapsed" && !isMobile
 
   return (
     <SidebarMenu>
@@ -32,17 +32,15 @@ export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
           <>
             <SidebarMenuButton
               tooltip="Expand sidebar"
-              variant="outline"
               onClick={toggleSidebar}
-              className={rowClass}
+              className={cn(rowClass, "bg-sidebar-accent p-0")}
             >
               <IconLayoutSidebarLeftExpand />
             </SidebarMenuButton>
             <SidebarMenuButton
-              variant="outline"
               tooltip="Add agent"
               onClick={onOpenCreate}
-              className={cn(rowClass, "mt-2")}
+              className={cn(rowClass, "mt-2 bg-sidebar-accent p-0")}
             >
               <IconPlus />
             </SidebarMenuButton>
@@ -70,5 +68,5 @@ export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
         )}
       </SidebarMenuItem>
     </SidebarMenu>
-  );
+  )
 }

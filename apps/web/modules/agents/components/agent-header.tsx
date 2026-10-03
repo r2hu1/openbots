@@ -1,28 +1,45 @@
-"use client";
+"use client"
 
-import { Badge } from "@openbots/ui/components/badge";
-import { Button } from "@openbots/ui/components/button";
-import { SidebarTrigger } from "@openbots/ui/components/sidebar";
+import { Badge } from "@openbots/ui/components/badge"
+import { Button } from "@openbots/ui/components/button"
+import { SidebarTrigger } from "@openbots/ui/components/sidebar"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@openbots/ui/components/tooltip";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
+} from "@openbots/ui/components/tooltip"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 import {
   IconCalendar,
+  IconChevronDown,
+  IconEdit,
   IconHistory,
   IconPlug,
   IconSettings,
-} from "@tabler/icons-react";
-import type { Agent } from "../types";
+  IconTrash,
+} from "@tabler/icons-react"
+import type { Agent } from "../types"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@openbots/ui/components/dropdown-menu"
+import { useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import * as React from "react"
+import { DeleteAgentDialog } from "./delete-agent-dialog"
+import { RenameAgentDialog } from "./rename-agent-dialog"
 
 interface AgentHeaderProps {
-  selectedAgent: Agent | null;
-  onOpenConfigure: () => void;
-  onOpenHistory: () => void;
-  onOpenConnections?: () => void;
-  onOpenSchedules?: () => void;
+  selectedAgent: Agent | null
+  onOpenConfigure: () => void
+  onOpenHistory: () => void
+  onOpenConnections?: () => void
+  onOpenSchedules?: () => void
+  onAgentRenamed?: (updatedAgent: Agent) => void
+  onAgentDeleted?: (deletedId: string) => void
 }
 
 export function AgentHeader({
@@ -31,42 +48,109 @@ export function AgentHeader({
   onOpenHistory,
   onOpenConnections,
   onOpenSchedules,
+  onAgentRenamed,
+  onAgentDeleted,
 }: AgentHeaderProps) {
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [renameOpen, setRenameOpen] = React.useState(false)
+  const [deleteOpen, setDeleteOpen] = React.useState(false)
+
   return (
     <header className="relative top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background/60 after:via-background/30 after:to-transparent">
       <div className="flex items-center gap-1.5">
         <SidebarTrigger className="size-7 border-border! md:hidden" />
         {selectedAgent ? (
-          <Tooltip>
-            <TooltipTrigger>
-              <div className="flex items-center gap-px rounded-md border border-border bg-sidebar pr-1.5 pl-px">
-                <Blobatar
-                  name={selectedAgent.name || selectedAgent.id}
-                  className="size-6.5! shrink-0"
-                />
-                <span className="text-xs font-medium text-foreground">
-                  {selectedAgent.name}
-                </span>
-                <div className="hidden items-center gap-1.5">
-                  <Badge variant="secondary" className="font-mono text-[10px]">
-                    {selectedAgent.model.replace("google/", "")}
-                  </Badge>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {selectedAgent.autonomy}
-                  </Badge>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {selectedAgent.maxSteps} steps
-                  </Badge>
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger openOnHover>
+                <div className="flex cursor-pointer items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-sidebar">
+                  <Blobatar
+                    name={selectedAgent.name || selectedAgent.id}
+                    className="size-6.5! shrink-0"
+                  />
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-xs font-medium text-foreground">
+                      {selectedAgent.name}
+                    </span>
+                  </div>
+                  <IconChevronDown className="ml-1 size-3.5 text-muted-foreground" />
                 </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className={"grid gap-0"}>
-              <p>{selectedAgent.description}</p>
-              <span className="text-[11px] text-background/70">
-                {selectedAgent.model}
-              </span>
-            </TooltipContent>
-          </Tooltip>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-48">
+                <DropdownMenuItem onClick={() => setRenameOpen(true)}>
+                  <IconEdit className="size-4" />
+                  <span>Rename Agent</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onOpenConfigure}>
+                  <IconSettings className="size-4" />
+                  <span>Configure Agent</span>
+                </DropdownMenuItem>
+                {onOpenConnections && (
+                  <DropdownMenuItem onClick={onOpenConnections}>
+                    <IconPlug className="size-4" />
+                    <span>Connections</span>
+                  </DropdownMenuItem>
+                )}
+                {onOpenSchedules && (
+                  <DropdownMenuItem onClick={onOpenSchedules}>
+                    <IconCalendar className="size-4" />
+                    <span>Schedules</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <IconTrash className="size-4" />
+                  <span>Delete Agent</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <RenameAgentDialog
+              agent={selectedAgent}
+              open={renameOpen}
+              onOpenChange={setRenameOpen}
+              onSuccess={(updated) => {
+                queryClient.invalidateQueries({ queryKey: ["agents"] })
+                queryClient.invalidateQueries({ queryKey: ["agent", updated.id] })
+                queryClient.setQueryData(["agent", updated.id], (old: any) =>
+                  old ? { ...old, agent: updated } : old
+                )
+                queryClient.setQueryData(["agents"], (old: any) => {
+                  if (!old?.agents) return old
+                  return {
+                    ...old,
+                    agents: old.agents.map((a: Agent) =>
+                      a.id === updated.id ? { ...a, ...updated } : a
+                    ),
+                  }
+                })
+                onAgentRenamed?.(updated)
+              }}
+            />
+
+            <DeleteAgentDialog
+              agent={selectedAgent}
+              open={deleteOpen}
+              onOpenChange={setDeleteOpen}
+              onSuccess={(id) => {
+                queryClient.invalidateQueries({ queryKey: ["agents"] })
+                queryClient.removeQueries({ queryKey: ["agent", id] })
+                queryClient.setQueryData(["agents"], (old: any) => {
+                  if (!old?.agents) return old
+                  return {
+                    ...old,
+                    agents: old.agents.filter((a: Agent) => a.id !== id),
+                  }
+                })
+                onAgentDeleted?.(id)
+                router.push("/")
+              }}
+            />
+          </>
         ) : null}
       </div>
 
@@ -123,5 +207,5 @@ export function AgentHeader({
         )}
       </div>
     </header>
-  );
+  )
 }

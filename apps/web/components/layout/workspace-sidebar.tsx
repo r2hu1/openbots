@@ -92,7 +92,7 @@ export function WorkspaceSidebar({
         <SidebarHeader className="px-3 group-data-[collapsible=icon]:px-2">
           <BrandRow onOpenCreate={onOpenCreate} rowClass={rowClass} />
 
-          <InputGroup className="h-8 border border-border bg-background shadow-none group-data-[collapsible=icon]:hidden">
+          <InputGroup className="mt-1 h-8 border border-border bg-background shadow-none group-data-[collapsible=icon]:hidden">
             <InputGroupAddon>
               <IconSearch />
             </InputGroupAddon>

@@ -10,7 +10,8 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
-    "test": "bun test-agent-runtime.ts"
+    "test": "bun test-agent-runtime.ts",
+    "trigger:dev": "bunx trigger.dev@latest dev"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.0",
@@ -19,7 +20,7 @@
     "@modelcontextprotocol/client": "^2.2.0",
     "@openbots/api-contract": "workspace:*",
     "@openbots/db": "workspace:*",
-    "@trigger.dev/sdk": "4.7.1",
+    "@trigger.dev/sdk": "4.7.2",
     "ai": "^7.0.0",
     "better-auth": "^1.7.7",
     "drizzle-orm": "^0.45.3",
@@ -32,7 +33,7 @@
   },
   "devDependencies": {
     "@openbots/typescript-config": "workspace:*",
-    "@trigger.dev/build": "4.7.1",
+    "@trigger.dev/build": "4.7.2",
     "@types/node": "^20",
     "typescript": "^5"
   }

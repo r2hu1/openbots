@@ -250,7 +250,6 @@ export function ArtifactSheet({
               onClick={() => setMaximized((v) => !v)}
               aria-label={maximized ? "Restore size" : "Expand"}
               title={maximized ? "Restore" : "Expand"}
-              className="hidden sm:inline-flex"
             >
               {maximized ? (
                 <IconArrowsDiagonalMinimize2 />

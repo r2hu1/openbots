@@ -12,6 +12,7 @@ import {
 } from "@openbots/ui/components/marker";
 import { Spinner } from "@openbots/ui/components/spinner";
 import { IconCheck, IconChevronDown, IconX } from "@tabler/icons-react";
+import { formatToolStepLabel } from "../tool-label";
 import type { StepItem } from "../types";
 import { sanitizeDisplayData } from "../utils";
 
@@ -33,6 +34,12 @@ export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
         const stepKey = step.id || `step-${step.stepNumber}`;
         const hasDetails =
           step.toolInput !== undefined || step.toolOutput !== undefined;
+        const { label } = formatToolStepLabel(
+          step.toolName,
+          step.status,
+          step.toolInput,
+          step.toolOutput,
+        );
 
         if (!hasDetails) {
           return (
@@ -49,16 +56,12 @@ export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
                 )}
               </MarkerIcon>
               <MarkerContent className="flex items-center gap-2">
-                <span className="font-mono font-medium text-foreground">
-                  {step.toolName || "tool_call"}
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  {step.status === "running"
-                    ? "calling..."
-                    : step.status === "completed"
-                      ? "called"
-                      : "failed"}
-                </span>
+                <span className="font-medium text-foreground">{label}</span>
+                {step.toolName && (
+                  <span className="font-mono text-[10px] text-muted-foreground/70">
+                    ({step.toolName})
+                  </span>
+                )}
               </MarkerContent>
             </Marker>
           );
@@ -79,17 +82,15 @@ export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
                 )}
               </MarkerIcon>
               <MarkerContent className="flex flex-1 items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-medium text-foreground">
-                    {step.toolName || "tool_call"}
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="truncate font-medium text-foreground">
+                    {label}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {step.status === "running"
-                      ? "calling..."
-                      : step.status === "completed"
-                        ? "called"
-                        : "failed"}
-                  </span>
+                  {step.toolName && (
+                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70">
+                      ({step.toolName})
+                    </span>
+                  )}
                 </div>
                 <CollapsibleTrigger className="flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                   <span>details</span>
@@ -101,20 +102,20 @@ export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
             <CollapsibleContent className="mt-1.5 ml-6 space-y-2 rounded-md border border-border/50 bg-muted/40 p-2.5 font-mono text-[11px]">
               {step.toolInput !== undefined && (
                 <div>
-                  <div className="mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="mb-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                     Input Parameters
                   </div>
-                  <pre className="max-h-40 overflow-x-auto rounded bg-background/80 p-2 text-foreground/90 whitespace-pre-wrap">
+                  <pre className="max-h-40 overflow-x-auto rounded bg-background/80 p-2 whitespace-pre-wrap text-foreground/90">
                     {sanitizeDisplayData(step.toolInput)}
                   </pre>
                 </div>
               )}
               {step.toolOutput !== undefined && (
                 <div>
-                  <div className="mb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="mb-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                     Output Result
                   </div>
-                  <pre className="max-h-48 overflow-x-auto rounded bg-background/80 p-2 text-foreground/90 whitespace-pre-wrap">
+                  <pre className="max-h-48 overflow-x-auto rounded bg-background/80 p-2 whitespace-pre-wrap text-foreground/90">
                     {sanitizeDisplayData(step.toolOutput)}
                   </pre>
                 </div>

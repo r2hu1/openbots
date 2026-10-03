@@ -100,8 +100,8 @@ export function ConversationMessageItem({
                 }
                 if (seg.text) {
                   return (
-                    <Bubble key={seg.id} variant="outline" align="start">
-                      <BubbleContent className="typeset typeset-chat p-1.5 px-2.5 text-sm text-foreground">
+                    <Bubble key={seg.id} variant="secondary" align="start">
+                      <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
                         <Markdown>{seg.text}</Markdown>
                       </BubbleContent>
                     </Bubble>

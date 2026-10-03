@@ -61,7 +61,7 @@ function SheetContent({
           "data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=top]:sm:inset-x-3 data-[side=top]:sm:top-3",
 
           // left
-          "data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-full data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=left]:sm:inset-y-3 data-[side=left]:sm:left-3 data-[side=left]:sm:h-auto data-[side=left]:sm:w-auto data-[side=left]:sm:max-w-sm",
+          "data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=left]:sm:inset-y-3 data-[side=left]:sm:left-3 data-[side=left]:sm:h-auto data-[side=left]:sm:w-auto data-[side=left]:sm:w-full data-[side=left]:sm:max-w-sm",
 
           // right
           "data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-full data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=right]:sm:inset-y-3 data-[side=right]:sm:right-3 data-[side=right]:sm:h-auto data-[side=right]:sm:w-auto data-[side=right]:sm:max-w-sm",

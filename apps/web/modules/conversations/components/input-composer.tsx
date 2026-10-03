@@ -100,7 +100,7 @@ export function InputComposer({
   }
 
   return (
-    <div className="w-full px-3 pb-4 sm:px-0">
+    <div className="w-full px-3 pb-4">
       <div className="mx-auto max-w-4xl">
         <form
           onSubmit={(event) => {

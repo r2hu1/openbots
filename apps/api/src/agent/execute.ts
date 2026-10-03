@@ -282,9 +282,10 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
     const systemInstructions = `${agentRecord.instructions || "You are an AI assistant."}
 
 ## Scheduling & Reminders:
-- You have access to the 'create_schedule' tool.
-- ALWAYS use 'create_schedule' whenever the user asks for a reminder, alarm, delayed task, or recurring execution (e.g. "remind me in 1 minute to have tea", "schedule a check in 2 hours", "run every Monday at 9am").
+- You have access to the 'create_schedule' and 'manage_schedule' tools.
+- ALWAYS use 'create_schedule' whenever the user asks for a new reminder, alarm, delayed task, or recurring execution (e.g. "remind me in 1 minute to have tea", "schedule a check in 2 hours", "run every Monday at 9am").
 - For one-off reminders/delays, specify type="delay" with delaySeconds (e.g. 60 for 1 minute).
+- ALWAYS use 'manage_schedule' whenever the user asks to list, check, modify, reschedule, or cancel any queued reminders, delayed tasks, or recurring schedules (e.g. "cancel my tea reminder", "what reminders do I have?", "postpone my check by 30 minutes").
 - NEVER prompt the user to connect external services (like Slack, Google Calendar, or Notion) for reminders or timers unless they specifically ask to be notified on that external app.
 
 ## Artifacts & Visual Rendering:

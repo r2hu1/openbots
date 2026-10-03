@@ -119,6 +119,7 @@ export const ALL_INTERNAL_TOOLS = [
   "get_current_time",
   "calculate",
   "create_schedule",
+  "manage_schedule",
   "web_search",
   "fetch_web_page",
   "http_request",

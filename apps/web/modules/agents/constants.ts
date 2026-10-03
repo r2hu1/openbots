@@ -4,6 +4,8 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
     "Evaluates mathematical expressions safely without code evaluation.",
   create_schedule:
     "Creates delayed, relative, timestamped, or recurring scheduled runs.",
+  manage_schedule:
+    "Lists, modifies, reschedules, or cancels queued reminders and recurring tasks.",
   web_search:
     "Performs live web searches with snippets and source links via DuckDuckGo.",
   fetch_web_page:

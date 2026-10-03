@@ -5,9 +5,9 @@ import {
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
 import { agentTools, connections, db, runs, schedules } from "@openbots/db";
-import { tasks } from "@trigger.dev/sdk";
+import { runs as triggerRuns, tasks } from "@trigger.dev/sdk";
 import { jsonSchema, tool } from "ai";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
 function parseArithmetic(expr: string): number {
@@ -1319,6 +1319,493 @@ export function createScheduleTool(
   });
 }
 
+export function manageScheduleTool(
+  userId: string,
+  agentId: string,
+  conversationId?: string | null,
+) {
+  return tool({
+    description:
+      "Manage, inspect, reschedule, modify, or cancel queued/scheduled reminders and recurring tasks. " +
+      "Use this whenever the user asks to: " +
+      "(1) List or check active/pending reminders or schedules (e.g. 'what reminders do I have?', 'show my scheduled tasks'), " +
+      "(2) Cancel a reminder or schedule (e.g. 'cancel my tea reminder', 'cancel task 123', 'delete reminder'), " +
+      "(3) Modify or reschedule a reminder or schedule (e.g. 'change my tea reminder to 10 minutes', 'reschedule to 5pm', 'update reminder prompt').",
+    inputSchema: z.object({
+      action: z
+        .enum(["list", "cancel", "modify"])
+        .describe(
+          "Action to perform: 'list' to see all scheduled/queued tasks, 'cancel' to stop/delete a scheduled task, or 'modify' to change its timing or prompt",
+        ),
+      taskId: z
+        .string()
+        .optional()
+        .describe(
+          "The ID of the queued run or recurring schedule (obtained from 'list' action or prior creation)",
+        ),
+      taskName: z
+        .string()
+        .optional()
+        .describe(
+          "Fuzzy name or title of the task to find, cancel, or modify (e.g. 'tea reminder') if ID is unknown",
+        ),
+      newName: z
+        .string()
+        .optional()
+        .describe("New title/name for the task when action is 'modify'"),
+      newPrompt: z
+        .string()
+        .optional()
+        .describe("New prompt or instruction for the task when action is 'modify'"),
+      delaySeconds: z
+        .number()
+        .optional()
+        .describe(
+          "New seconds from now to execute when modifying a one-off delay task (e.g. 600 for 10 minutes)",
+        ),
+      runAt: z
+        .string()
+        .optional()
+        .describe(
+          "New ISO 8601 timestamp string for when to run when modifying a timestamped task",
+        ),
+      cronExpression: z
+        .string()
+        .optional()
+        .describe(
+          "New cron expression when modifying a recurring schedule (e.g. '0 10 * * *')",
+        ),
+      timezone: z
+        .string()
+        .optional()
+        .describe("New IANA timezone (e.g. 'UTC', 'America/New_York')"),
+    }),
+    execute: async ({
+      action,
+      taskId,
+      taskName,
+      newName,
+      newPrompt,
+      delaySeconds,
+      runAt,
+      cronExpression,
+      timezone,
+    }) => {
+      // 1. ACTION: LIST
+      if (action === "list") {
+        const queuedRuns = await db
+          .select({
+            id: runs.id,
+            agentId: runs.agentId,
+            status: runs.status,
+            triggerType: runs.triggerType,
+            input: runs.input,
+            createdAt: runs.createdAt,
+          })
+          .from(runs)
+          .where(
+            and(
+              eq(runs.userId, userId),
+              eq(runs.agentId, agentId),
+              eq(runs.status, "queued"),
+              eq(runs.triggerType, "schedule"),
+            ),
+          )
+          .orderBy(desc(runs.createdAt));
+
+        const activeSchedules = await db
+          .select()
+          .from(schedules)
+          .where(
+            and(
+              eq(schedules.userId, userId),
+              eq(schedules.agentId, agentId),
+              eq(schedules.status, "active"),
+            ),
+          )
+          .orderBy(desc(schedules.createdAt));
+
+        const formattedQueued = queuedRuns.map((r) => {
+          const inp = (r.input as any) ?? {};
+          return {
+            id: r.id,
+            type: "delayed_reminder" as const,
+            name: inp.scheduledTaskName ?? "Unnamed Reminder",
+            prompt: inp.prompt ?? (typeof inp === "string" ? inp : ""),
+            scheduledFor: inp.scheduledFor ?? null,
+            status: r.status,
+            createdAt: r.createdAt,
+          };
+        });
+
+        const formattedRecurring = activeSchedules.map((s) => ({
+          id: s.id,
+          type: "recurring_schedule" as const,
+          name: s.name,
+          prompt: s.prompt,
+          cronExpression: s.cronExpression,
+          timezone: s.timezone,
+          status: s.status,
+          createdAt: s.createdAt,
+        }));
+
+        const totalCount = formattedQueued.length + formattedRecurring.length;
+        return {
+          totalCount,
+          queuedReminders: formattedQueued,
+          recurringSchedules: formattedRecurring,
+          message:
+            totalCount === 0
+              ? "You have no active scheduled tasks or queued reminders."
+              : `Found ${totalCount} active scheduled item(s): ${formattedQueued.length} queued reminder(s) and ${formattedRecurring.length} recurring schedule(s).`,
+        };
+      }
+
+      // Helper to find a task by ID or fuzzy taskName
+      const normalize = (s?: string | null) => (s ?? "").trim().toLowerCase();
+      const searchTarget = normalize(taskName);
+
+      // 2. ACTION: CANCEL
+      if (action === "cancel") {
+        // Try cancelling from queued runs first
+        if (taskId) {
+          const [cancelledRun] = await db
+            .update(runs)
+            .set({
+              status: "cancelled",
+              completedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(runs.id, taskId),
+                eq(runs.userId, userId),
+                eq(runs.status, "queued"),
+              ),
+            )
+            .returning();
+
+          if (cancelledRun) {
+            try {
+              await triggerRuns.cancel(taskId);
+            } catch {
+              // Ignore trigger cancel failure
+            }
+            const inp = (cancelledRun.input as any) ?? {};
+            return {
+              success: true,
+              type: "delayed_reminder",
+              cancelledId: cancelledRun.id,
+              name: inp.scheduledTaskName ?? "Reminder",
+              message: `Queued reminder '${inp.scheduledTaskName ?? taskId}' has been successfully cancelled.`,
+            };
+          }
+
+          // Try recurring schedules by taskId
+          const [deletedSchedule] = await db
+            .delete(schedules)
+            .where(and(eq(schedules.id, taskId), eq(schedules.userId, userId)))
+            .returning();
+
+          if (deletedSchedule) {
+            return {
+              success: true,
+              type: "recurring_schedule",
+              cancelledId: deletedSchedule.id,
+              name: deletedSchedule.name,
+              message: `Recurring schedule '${deletedSchedule.name}' has been successfully deleted/cancelled.`,
+            };
+          }
+        }
+
+        // Fuzzy match by taskName if taskId wasn't provided or didn't match directly
+        if (searchTarget) {
+          const queuedRuns = await db
+            .select()
+            .from(runs)
+            .where(
+              and(
+                eq(runs.userId, userId),
+                eq(runs.agentId, agentId),
+                eq(runs.status, "queued"),
+                eq(runs.triggerType, "schedule"),
+              ),
+            );
+
+          const matchedRun = queuedRuns.find((r) => {
+            const inp = (r.input as any) ?? {};
+            const name = normalize(inp.scheduledTaskName);
+            const prompt = normalize(inp.prompt);
+            return (
+              name.includes(searchTarget) ||
+              searchTarget.includes(name) ||
+              prompt.includes(searchTarget)
+            );
+          });
+
+          if (matchedRun) {
+            await db
+              .update(runs)
+              .set({
+                status: "cancelled",
+                completedAt: new Date(),
+              })
+              .where(eq(runs.id, matchedRun.id));
+
+            try {
+              await triggerRuns.cancel(matchedRun.id);
+            } catch {
+              // Ignore trigger cancel failure
+            }
+
+            const inp = (matchedRun.input as any) ?? {};
+            return {
+              success: true,
+              type: "delayed_reminder",
+              cancelledId: matchedRun.id,
+              name: inp.scheduledTaskName ?? "Reminder",
+              message: `Queued reminder '${inp.scheduledTaskName ?? searchTarget}' has been successfully cancelled.`,
+            };
+          }
+
+          // Search recurring schedules
+          const activeSchedules = await db
+            .select()
+            .from(schedules)
+            .where(
+              and(
+                eq(schedules.userId, userId),
+                eq(schedules.agentId, agentId),
+                eq(schedules.status, "active"),
+              ),
+            );
+
+          const matchedSchedule = activeSchedules.find((s) => {
+            const name = normalize(s.name);
+            const prompt = normalize(s.prompt);
+            return (
+              name.includes(searchTarget) ||
+              searchTarget.includes(name) ||
+              prompt.includes(searchTarget)
+            );
+          });
+
+          if (matchedSchedule) {
+            await db
+              .delete(schedules)
+              .where(eq(schedules.id, matchedSchedule.id));
+
+            return {
+              success: true,
+              type: "recurring_schedule",
+              cancelledId: matchedSchedule.id,
+              name: matchedSchedule.name,
+              message: `Recurring schedule '${matchedSchedule.name}' has been successfully cancelled.`,
+            };
+          }
+        }
+
+        return {
+          success: false,
+          error: `Could not find any active reminder or schedule matching '${taskId ?? taskName}'. Call with action 'list' to see all active tasks.`,
+        };
+      }
+
+      // 3. ACTION: MODIFY
+      if (action === "modify") {
+        // Find existing target run or schedule
+        let targetRun: typeof runs.$inferSelect | undefined;
+        let targetSchedule: typeof schedules.$inferSelect | undefined;
+
+        if (taskId) {
+          const [foundRun] = await db
+            .select()
+            .from(runs)
+            .where(
+              and(
+                eq(runs.id, taskId),
+                eq(runs.userId, userId),
+                eq(runs.status, "queued"),
+              ),
+            );
+          if (foundRun) {
+            targetRun = foundRun;
+          } else {
+            const [foundSchedule] = await db
+              .select()
+              .from(schedules)
+              .where(
+                and(
+                  eq(schedules.id, taskId),
+                  eq(schedules.userId, userId),
+                  eq(schedules.status, "active"),
+                ),
+              );
+            if (foundSchedule) {
+              targetSchedule = foundSchedule;
+            }
+          }
+        }
+
+        if (!targetRun && !targetSchedule && searchTarget) {
+          const queuedRuns = await db
+            .select()
+            .from(runs)
+            .where(
+              and(
+                eq(runs.userId, userId),
+                eq(runs.agentId, agentId),
+                eq(runs.status, "queued"),
+                eq(runs.triggerType, "schedule"),
+              ),
+            );
+
+          targetRun = queuedRuns.find((r) => {
+            const inp = (r.input as any) ?? {};
+            const name = normalize(inp.scheduledTaskName);
+            const prompt = normalize(inp.prompt);
+            return (
+              name.includes(searchTarget) ||
+              searchTarget.includes(name) ||
+              prompt.includes(searchTarget)
+            );
+          });
+
+          if (!targetRun) {
+            const activeSchedules = await db
+              .select()
+              .from(schedules)
+              .where(
+                and(
+                  eq(schedules.userId, userId),
+                  eq(schedules.agentId, agentId),
+                  eq(schedules.status, "active"),
+                ),
+              );
+
+            targetSchedule = activeSchedules.find((s) => {
+              const name = normalize(s.name);
+              const prompt = normalize(s.prompt);
+              return (
+                name.includes(searchTarget) ||
+                searchTarget.includes(name) ||
+                prompt.includes(searchTarget)
+              );
+            });
+          }
+        }
+
+        if (!targetRun && !targetSchedule) {
+          return {
+            success: false,
+            error: `Could not find an active task matching '${taskId ?? taskName}' to modify. Call with action 'list' to view available tasks.`,
+          };
+        }
+
+        // Case A: Modifying a queued run (reminder)
+        if (targetRun) {
+          const oldInput = (targetRun.input as any) ?? {};
+          let computedDelaySeconds = delaySeconds;
+
+          if (runAt) {
+            const targetTime = new Date(runAt).getTime();
+            const now = Date.now();
+            computedDelaySeconds = Math.max(1, Math.round((targetTime - now) / 1000));
+          }
+
+          const updatedName = newName ?? oldInput.scheduledTaskName ?? "Reminder";
+          const updatedPrompt = newPrompt ?? oldInput.prompt ?? "";
+          const updatedScheduledFor = computedDelaySeconds
+            ? new Date(Date.now() + computedDelaySeconds * 1000).toISOString()
+            : (oldInput.scheduledFor ?? new Date().toISOString());
+
+          const newInput = {
+            ...oldInput,
+            scheduledTaskName: updatedName,
+            prompt: updatedPrompt,
+            scheduledFor: updatedScheduledFor,
+          };
+
+          // If timing changed, cancel old Trigger.dev delayed task and schedule a new one
+          if (computedDelaySeconds && computedDelaySeconds > 0) {
+            try {
+              await triggerRuns.cancel(targetRun.id);
+            } catch {
+              // Ignore trigger cancel error
+            }
+
+            try {
+              await tasks.trigger(
+                "agent-run",
+                { runId: targetRun.id },
+                {
+                  delay: `${computedDelaySeconds}s`,
+                  idempotencyKey: `${targetRun.id}-${Date.now()}`,
+                  tags: [targetRun.id, userId],
+                },
+              );
+            } catch (triggerErr) {
+              console.warn("Could not dispatch modified Trigger.dev task:", triggerErr);
+            }
+          }
+
+          const [updatedRun] = await db
+            .update(runs)
+            .set({
+              input: newInput,
+            })
+            .where(eq(runs.id, targetRun.id))
+            .returning();
+
+          return {
+            success: true,
+            type: "delayed_reminder",
+            taskId: targetRun.id,
+            name: updatedName,
+            prompt: updatedPrompt,
+            scheduledFor: updatedScheduledFor,
+            message: `Reminder '${updatedName}' has been updated successfully.`,
+          };
+        }
+
+        // Case B: Modifying a recurring schedule
+        if (targetSchedule) {
+          const updatedName = newName ?? targetSchedule.name;
+          const updatedPrompt = newPrompt ?? targetSchedule.prompt;
+          const updatedCron = cronExpression ?? targetSchedule.cronExpression;
+          const updatedTz = timezone ?? targetSchedule.timezone;
+
+          const [updatedSchedule] = await db
+            .update(schedules)
+            .set({
+              name: updatedName,
+              prompt: updatedPrompt,
+              cronExpression: updatedCron,
+              timezone: updatedTz,
+              updatedAt: new Date(),
+            })
+            .where(eq(schedules.id, targetSchedule.id))
+            .returning();
+
+          return {
+            success: true,
+            type: "recurring_schedule",
+            scheduleId: targetSchedule.id,
+            name: updatedName,
+            cronExpression: updatedCron,
+            timezone: updatedTz,
+            message: `Recurring schedule '${updatedName}' has been updated to cron '${updatedCron}' (${updatedTz}).`,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        error: `Unknown action: ${action}`,
+      };
+    },
+  });
+}
+
 export const internalTools: Record<string, any> = {
   get_current_time: getCurrentTime,
   calculate: calculate,
@@ -1378,6 +1865,7 @@ export async function buildAgentTools(params: {
 
   const activeTools: Record<string, any> = {
     create_schedule: createScheduleTool(userId, agentId, conversationId),
+    manage_schedule: manageScheduleTool(userId, agentId, conversationId),
   };
   const cleanupTasks: Array<() => Promise<void>> = [];
 

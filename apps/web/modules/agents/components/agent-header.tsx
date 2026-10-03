@@ -2,7 +2,7 @@
 
 import { Badge } from "@openbots/ui/components/badge"
 import { Button } from "@openbots/ui/components/button"
-import { SidebarTrigger } from "@openbots/ui/components/sidebar"
+import { SidebarTrigger, useSidebar } from "@openbots/ui/components/sidebar"
 import {
   Tooltip,
   TooltipContent,
@@ -31,6 +31,7 @@ import { useRouter } from "next/navigation"
 import * as React from "react"
 import { DeleteAgentDialog } from "./delete-agent-dialog"
 import { RenameAgentDialog } from "./rename-agent-dialog"
+import { cn } from "@/lib/utils"
 
 interface AgentHeaderProps {
   selectedAgent: Agent | null
@@ -55,16 +56,23 @@ export function AgentHeader({
   const queryClient = useQueryClient()
   const [renameOpen, setRenameOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const { open } = useSidebar()
 
   return (
-    <header className="relative top-0 z-30 flex w-full shrink-0 items-center justify-between bg-background/80 p-2 backdrop-blur-xs after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background/60 after:via-background/30 after:to-transparent">
+    <header
+      className={cn(
+        "fixed top-0 right-0 left-0 z-50 flex items-center justify-between p-2 px-3 transition-[left] duration-200",
+        open && "md:left-[var(--sidebar-width)]",
+        !open && "md:left-[var(--sidebar-width-icon)]"
+      )}
+    >
       <div className="flex items-center gap-1.5">
-        <SidebarTrigger className="size-7 md:hidden" />
+        <SidebarTrigger className="size-7 border-border bg-sidebar md:hidden" />
         {selectedAgent ? (
           <>
             <DropdownMenu>
               <DropdownMenuTrigger openOnHover>
-                <div className="flex cursor-pointer items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-sidebar">
+                <div className="flex cursor-pointer items-center gap-1 rounded-md border bg-sidebar px-1 pl-0.5 transition-colors">
                   <Blobatar
                     name={selectedAgent.name || selectedAgent.id}
                     className="size-6.5! shrink-0"

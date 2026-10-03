@@ -1,4 +1,4 @@
-import { db, userApiKeys } from "@openbots/db";
+import { db, getRedis, userApiKeys } from "@openbots/db";
 import { and, eq } from "drizzle-orm";
 import { decryptApiKey, encryptApiKey } from "../../lib/crypto.js";
 
@@ -76,6 +76,7 @@ export async function saveUserApiKey(
         updatedAt: userApiKeys.updatedAt,
       });
 
+    await invalidateApiKeyCache(userId, provider);
     return updated;
   }
 
@@ -95,13 +96,28 @@ export async function saveUserApiKey(
       updatedAt: userApiKeys.updatedAt,
     });
 
+  await invalidateApiKeyCache(userId, provider);
   return inserted;
+}
+
+const CACHE_TTL_SECONDS = 300;
+
+export async function invalidateApiKeyCache(userId: string, provider?: string) {
+  try {
+    const redis = getRedis();
+    if (redis) {
+      if (provider) {
+        await redis.del(`apikey:${userId}:${provider}`);
+      }
+    }
+  } catch {}
 }
 
 /**
  * Delete a user's API key for a provider.
  */
 export async function deleteUserApiKey(userId: string, provider: string) {
+  await invalidateApiKeyCache(userId, provider);
   await db
     .delete(userApiKeys)
     .where(
@@ -112,12 +128,26 @@ export async function deleteUserApiKey(userId: string, provider: string) {
 
 /**
  * Retrieve decrypted user API key for agent execution.
- * Returns null if user has not configured a key.
+ * Checks Redis first, falls back to DB query + AES decrypt and populates Redis.
  */
 export async function getDecryptedUserApiKey(
   userId: string,
   provider: SupportedProvider,
 ): Promise<string | null> {
+  const cacheKey = `apikey:${userId}:${provider}`;
+
+  // 1. Check Redis cache
+  try {
+    const redis = getRedis();
+    if (redis) {
+      const cached = await redis.get<string>(cacheKey);
+      if (cached !== null) {
+        return cached === "__NONE__" ? null : cached;
+      }
+    }
+  } catch {}
+
+  // 2. Database query & decrypt
   const [record] = await db
     .select()
     .from(userApiKeys)
@@ -126,11 +156,20 @@ export async function getDecryptedUserApiKey(
     );
 
   if (!record) {
+    try {
+      const redis = getRedis();
+      if (redis) redis.setex(cacheKey, CACHE_TTL_SECONDS, "__NONE__").catch(() => {});
+    } catch {}
     return null;
   }
 
   try {
-    return decryptApiKey(record.encryptedKey, record.iv, record.authTag);
+    const decrypted = decryptApiKey(record.encryptedKey, record.iv, record.authTag);
+    try {
+      const redis = getRedis();
+      if (redis) redis.setex(cacheKey, CACHE_TTL_SECONDS, decrypted).catch(() => {});
+    } catch {}
+    return decrypted;
   } catch (err) {
     console.error(
       `Failed to decrypt API key for user ${userId} and provider ${provider}:`,

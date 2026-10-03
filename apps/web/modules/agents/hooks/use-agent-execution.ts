@@ -72,7 +72,7 @@ export function useAgentExecution({
   const { data: activeRunData } = useRunDetailQuery(activeRunId, {
     refetchInterval: (query) => {
       const status = query.state.data?.run?.status;
-      return status === "queued" || status === "running" ? 1500 : false;
+      return status === "queued" || status === "running" ? 800 : false;
     },
   });
 

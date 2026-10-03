@@ -277,33 +277,33 @@ export async function createAgentRun(
     conversationId = conv?.id;
   }
 
-  const [run] = await db
-    .insert(runs)
-    .values({
-      userId,
-      agentId: agent.id,
-      conversationId,
-      status: "queued",
-      triggerType: "manual",
-      input: data.prompt ? { prompt: data.prompt } : (data.input ?? null),
-    })
-    .returning();
+  // Parallelize run and user message insertion
+  const [[run]] = await Promise.all([
+    db
+      .insert(runs)
+      .values({
+        userId,
+        agentId: agent.id,
+        conversationId,
+        status: "queued",
+        triggerType: "manual",
+        input: data.prompt ? { prompt: data.prompt } : (data.input ?? null),
+      })
+      .returning(),
+    conversationId && data.prompt
+      ? db.insert(messages).values({
+          conversationId,
+          role: "user",
+          content: { text: data.prompt },
+        }).catch((err) => {
+          console.warn("Could not immediately persist user message:", err);
+          return null;
+        })
+      : Promise.resolve(null),
+  ]);
 
   if (!run) {
     return { error: "Failed to create run", status: 500 as const };
-  }
-
-  // Immediately persist user message into conversation so it is instantly available
-  if (conversationId && data.prompt) {
-    try {
-      await db.insert(messages).values({
-        conversationId,
-        role: "user",
-        content: { text: data.prompt },
-      });
-    } catch (err) {
-      console.warn("Could not immediately persist user message:", err);
-    }
   }
 
   // Fast path: if direct executor is registered in this process (API server), start execution immediately

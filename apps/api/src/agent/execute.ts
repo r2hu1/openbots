@@ -281,8 +281,8 @@ export async function executeAgentRun(
     // Clear any previous partial steps if this run is being retried
     await db.delete(runSteps).where(eq(runSteps.runId, runId));
 
-    // Parallelize preparation: tool resolution, conversation message loading, and connection queries
-    const [resolvedToolsResult, historyMessages, activeConnections] =
+    // Parallelize preparation: model resolution, tool resolution, conversation message loading, and connection queries concurrently
+    const [resolvedToolsResult, historyMessages, activeConnections, model] =
       await Promise.all([
         buildAgentTools({
           userId: runRecord.userId,
@@ -306,6 +306,7 @@ export async function executeAgentRun(
               ne(connections.provider, "composio"),
             ),
           ),
+        resolveModel(runRecord.userId, agentRecord.model),
       ]);
 
     resolvedTools = resolvedToolsResult;
@@ -369,9 +370,6 @@ export async function executeAgentRun(
     }
 
     const connectedApps = activeConnections.map((c) => c.provider);
-
-    // Construct ToolLoopAgent using AI SDK
-    const model = await resolveModel(runRecord.userId, agentRecord.model);
 
     let connectionsInstruction = "";
     if (connectedApps.length > 0) {

@@ -27,20 +27,6 @@ export async function getConversation(
   userId: string,
   options?: GetConversationOptions,
 ) {
-  const [conv] = await db
-    .select()
-    .from(conversations)
-    .where(
-      and(
-        eq(conversations.id, conversationId),
-        eq(conversations.userId, userId),
-      ),
-    );
-
-  if (!conv) {
-    return null;
-  }
-
   const limit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
   const before = options?.before;
 
@@ -71,19 +57,33 @@ export async function getConversation(
     }
   }
 
-  // Fetch limit + 1 items in descending order (newest first among historical slice)
-  // to determine if there are older messages remaining
   const queryConditions = [eq(messages.conversationId, conversationId)];
   if (cursorCreatedAt) {
     queryConditions.push(lt(messages.createdAt, cursorCreatedAt));
   }
 
-  const rawMessages = await db
-    .select()
-    .from(messages)
-    .where(and(...queryConditions))
-    .orderBy(desc(messages.createdAt))
-    .limit(limit + 1);
+  // Parallelize conversation authorization check and message slice fetch
+  const [[conv], rawMessages] = await Promise.all([
+    db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.id, conversationId),
+          eq(conversations.userId, userId),
+        ),
+      ),
+    db
+      .select()
+      .from(messages)
+      .where(and(...queryConditions))
+      .orderBy(desc(messages.createdAt))
+      .limit(limit + 1),
+  ]);
+
+  if (!conv) {
+    return null;
+  }
 
   const hasMore = rawMessages.length > limit;
   const slicedMessages = hasMore ? rawMessages.slice(0, limit) : rawMessages;

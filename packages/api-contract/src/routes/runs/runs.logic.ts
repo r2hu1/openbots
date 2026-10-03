@@ -16,20 +16,21 @@ export async function listRuns(userId: string, agentId?: string) {
 }
 
 export async function getRun(runId: string, userId: string) {
-  const [run] = await db
-    .select()
-    .from(runs)
-    .where(and(eq(runs.id, runId), eq(runs.userId, userId)));
+  const [[run], steps] = await Promise.all([
+    db
+      .select()
+      .from(runs)
+      .where(and(eq(runs.id, runId), eq(runs.userId, userId))),
+    db
+      .select()
+      .from(runSteps)
+      .where(eq(runSteps.runId, runId))
+      .orderBy(asc(runSteps.stepNumber)),
+  ]);
 
   if (!run) {
     return null;
   }
-
-  const steps = await db
-    .select()
-    .from(runSteps)
-    .where(eq(runSteps.runId, runId))
-    .orderBy(asc(runSteps.stepNumber));
 
   return { run, steps };
 }
@@ -53,11 +54,8 @@ export async function cancelRun(runId: string, userId: string) {
     .returning();
 
   if (cancelled) {
-    try {
-      await triggerRuns.cancel(runId);
-    } catch {
-      // Ignore Trigger.dev task cancel errors if not enqueued in Trigger
-    }
+    // Fire-and-forget cancellation to Trigger.dev so the user gets an instant 200 response
+    triggerRuns.cancel(runId).catch(() => {});
     return { run: cancelled, status: 200 as const };
   }
 
@@ -87,7 +85,6 @@ type RunEventListener = (event: RunEvent) => void;
 
 class RunEventHub {
   private localListeners = new Map<string, Set<RunEventListener>>();
-  private eventHistory = new Map<string, RunEvent[]>();
   private redisPollIntervals = new Map<string, any>();
 
   subscribe(runId: string, listener: RunEventListener): () => void {
@@ -98,61 +95,48 @@ class RunEventHub {
     }
     set.add(listener);
 
-    // Replay any events already emitted for this run in this process
-    const history = this.eventHistory.get(runId);
-    if (history && history.length > 0) {
-      for (const ev of [...history]) {
-        try {
-          listener(ev);
-        } catch {}
-      }
-    }
+    // Sync from Redis list for both late-joining replay and cross-process streaming
+    try {
+      const redis = getRedis();
+      if (redis && !this.redisPollIntervals.has(runId)) {
+        let lastLength = 0;
+        const channelKey = `run_events:${runId}`;
 
-    // Only poll Redis if this process is NOT running the executor locally (i.e. separate process)
-    const isLocalExecution = this.eventHistory.has(runId);
-    if (!isLocalExecution) {
-      try {
-        const redis = getRedis();
-        if (redis && !this.redisPollIntervals.has(runId)) {
-          let lastLength = 0;
-          const channelKey = `run_events:${runId}`;
-
-          const pollEvents = async () => {
-            try {
-              const currentLen = await redis.llen(channelKey);
-              if (currentLen > lastLength) {
-                const newItems = await redis.lrange(
-                  channelKey,
-                  lastLength,
-                  currentLen - 1,
-                );
-                lastLength = currentLen;
-                for (const item of newItems) {
-                  const parsed: RunEvent =
-                    typeof item === "string" ? JSON.parse(item) : item;
-                  const activeSet = this.localListeners.get(runId);
-                  if (activeSet) {
-                    for (const l of activeSet) {
-                      try {
-                        l(parsed);
-                      } catch {}
-                    }
+        const pollEvents = async () => {
+          try {
+            const currentLen = await redis.llen(channelKey);
+            if (currentLen > lastLength) {
+              const newItems = await redis.lrange(
+                channelKey,
+                lastLength,
+                currentLen - 1,
+              );
+              lastLength = currentLen;
+              for (const item of newItems) {
+                const parsed: RunEvent =
+                  typeof item === "string" ? JSON.parse(item) : item;
+                const activeSet = this.localListeners.get(runId);
+                if (activeSet) {
+                  for (const l of activeSet) {
+                    try {
+                      l(parsed);
+                    } catch {}
                   }
                 }
               }
-            } catch {
-              // Ignore Redis poll errors
             }
-          };
+          } catch {
+            // Ignore Redis poll errors
+          }
+        };
 
-          // Immediate check
-          pollEvents();
-          const interval = setInterval(pollEvents, 100);
-          this.redisPollIntervals.set(runId, interval);
-        }
-      } catch {
-        // Redis not configured or error, in-process local listener is active
+        // Immediate check to replay all events stored in Redis
+        pollEvents();
+        const interval = setInterval(pollEvents, 100);
+        this.redisPollIntervals.set(runId, interval);
       }
+    } catch {
+      // Redis not configured, fallback to in-process dispatch
     }
 
     return () => {
@@ -168,23 +152,8 @@ class RunEventHub {
     };
   }
 
-  async publish(runId: string, event: RunEvent): Promise<void> {
-    // 0. Cache event in memory history for late-joining subscribers
-    let history = this.eventHistory.get(runId);
-    if (!history) {
-      history = [];
-      this.eventHistory.set(runId, history);
-      // Clean up in-memory history after 15 minutes
-      setTimeout(
-        () => {
-          this.eventHistory.delete(runId);
-        },
-        15 * 60 * 1000,
-      );
-    }
-    history.push(event);
-
-    // 1. Dispatch locally to any in-process listeners
+  publish(runId: string, event: RunEvent): void {
+    // 1. Dispatch immediately to in-process listeners with 0ms latency
     const set = this.localListeners.get(runId);
     if (set) {
       for (const listener of set) {
@@ -196,18 +165,17 @@ class RunEventHub {
       }
     }
 
-    // 2. Publish to Redis list so other processes (Next.js server, Trigger worker, API server) receive it
+    // 2. Fire-and-forget pipeline to Redis list for cross-process subscribers without blocking execution
     try {
       const redis = getRedis();
       if (redis) {
         const channelKey = `run_events:${runId}`;
-        await redis.rpush(channelKey, JSON.stringify(event));
-        // Set 1-hour expiration on event logs to keep Redis tidy
-        await redis.expire(channelKey, 3600);
+        const serialized = JSON.stringify(event);
+        redis.rpush(channelKey, serialized)
+          .then(() => redis.expire(channelKey, 3600))
+          .catch(() => {});
       }
-    } catch {
-      // Redis not configured or offline; local dispatch was already performed
-    }
+    } catch {}
   }
 }
 

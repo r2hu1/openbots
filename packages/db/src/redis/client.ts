@@ -13,11 +13,14 @@ function getRedisCredentials() {
 
 let instance: Redis | null = null;
 
-export function getRedis(): Redis {
-  if (!instance) {
-    const { url, token } = getRedisCredentials();
-    instance = new Redis({ url, token });
+export function getRedis(): Redis | null {
+  if (instance) return instance;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    return null;
   }
+  instance = new Redis({ url, token });
   return instance;
 }
 

@@ -1,5 +1,5 @@
 import { conversations, db, messages } from "@openbots/db";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, lt } from "drizzle-orm";
 
 export async function listConversations(userId: string, agentId?: string) {
   const result = await db
@@ -17,7 +17,16 @@ export async function listConversations(userId: string, agentId?: string) {
   return { conversations: result };
 }
 
-export async function getConversation(conversationId: string, userId: string) {
+export interface GetConversationOptions {
+  limit?: number;
+  before?: string; // message ID or timestamp cursor
+}
+
+export async function getConversation(
+  conversationId: string,
+  userId: string,
+  options?: GetConversationOptions,
+) {
   const [conv] = await db
     .select()
     .from(conversations)
@@ -32,11 +41,68 @@ export async function getConversation(conversationId: string, userId: string) {
     return null;
   }
 
-  const convMessages = await db
+  const limit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
+  const before = options?.before;
+
+  let cursorCreatedAt: Date | null = null;
+  if (before) {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        before,
+      );
+    if (isUuid) {
+      const [beforeMsg] = await db
+        .select({ createdAt: messages.createdAt })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.id, before),
+            eq(messages.conversationId, conversationId),
+          ),
+        );
+      if (beforeMsg) {
+        cursorCreatedAt = beforeMsg.createdAt;
+      }
+    } else {
+      const parsedDate = new Date(before);
+      if (!Number.isNaN(parsedDate.getTime())) {
+        cursorCreatedAt = parsedDate;
+      }
+    }
+  }
+
+  // Fetch limit + 1 items in descending order (newest first among historical slice)
+  // to determine if there are older messages remaining
+  const queryConditions = [eq(messages.conversationId, conversationId)];
+  if (cursorCreatedAt) {
+    queryConditions.push(lt(messages.createdAt, cursorCreatedAt));
+  }
+
+  const rawMessages = await db
     .select()
     .from(messages)
-    .where(eq(messages.conversationId, conversationId))
-    .orderBy(asc(messages.createdAt));
+    .where(and(...queryConditions))
+    .orderBy(desc(messages.createdAt))
+    .limit(limit + 1);
 
-  return { conversation: conv, messages: convMessages };
+  const hasMore = rawMessages.length > limit;
+  const slicedMessages = hasMore ? rawMessages.slice(0, limit) : rawMessages;
+
+  // The next cursor for fetching even older messages is the oldest message in this slice
+  const nextCursor = hasMore && slicedMessages.length > 0
+    ? slicedMessages[slicedMessages.length - 1]?.id
+    : null;
+
+  // Reverse so they are in chronological order (oldest to newest) for timeline display
+  const chronologicalMessages = [...slicedMessages].reverse();
+
+  return {
+    conversation: conv,
+    messages: chronologicalMessages,
+    pagination: {
+      nextCursor,
+      hasMore,
+      limit,
+    },
+  };
 }

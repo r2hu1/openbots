@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { getClient } from "@/lib/api";
 import type { Conversation, MessageItem } from "./types";
 
@@ -40,15 +40,71 @@ export function useConversationDetailQuery(
       const client = getClient();
       const res = await client.api.conversations[":id"].$get({
         param: { id: conversationId },
+        query: {},
       });
       if (!res.ok) return { conversation: null, messages: [] };
       return (await res.json()) as {
         conversation: Conversation;
         messages: MessageItem[];
+        pagination?: {
+          nextCursor: string | null;
+          hasMore: boolean;
+          limit: number;
+        };
       };
     },
     enabled: Boolean(conversationId),
     refetchInterval: options?.refetchInterval ?? false,
     placeholderData: (prev) => prev,
+  });
+}
+
+export function useInfiniteConversationDetailQuery(
+  conversationId: string | null | undefined,
+  options?: {
+    refetchInterval?: number | false;
+  },
+) {
+  return useInfiniteQuery({
+    queryKey: conversationKeys.detail(conversationId),
+    queryFn: async ({ pageParam }) => {
+      if (!conversationId) {
+        return {
+          conversation: null,
+          messages: [],
+          pagination: { nextCursor: null, hasMore: false, limit: 50 },
+        };
+      }
+      const client = getClient();
+      const res = await client.api.conversations[":id"].$get({
+        param: { id: conversationId },
+        query: pageParam ? { before: pageParam } : {},
+      });
+      if (!res.ok) {
+        return {
+          conversation: null,
+          messages: [],
+          pagination: { nextCursor: null, hasMore: false, limit: 50 },
+        };
+      }
+      return (await res.json()) as {
+        conversation: Conversation;
+        messages: MessageItem[];
+        pagination?: {
+          nextCursor: string | null;
+          hasMore: boolean;
+          limit: number;
+        };
+      };
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.hasMore && lastPage.pagination.nextCursor) {
+        return lastPage.pagination.nextCursor;
+      }
+      return undefined;
+    },
+    enabled: Boolean(conversationId),
+    refetchInterval: options?.refetchInterval ?? false,
   });
 }

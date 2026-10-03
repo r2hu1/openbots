@@ -15,3 +15,15 @@ export type Conversation = {
   createdAt?: string | Date;
   updatedAt?: string | Date;
 };
+
+export type ConversationPagination = {
+  nextCursor: string | null;
+  hasMore: boolean;
+  limit: number;
+};
+
+export type ConversationResponse = {
+  conversation: Conversation;
+  messages: MessageItem[];
+  pagination?: ConversationPagination;
+};

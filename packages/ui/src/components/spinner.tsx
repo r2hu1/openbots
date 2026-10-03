@@ -1,7 +1,9 @@
+import { cn } from "cn"
+
 export function Spinner({ className }: { className?: string }) {
   return (
     <svg
-      className={`size-4 animate-spin ${className}`}
+      className={cn(`size-4 animate-spin`, className)}
       viewBox="0 0 50 50"
       role="status"
       aria-label="Loading"
@@ -19,5 +21,5 @@ export function Spinner({ className }: { className?: string }) {
         strokeDashoffset="0"
       />
     </svg>
-  );
+  )
 }

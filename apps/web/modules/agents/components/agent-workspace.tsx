@@ -17,6 +17,7 @@ import { useReconciledMessages } from "@/modules/conversations/hooks/use-reconci
 import {
   useConversationDetailQuery,
   useConversationsQuery,
+  useInfiniteConversationDetailQuery,
 } from "@/modules/conversations/queries"
 
 const ConfigureAgentSheet = dynamic(
@@ -127,15 +128,25 @@ const ChatPane = React.memo(function ChatPane({
     activeRun?.status === "running" ||
     activeRun?.status === "queued"
 
-  const { data: conversationDetail, isLoading: isLoadingMessages } =
-    useConversationDetailQuery(activeConversationId, {
-      refetchInterval: isPolling ? 1500 : false,
-    })
+  const {
+    data: conversationInfiniteData,
+    isLoading: isLoadingMessages,
+    isFetchingNextPage: isLoadingOlder,
+    hasNextPage: hasOlderMessages,
+    fetchNextPage,
+  } = useInfiniteConversationDetailQuery(activeConversationId, {
+    refetchInterval: isPolling ? 1500 : false,
+  })
 
-  const serverMessages = React.useMemo(
-    () => conversationDetail?.messages ?? [],
-    [conversationDetail?.messages]
-  )
+  // Combine pages: older pages are fetched later and prepend to the timeline
+  const serverMessages = React.useMemo(() => {
+    if (!conversationInfiniteData?.pages) return []
+    // Pages are in order [page0, page1, ...], where page0 is newest, page1 is older.
+    // Each page's messages are already chronological (oldest to newest).
+    // So to display oldest -> newest overall: [...pageN.messages, ..., page0.messages]
+    const pages = [...conversationInfiniteData.pages].reverse()
+    return pages.flatMap((p) => p.messages ?? [])
+  }, [conversationInfiniteData?.pages])
 
   const clearOptimistic = React.useCallback(
     () => setOptimisticMessages([]),
@@ -170,6 +181,13 @@ const ChatPane = React.memo(function ChatPane({
         isOptimisticRunning={isOptimisticRunning}
         isLoading={isChatLoading}
         onOpenArtifact={onOpenArtifact}
+        hasOlderMessages={!!hasOlderMessages}
+        isLoadingOlder={isLoadingOlder}
+        onLoadOlderMessages={() => {
+          if (hasOlderMessages && !isLoadingOlder) {
+            fetchNextPage()
+          }
+        }}
       />
 
       <MemoComposer

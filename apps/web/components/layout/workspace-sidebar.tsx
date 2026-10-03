@@ -173,7 +173,6 @@ export function WorkspaceSidebar({
               name={session?.user?.name || "User"}
               email={session?.user?.email}
               initials={userInitials}
-              onSettings={() => router.push("/settings")}
               onConnections={handleOpenConnections}
               onSignOut={handleSignOut}
             />

@@ -26,12 +26,14 @@ import {
   IconSun,
 } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
+import * as React from "react";
+import { SettingsSheet } from "./settings-sheet";
 
 interface UserMenuProps {
   name: string;
   email?: string;
   initials: string;
-  onSettings: () => void;
+  onSettings?: () => void;
   onConnections?: () => void;
   onSignOut: () => void;
 }
@@ -46,6 +48,15 @@ export function UserMenu({
 }: UserMenuProps) {
   const { isMobile } = useSidebar();
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
+
+  const handleSettingsClick = () => {
+    if (onSettings) {
+      onSettings();
+    } else {
+      setSettingsOpen(true);
+    }
+  };
 
   return (
     <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
@@ -125,7 +136,7 @@ export function UserMenu({
               </DropdownMenuSubContent>
             </DropdownMenuSub>
 
-            <DropdownMenuItem onClick={onSettings}>
+            <DropdownMenuItem onClick={handleSettingsClick}>
               <IconSettings />
               Settings
             </DropdownMenuItem>
@@ -137,6 +148,8 @@ export function UserMenu({
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+
+      <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
     </SidebarMenu>
   );
 }

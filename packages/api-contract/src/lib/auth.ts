@@ -10,6 +10,14 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    changeEmail: {
+      enabled: true,
+    },
+    deleteUser: {
+      enabled: true,
+    },
+  },
   trustedOrigins: [
     process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000",
     "http://localhost:3000",

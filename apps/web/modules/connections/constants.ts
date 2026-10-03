@@ -23,8 +23,8 @@ import {
   IconFlame,
   IconNews,
   IconWaveSine,
-} from "@tabler/icons-react";
-import type { IntegrationApp } from "./types";
+} from "@tabler/icons-react"
+import type { IntegrationApp } from "./types"
 
 export const AVAILABLE_INTEGRATIONS: readonly IntegrationApp[] = [
   {
@@ -175,14 +175,6 @@ export const AVAILABLE_INTEGRATIONS: readonly IntegrationApp[] = [
     accountId: "firecrawl_connected_account",
   },
   {
-    id: "hackernews",
-    name: "Hacker News",
-    description:
-      "Fetch top stories, search discussions, get user profiles, and comments.",
-    icon: IconNews,
-    accountId: "hackernews_connected_account",
-  },
-  {
     id: "linkedin",
     name: "LinkedIn",
     description:
@@ -214,4 +206,4 @@ export const AVAILABLE_INTEGRATIONS: readonly IntegrationApp[] = [
     icon: IconChartBar,
     accountId: "posthog_connected_account",
   },
-];
+]

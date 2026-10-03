@@ -50,7 +50,7 @@ export function useAgentExecution({
 
   // Discover and Poll Active Run across reloads and background scheduled triggers
   const { data: runs = [] } = useRunsQuery(agentId, {
-    refetchInterval: isOptimisticRunning || activeRunId ? 2000 : 3500,
+    refetchInterval: isOptimisticRunning || activeRunId ? 2000 : false,
   });
 
   React.useEffect(() => {

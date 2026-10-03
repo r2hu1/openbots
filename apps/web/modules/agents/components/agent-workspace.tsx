@@ -137,7 +137,7 @@ const ChatPane = React.memo(function ChatPane({
     hasNextPage: hasOlderMessages,
     fetchNextPage,
   } = useInfiniteConversationDetailQuery(activeConversationId, {
-    refetchInterval: isPolling ? 1500 : 3500,
+    refetchInterval: isPolling ? 1500 : false,
   })
 
   // Combine pages: older pages are fetched later and prepend to the timeline

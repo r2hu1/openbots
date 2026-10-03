@@ -529,7 +529,7 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
     };
 
     // Parallelize run completion update and assistant message persistence
-    const [completedRunRows] = await Promise.all([
+    const [completedRunRows, insertedMessages] = await Promise.all([
       db
         .update(runs)
         .set({
@@ -540,12 +540,15 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
         .where(and(eq(runs.id, runId), eq(runs.status, "running")))
         .returning(),
       runRecord.conversationId && finalText
-        ? db.insert(messages).values({
-            conversationId: runRecord.conversationId,
-            role: "assistant",
-            content: { text: finalText },
-          })
-        : Promise.resolve(),
+        ? db
+            .insert(messages)
+            .values({
+              conversationId: runRecord.conversationId,
+              role: "assistant",
+              content: { text: finalText },
+            })
+            .returning()
+        : Promise.resolve([]),
     ]);
 
     const completedRun = completedRunRows[0];

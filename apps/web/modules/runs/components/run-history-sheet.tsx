@@ -72,10 +72,7 @@ export function RunHistorySheet({
         className="flex flex-col sm:max-w-md!"
       >
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <IconHistory className="size-4" />
-            Execution history
-          </SheetTitle>
+          <SheetTitle>Execution history</SheetTitle>
           <SheetDescription>
             Audit all tool invocations, prompts, and outputs triggered by this
             agent.

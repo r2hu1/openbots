@@ -172,8 +172,9 @@ export function ArtifactSheet({
         showCloseButton={false}
         side="right"
         className={cn(
-          "w-full gap-0 p-0 data-[side=right]:w-3/4 data-[side=right]:sm:max-w-4xl",
-          maximized && "data-[side=right]:w-full! data-[side=right]:max-w-none!"
+          "w-full gap-0 overflow-hidden p-0 data-[side=right]:w-3/4 data-[side=right]:sm:max-w-4xl",
+          maximized &&
+            "data-[side=right]:left-3 data-[side=right]:w-auto! data-[side=right]:max-w-none!"
         )}
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">

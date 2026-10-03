@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   AlertDialog,
@@ -10,15 +10,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@openbots/ui/components/alert-dialog";
-import { Badge } from "@openbots/ui/components/badge";
-import { Button } from "@openbots/ui/components/button";
-import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field";
-import { Input } from "@openbots/ui/components/input";
+} from "@openbots/ui/components/alert-dialog"
+import { Badge } from "@openbots/ui/components/badge"
+import { Button } from "@openbots/ui/components/button"
+import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field"
+import { Input } from "@openbots/ui/components/input"
 import {
   NativeSelect,
   NativeSelectOption,
-} from "@openbots/ui/components/native-select";
+} from "@openbots/ui/components/native-select"
 import {
   Sheet,
   SheetContent,
@@ -26,84 +26,84 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@openbots/ui/components/sheet";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { Switch } from "@openbots/ui/components/switch";
+} from "@openbots/ui/components/sheet"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { Switch } from "@openbots/ui/components/switch"
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@openbots/ui/components/tabs";
-import { Textarea } from "@openbots/ui/components/textarea";
-import { IconCheck, IconTrash } from "@tabler/icons-react";
-import * as React from "react";
-import { DEFAULT_MODELS, TOOL_DESCRIPTIONS } from "../constants";
+} from "@openbots/ui/components/tabs"
+import { Textarea } from "@openbots/ui/components/textarea"
+import { IconCheck, IconTrash } from "@tabler/icons-react"
+import * as React from "react"
+import { DEFAULT_MODELS, TOOL_DESCRIPTIONS } from "../constants"
 import {
   useAgentToolsQuery,
   useAvailableModelsQuery,
   useDeleteAgentMutation,
   useToggleAgentToolMutation,
   useUpdateAgentMutation,
-} from "../queries";
-import type { Agent } from "../types";
+} from "../queries"
+import type { Agent } from "../types"
 
 interface ConfigureAgentSheetProps {
-  agent: Agent | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  agent: Agent | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 const SCROLL_CLASS =
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain pr-2 " +
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
   "[scrollbar-gutter:stable] [scrollbar-width:thin] " +
-  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]";
+  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]"
 
 export function ConfigureAgentSheet({
   agent,
   open,
   onOpenChange,
 }: ConfigureAgentSheetProps) {
-  const [name, setName] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [instructions, setInstructions] = React.useState("");
-  const [model, setModel] = React.useState("google/gemini-2.5-flash");
-  const [maxSteps, setMaxSteps] = React.useState(25);
-  const [saveSuccess, setSaveSuccess] = React.useState(false);
-  const [saveError, setSaveError] = React.useState<string | null>(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const [name, setName] = React.useState("")
+  const [description, setDescription] = React.useState("")
+  const [instructions, setInstructions] = React.useState("")
+  const [model, setModel] = React.useState("google/gemini-2.5-flash")
+  const [maxSteps, setMaxSteps] = React.useState(25)
+  const [saveSuccess, setSaveSuccess] = React.useState(false)
+  const [saveError, setSaveError] = React.useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false)
 
   React.useEffect(() => {
     if (agent) {
-      setName(agent.name);
-      setDescription(agent.description || "");
-      setInstructions(agent.instructions);
-      setModel(agent.model);
-      setMaxSteps(agent.maxSteps || 25);
-      setSaveSuccess(false);
-      setSaveError(null);
+      setName(agent.name)
+      setDescription(agent.description || "")
+      setInstructions(agent.instructions)
+      setModel(agent.model)
+      setMaxSteps(agent.maxSteps || 25)
+      setSaveSuccess(false)
+      setSaveError(null)
     }
-  }, [agent]);
+  }, [agent])
 
-  const { data: availableModels = [] } = useAvailableModelsQuery(open);
+  const { data: availableModels = [] } = useAvailableModelsQuery(open)
   const { data: tools = [], isLoading: isLoadingTools } = useAgentToolsQuery(
     agent?.id,
-    open,
-  );
+    open
+  )
 
-  const updateMutation = useUpdateAgentMutation(agent?.id);
-  const deleteMutation = useDeleteAgentMutation(agent?.id);
-  const toggleToolMutation = useToggleAgentToolMutation(agent?.id);
+  const updateMutation = useUpdateAgentMutation(agent?.id)
+  const deleteMutation = useDeleteAgentMutation(agent?.id)
+  const toggleToolMutation = useToggleAgentToolMutation(agent?.id)
 
-  if (!agent) return null;
+  if (!agent) return null
 
   const modelsList =
-    availableModels.length > 0 ? availableModels : DEFAULT_MODELS;
+    availableModels.length > 0 ? availableModels : DEFAULT_MODELS
 
   const handleUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaveError(null);
-    setSaveSuccess(false);
+    e.preventDefault()
+    setSaveError(null)
+    setSaveSuccess(false)
 
     updateMutation.mutate(
       {
@@ -115,31 +115,31 @@ export function ConfigureAgentSheet({
       },
       {
         onSuccess: () => {
-          setSaveSuccess(true);
-          setTimeout(() => setSaveSuccess(false), 2500);
+          setSaveSuccess(true)
+          setTimeout(() => setSaveSuccess(false), 2500)
         },
         onError: (err) => {
-          setSaveError(err.message);
+          setSaveError(err.message)
         },
-      },
-    );
-  };
+      }
+    )
+  }
 
   const handleDelete = () => {
     deleteMutation.mutate(undefined, {
       onSuccess: () => {
-        setDeleteConfirmOpen(false);
-        onOpenChange(false);
+        setDeleteConfirmOpen(false)
+        onOpenChange(false)
         if (typeof window !== "undefined") {
-          window.location.href = "/";
+          window.location.href = "/"
         }
       },
       onError: (err) => {
-        setDeleteConfirmOpen(false);
-        setSaveError(err.message);
+        setDeleteConfirmOpen(false)
+        setSaveError(err.message)
       },
-    });
-  };
+    })
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -270,7 +270,7 @@ export function ConfigureAgentSheet({
                   {tools.map((tool) => {
                     const rowPending =
                       toggleToolMutation.isPending &&
-                      toggleToolMutation.variables?.toolName === tool.toolName;
+                      toggleToolMutation.variables?.toolName === tool.toolName
 
                     return (
                       <div
@@ -310,7 +310,7 @@ export function ConfigureAgentSheet({
                           />
                         </div>
                       </div>
-                    );
+                    )
                   })}
                 </div>
               )}
@@ -339,10 +339,10 @@ export function ConfigureAgentSheet({
                   type="button"
                   variant="destructive"
                   disabled={deleteMutation.isPending}
+                  size="icon"
                 />
               }
             >
-              Delete
               {deleteMutation.isPending ? (
                 <Spinner data-icon="inline-start" />
               ) : (
@@ -375,5 +375,5 @@ export function ConfigureAgentSheet({
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

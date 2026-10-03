@@ -123,7 +123,6 @@ export function ConnectionsSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        showCloseButton={false}
         side="right"
         className="flex h-full max-h-screen flex-col overflow-hidden sm:max-w-md!"
       >
@@ -135,7 +134,7 @@ export function ConnectionsSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden px-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden px-4 pb-6">
           <h3 className="shrink-0 text-xs font-medium text-muted-foreground">
             Supported integrations ({AVAILABLE_INTEGRATIONS.length})
           </h3>
@@ -209,16 +208,6 @@ export function ConnectionsSheet({
             </div>
           </div>
         </div>
-
-        <SheetFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Close
-          </Button>
-        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

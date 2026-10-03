@@ -114,12 +114,14 @@ export function ConversationMessageItem({
 
           <MessageFooter
             className={
-              isUser ? "items-center gap-1.5 px-0" : "items-center gap-2 px-0"
+              isUser
+                ? "-mt-1 items-center gap-1.5 px-0"
+                : "items-center gap-2 px-0"
             }
           >
             {isUser ? (
               <>
-                <div className="flex items-center gap-0.5 transition-opacity group-hover:opacity-100 md:opacity-0">
+                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                   <Button
                     type="button"
                     variant="ghost"
@@ -150,11 +152,10 @@ export function ConversationMessageItem({
                       <IconShare className="size-3" />
                     )}
                   </Button>
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatMsgTime(message.createdAt)}
+                  </span>
                 </div>
-                <span className="text-xs font-medium text-foreground">You</span>
-                <span className="text-[10px] text-muted-foreground">
-                  {formatMsgTime(message.createdAt)}
-                </span>
               </>
             ) : (
               <>

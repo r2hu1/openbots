@@ -1,98 +1,110 @@
-"use client";
+"use client"
 
-import { SidebarInset } from "@openbots/ui/components/sidebar";
-import { IconPlus } from "@tabler/icons-react";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-import { EmptyState } from "@/components/shared/empty-state";
-import { LoadingState } from "@/components/shared/loading-state";
-import { AgentHeader } from "@/modules/agents/components/agent-header";
-import { ConfigureAgentSheet } from "@/modules/agents/components/configure-agent-sheet";
-import { CreateAgentDialog } from "@/modules/agents/components/create-agent-dialog";
-import { useAgentExecution } from "@/modules/agents/hooks/use-agent-execution";
-import { useAgentsQuery } from "@/modules/agents/queries";
-import { ArtifactSheet } from "@/modules/artifacts/artifact-sheet";
-import {
-  type ParsedArtifact,
-  parseArtifacts,
-} from "@/modules/artifacts/parser";
-import { ConnectionsSheet } from "@/modules/connections/components/connections-sheet";
-import { ConversationTimeline } from "@/modules/conversations/components/conversation-timeline";
-import { InputComposer } from "@/modules/conversations/components/input-composer";
-import { useReconciledMessages } from "@/modules/conversations/hooks/use-reconciled-messages";
+import { SidebarInset } from "@openbots/ui/components/sidebar"
+import { IconPlus } from "@tabler/icons-react"
+import dynamic from "next/dynamic"
+import { useRouter } from "next/navigation"
+import * as React from "react"
+import { EmptyState } from "@/components/shared/empty-state"
+import { LoadingState } from "@/components/shared/loading-state"
+import { AgentHeader } from "@/modules/agents/components/agent-header"
+import { useAgentExecution } from "@/modules/agents/hooks/use-agent-execution"
+import { useAgentsQuery } from "@/modules/agents/queries"
+import type { ParsedArtifact } from "@/modules/artifacts/parser"
+import { ConversationTimeline } from "@/modules/conversations/components/conversation-timeline"
+import { InputComposer } from "@/modules/conversations/components/input-composer"
+import { useReconciledMessages } from "@/modules/conversations/hooks/use-reconciled-messages"
 import {
   useConversationDetailQuery,
   useConversationsQuery,
-} from "@/modules/conversations/queries";
-import { getMessageText } from "@/modules/conversations/utils";
-import { RunHistorySheet } from "@/modules/runs/components/run-history-sheet";
+} from "@/modules/conversations/queries"
 
-interface AgentWorkspaceProps {
-  initialAgentId?: string;
+const ConfigureAgentSheet = dynamic(
+  () =>
+    import("@/modules/agents/components/configure-agent-sheet").then(
+      (m) => m.ConfigureAgentSheet
+    ),
+  { ssr: false }
+)
+const CreateAgentDialog = dynamic(
+  () =>
+    import("@/modules/agents/components/create-agent-dialog").then(
+      (m) => m.CreateAgentDialog
+    ),
+  { ssr: false }
+)
+const ArtifactSheet = dynamic(
+  () =>
+    import("@/modules/artifacts/artifact-sheet").then((m) => m.ArtifactSheet),
+  { ssr: false }
+)
+const ConnectionsSheet = dynamic(
+  () =>
+    import("@/modules/connections/components/connections-sheet").then(
+      (m) => m.ConnectionsSheet
+    ),
+  { ssr: false }
+)
+const RunHistorySheet = dynamic(
+  () =>
+    import("@/modules/runs/components/run-history-sheet").then(
+      (m) => m.RunHistorySheet
+    ),
+  { ssr: false }
+)
+
+function useIdleReady() {
+  const [ready, setReady] = React.useState(false)
+
+  React.useEffect(() => {
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(() => setReady(true), {
+        timeout: 2000,
+      })
+      return () => window.cancelIdleCallback(id)
+    }
+    const id = window.setTimeout(() => setReady(true), 200)
+    return () => window.clearTimeout(id)
+  }, [])
+
+  return ready
 }
 
-export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
-  const router = useRouter();
+function useMountedOnce(open: boolean) {
+  const mounted = React.useRef(false)
+  if (open) mounted.current = true
+  return mounted.current
+}
 
-  // Selection state
-  const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(
-    initialAgentId || null,
-  );
-  const [activeConversationId, setActiveConversationId] = React.useState<
+const MemoHeader = React.memo(AgentHeader)
+const MemoTimeline = React.memo(ConversationTimeline)
+const MemoComposer = React.memo(InputComposer)
+
+interface ChatPaneProps {
+  agentId: string
+  agentName: string
+  onOpenArtifact: (artifact: ParsedArtifact) => void
+}
+
+const ChatPane = React.memo(function ChatPane({
+  agentId,
+  agentName,
+  onOpenArtifact,
+}: ChatPaneProps) {
+  const [selectedConversationId, setSelectedConversationId] = React.useState<
     string | null
-  >(null);
+  >(null)
 
-  // Sheets & Dialogs
-  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
-  const [configureSheetOpen, setConfigureSheetOpen] = React.useState(false);
-  const [historySheetOpen, setHistorySheetOpen] = React.useState(false);
-  const [connectionsSheetOpen, setConnectionsSheetOpen] = React.useState(false);
-  const [inspectedRunId, setInspectedRunId] = React.useState<string | null>(
-    null,
-  );
-  const [selectedArtifact, setSelectedArtifact] =
-    React.useState<ParsedArtifact | null>(null);
+  const { data: conversationsData, isLoading: isLoadingConversations } =
+    useConversationsQuery(agentId)
+  const conversations = React.useMemo(
+    () => conversationsData ?? [],
+    [conversationsData]
+  )
 
-  // 1. Fetch Agents
-  const { data: agents = [], isLoading: isLoadingAgents } = useAgentsQuery();
+  const activeConversationId =
+    selectedConversationId ?? conversations[0]?.id ?? null
 
-  // Sync route / initial agent ID
-  React.useEffect(() => {
-    if (initialAgentId) {
-      setSelectedAgentId(initialAgentId);
-    } else if (agents.length > 0 && !selectedAgentId && agents[0]?.id) {
-      setSelectedAgentId(agents[0].id);
-      router.replace(`/agent/${agents[0].id}`);
-    }
-  }, [initialAgentId, agents, selectedAgentId, router]);
-
-  const selectedAgent = agents.find((ag) => ag.id === selectedAgentId) || null;
-
-  // Reset active conversation on agent change
-  const prevAgentIdRef = React.useRef(selectedAgentId);
-  React.useEffect(() => {
-    if (prevAgentIdRef.current !== selectedAgentId) {
-      prevAgentIdRef.current = selectedAgentId;
-      setActiveConversationId(null);
-    }
-  }, [selectedAgentId]);
-
-  // 2. Fetch Conversations
-  const { data: conversations = [], isLoading: isLoadingConversations } =
-    useConversationsQuery(selectedAgentId);
-
-  React.useEffect(() => {
-    if (conversations.length > 0 && conversations[0]?.id) {
-      if (
-        !activeConversationId ||
-        !conversations.some((c) => c.id === activeConversationId)
-      ) {
-        setActiveConversationId(conversations[0].id);
-      }
-    }
-  }, [conversations, activeConversationId]);
-
-  // 3. Execution Engine Hook
   const {
     activeRun,
     activeRunSteps,
@@ -105,54 +117,145 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     isSubmitting,
     isCancelling,
   } = useAgentExecution({
-    agentId: selectedAgentId,
+    agentId,
     activeConversationId,
-    onConversationCreated: (newConvId) => {
-      setActiveConversationId(newConvId);
-    },
-  });
+    onConversationCreated: setSelectedConversationId,
+  })
 
-  // 4. Fetch Conversation Detail / Messages
+  const isPolling =
+    isOptimisticRunning ||
+    activeRun?.status === "running" ||
+    activeRun?.status === "queued"
+
   const { data: conversationDetail, isLoading: isLoadingMessages } =
     useConversationDetailQuery(activeConversationId, {
-      refetchInterval:
-        isOptimisticRunning ||
-        activeRun?.status === "running" ||
-        activeRun?.status === "queued"
-          ? 1500
-          : false,
-    });
+      refetchInterval: isPolling ? 1500 : false,
+    })
 
-  const serverMessages = conversationDetail?.messages || [];
+  const serverMessages = React.useMemo(
+    () => conversationDetail?.messages ?? [],
+    [conversationDetail?.messages]
+  )
 
-  // 5. Reconcile Messages
+  const clearOptimistic = React.useCallback(
+    () => setOptimisticMessages([]),
+    [setOptimisticMessages]
+  )
+
   const messages = useReconciledMessages({
     serverMessages,
     optimisticMessages,
     activeRun,
     activeConversationId,
-    onClearOptimistic: () => setOptimisticMessages([]),
-  });
+    onClearOptimistic: clearOptimistic,
+  })
 
   const isChatLoading =
-    Boolean(selectedAgentId) &&
     !isOptimisticRunning &&
     optimisticMessages.length === 0 &&
     (isLoadingConversations ||
-      (Boolean(activeConversationId) && isLoadingMessages) ||
-      (conversations.length > 0 && !activeConversationId));
+      (activeConversationId !== null && isLoadingMessages))
+
+  const placeholder = `Send task to ${agentName}...`
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <MemoTimeline
+        messages={messages}
+        activeRun={activeRun}
+        activeRunSteps={activeRunSteps}
+        onCancelRun={cancelActiveRun}
+        isCancelling={isCancelling}
+        agentName={agentName}
+        isOptimisticRunning={isOptimisticRunning}
+        isLoading={isChatLoading}
+        onOpenArtifact={onOpenArtifact}
+      />
+
+      <MemoComposer
+        onSend={sendPrompt}
+        isSubmitting={isSubmitting}
+        isActiveRun={isActiveRun}
+        onCancelRun={cancelActiveRun}
+        isCancelling={isCancelling}
+        placeholder={placeholder}
+      />
+    </div>
+  )
+})
+
+interface AgentWorkspaceProps {
+  initialAgentId?: string
+}
+
+export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
+  const router = useRouter()
+
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
+  const [configureSheetOpen, setConfigureSheetOpen] = React.useState(false)
+  const [historySheetOpen, setHistorySheetOpen] = React.useState(false)
+  const [connectionsSheetOpen, setConnectionsSheetOpen] = React.useState(false)
+  const [inspectedRunId, setInspectedRunId] = React.useState<string | null>(
+    null
+  )
+  const [selectedArtifact, setSelectedArtifact] =
+    React.useState<ParsedArtifact | null>(null)
+
+  const lastArtifact = React.useRef<ParsedArtifact | null>(null)
+  if (selectedArtifact) lastArtifact.current = selectedArtifact
+
+  const { data: agentsData, isLoading: isLoadingAgents } = useAgentsQuery()
+  const agents = React.useMemo(() => agentsData ?? [], [agentsData])
+
+  const selectedAgentId = initialAgentId ?? agents[0]?.id ?? null
+  const selectedAgent = React.useMemo(
+    () => agents.find((ag) => ag.id === selectedAgentId) ?? null,
+    [agents, selectedAgentId]
+  )
+
+  React.useEffect(() => {
+    if (!initialAgentId && agents[0]?.id) {
+      router.replace(`/agent/${agents[0].id}`)
+    }
+  }, [initialAgentId, agents, router])
+
+  const openConfigure = React.useCallback(() => setConfigureSheetOpen(true), [])
+  const openHistory = React.useCallback(() => {
+    setInspectedRunId(null)
+    setHistorySheetOpen(true)
+  }, [])
+  const openConnections = React.useCallback(
+    () => setConnectionsSheetOpen(true),
+    []
+  )
+  const openCreate = React.useCallback(() => setCreateDialogOpen(true), [])
+  const openArtifact = React.useCallback(
+    (artifact: ParsedArtifact) => setSelectedArtifact(artifact),
+    []
+  )
+  const handleArtifactOpenChange = React.useCallback((open: boolean) => {
+    if (!open) setSelectedArtifact(null)
+  }, [])
+  const handleAgentCreated = React.useCallback(
+    (newId: string) => router.push(`/agent/${newId}`),
+    [router]
+  )
+
+  const idleReady = useIdleReady()
+  const createMounted = useMountedOnce(createDialogOpen) || idleReady
+  const configureMounted = useMountedOnce(configureSheetOpen) || idleReady
+  const historyMounted = useMountedOnce(historySheetOpen) || idleReady
+  const connectionsMounted = useMountedOnce(connectionsSheetOpen) || idleReady
+  const artifactMounted = useMountedOnce(Boolean(selectedArtifact)) || idleReady
 
   return (
     <>
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-        <AgentHeader
+        <MemoHeader
           selectedAgent={selectedAgent}
-          onOpenConfigure={() => setConfigureSheetOpen(true)}
-          onOpenHistory={() => {
-            setInspectedRunId(null);
-            setHistorySheetOpen(true);
-          }}
-          onOpenConnections={() => setConnectionsSheetOpen(true)}
+          onOpenConfigure={openConfigure}
+          onOpenHistory={openHistory}
+          onOpenConnections={openConnections}
         />
 
         <main className="flex flex-1 flex-col overflow-hidden">
@@ -165,71 +268,59 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
               description="Create your first autonomous agent to coordinate tools and multi-step tasks."
               actionLabel="Create Agent"
               actionIcon={<IconPlus className="size-4" />}
-              onAction={() => setCreateDialogOpen(true)}
+              onAction={openCreate}
             />
           ) : (
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <ConversationTimeline
-                messages={messages}
-                activeRun={activeRun}
-                activeRunSteps={activeRunSteps}
-                onCancelRun={cancelActiveRun}
-                isCancelling={isCancelling}
-                agentName={selectedAgent.name}
-                isOptimisticRunning={isOptimisticRunning}
-                isLoading={isChatLoading}
-                onOpenArtifact={(art) => setSelectedArtifact(art)}
-              />
-
-              <InputComposer
-                onSend={sendPrompt}
-                isSubmitting={isSubmitting}
-                isActiveRun={isActiveRun}
-                onCancelRun={cancelActiveRun}
-                isCancelling={isCancelling}
-                placeholder={`Send task to ${selectedAgent.name}...`}
-              />
-            </div>
+            <ChatPane
+              key={selectedAgent.id}
+              agentId={selectedAgent.id}
+              agentName={selectedAgent.name}
+              onOpenArtifact={openArtifact}
+            />
           )}
         </main>
       </SidebarInset>
 
-      <CreateAgentDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onAgentCreated={(newId) => {
-          setSelectedAgentId(newId);
-          setActiveConversationId(null);
-          router.push(`/agent/${newId}`);
-        }}
-      />
+      {createMounted && (
+        <CreateAgentDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          onAgentCreated={handleAgentCreated}
+        />
+      )}
 
-      <ConfigureAgentSheet
-        agent={selectedAgent}
-        open={configureSheetOpen}
-        onOpenChange={setConfigureSheetOpen}
-      />
+      {configureMounted && (
+        <ConfigureAgentSheet
+          agent={selectedAgent}
+          open={configureSheetOpen}
+          onOpenChange={setConfigureSheetOpen}
+        />
+      )}
 
-      <RunHistorySheet
-        agentId={selectedAgentId}
-        open={historySheetOpen}
-        onOpenChange={setHistorySheetOpen}
-        selectedRunId={inspectedRunId}
-        onSelectRunId={setInspectedRunId}
-      />
+      {historyMounted && (
+        <RunHistorySheet
+          agentId={selectedAgentId}
+          open={historySheetOpen}
+          onOpenChange={setHistorySheetOpen}
+          selectedRunId={inspectedRunId}
+          onSelectRunId={setInspectedRunId}
+        />
+      )}
 
-      <ConnectionsSheet
-        open={connectionsSheetOpen}
-        onOpenChange={setConnectionsSheetOpen}
-      />
+      {connectionsMounted && (
+        <ConnectionsSheet
+          open={connectionsSheetOpen}
+          onOpenChange={setConnectionsSheetOpen}
+        />
+      )}
 
-      <ArtifactSheet
-        open={Boolean(selectedArtifact)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedArtifact(null);
-        }}
-        artifact={selectedArtifact}
-      />
+      {artifactMounted && (
+        <ArtifactSheet
+          open={Boolean(selectedArtifact)}
+          onOpenChange={handleArtifactOpenChange}
+          artifact={selectedArtifact ?? lastArtifact.current}
+        />
+      )}
     </>
-  );
+  )
 }

@@ -1,6 +1,6 @@
-import { db } from "@openbots/db";
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "@openbots/db"
+import { betterAuth } from "better-auth"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -22,7 +22,8 @@ export const auth = betterAuth({
     process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000",
     "http://localhost:3000",
     "http://localhost:3001",
+    process.env.APP_URL!,
   ],
-});
+})
 
-export type Auth = typeof auth;
+export type Auth = typeof auth

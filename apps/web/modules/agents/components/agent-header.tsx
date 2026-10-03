@@ -68,6 +68,9 @@ export function AgentHeader({
                   <Blobatar
                     name={selectedAgent.name || selectedAgent.id}
                     className="size-6.5! shrink-0"
+                    blobatar={{
+                      animate: "always",
+                    }}
                   />
                   <div className="flex flex-col items-start leading-none">
                     <span className="text-xs font-medium text-foreground">
@@ -115,7 +118,9 @@ export function AgentHeader({
               onOpenChange={setRenameOpen}
               onSuccess={(updated) => {
                 queryClient.invalidateQueries({ queryKey: ["agents"] })
-                queryClient.invalidateQueries({ queryKey: ["agent", updated.id] })
+                queryClient.invalidateQueries({
+                  queryKey: ["agent", updated.id],
+                })
                 queryClient.setQueryData(["agent", updated.id], (old: any) =>
                   old ? { ...old, agent: updated } : old
                 )

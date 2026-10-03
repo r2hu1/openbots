@@ -144,7 +144,7 @@ export function WorkspaceSidebar({
                               name={agent.name || agent.id}
                               className="size-7! group-data-[collapsible=icon]:size-6"
                               blobatar={{
-                                animate: isActive ? "always" : "hover",
+                                animate: "hover",
                               }}
                             />
                           </span>

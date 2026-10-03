@@ -172,9 +172,9 @@ export function ArtifactSheet({
         showCloseButton={false}
         side="right"
         className={cn(
-          "w-full gap-0 overflow-hidden p-0 data-[side=right]:w-3/4 data-[side=right]:sm:max-w-4xl",
+          "gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:w-3/4 data-[side=right]:sm:max-w-4xl",
           maximized &&
-            "data-[side=right]:left-3 data-[side=right]:w-auto! data-[side=right]:max-w-none!"
+            "data-[side=right]:sm:left-3 data-[side=right]:sm:w-auto! data-[side=right]:sm:max-w-none!"
         )}
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">
@@ -251,6 +251,7 @@ export function ArtifactSheet({
               onClick={() => setMaximized((v) => !v)}
               aria-label={maximized ? "Restore size" : "Expand"}
               title={maximized ? "Restore" : "Expand"}
+              className="hidden sm:flex"
             >
               {maximized ? (
                 <IconArrowsDiagonalMinimize2 />

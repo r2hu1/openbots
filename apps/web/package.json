@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@composio/core": "^0.22.0",
     "@openbots/api-client": "workspace:*",
     "@openbots/ui": "workspace:*",
     "@tabler/icons-react": "^3.48.0",

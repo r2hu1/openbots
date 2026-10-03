@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@composio/core": "^0.22.0",
     "@hono/zod-validator": "^0.5.0",
     "@openbots/db": "workspace:*",
     "@trigger.dev/sdk": "^4.6.0",

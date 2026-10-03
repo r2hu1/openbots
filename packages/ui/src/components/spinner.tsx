@@ -1,4 +1,4 @@
-import { cn } from "cn"
+import { cn } from "cn";
 
 export function Spinner({ className }: { className?: string }) {
   return (
@@ -21,5 +21,5 @@ export function Spinner({ className }: { className?: string }) {
         strokeDashoffset="0"
       />
     </svg>
-  )
+  );
 }

@@ -87,7 +87,8 @@ export function CreateAgentDialog({
     );
   };
 
-  const [selectedProvider, setSelectedProvider] = React.useState<string>("google");
+  const [selectedProvider, setSelectedProvider] =
+    React.useState<string>("google");
 
   // Group models by provider
   const modelsByProvider = React.useMemo(() => {
@@ -178,7 +179,8 @@ export function CreateAgentDialog({
 
             {providerKeys.length === 0 ? (
               <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
-                No LLM API keys configured yet. Please configure a provider in Settings &gt; API Keys to create an agent.
+                No LLM API keys configured yet. Please configure a provider in
+                Settings &gt; API Keys to create an agent.
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">

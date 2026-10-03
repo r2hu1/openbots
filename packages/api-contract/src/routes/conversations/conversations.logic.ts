@@ -89,9 +89,10 @@ export async function getConversation(
   const slicedMessages = hasMore ? rawMessages.slice(0, limit) : rawMessages;
 
   // The next cursor for fetching even older messages is the oldest message in this slice
-  const nextCursor = hasMore && slicedMessages.length > 0
-    ? slicedMessages[slicedMessages.length - 1]?.id
-    : null;
+  const nextCursor =
+    hasMore && slicedMessages.length > 0
+      ? slicedMessages[slicedMessages.length - 1]?.id
+      : null;
 
   // Reverse so they are in chronological order (oldest to newest) for timeline display
   const chronologicalMessages = [...slicedMessages].reverse();

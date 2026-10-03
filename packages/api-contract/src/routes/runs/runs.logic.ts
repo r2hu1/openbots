@@ -171,7 +171,8 @@ class RunEventHub {
       if (redis) {
         const channelKey = `run_events:${runId}`;
         const serialized = JSON.stringify(event);
-        redis.rpush(channelKey, serialized)
+        redis
+          .rpush(channelKey, serialized)
           .then(() => redis.expire(channelKey, 3600))
           .catch(() => {});
       }

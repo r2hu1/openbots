@@ -19,7 +19,11 @@ async function resolveModel(userId: string, modelName: string) {
   const normalized = modelName.trim();
 
   // 1. Google Gemini
-  if (normalized.startsWith("google/") || normalized.startsWith("gemini-") || normalized === "default") {
+  if (
+    normalized.startsWith("google/") ||
+    normalized.startsWith("gemini-") ||
+    normalized === "default"
+  ) {
     const key =
       apiKey ||
       process.env.GEMINI_API_KEY ||
@@ -348,7 +352,7 @@ export async function executeAgentRun(
       // Check if promptText is already the last message in history to prevent duplicates
       const lastMsg = inputMessages[inputMessages.length - 1];
       const isScheduleTrigger = runRecord.triggerType === "schedule";
-      
+
       const effectiveUserPrompt = isScheduleTrigger
         ? `[SYSTEM NOTIFICATION: The timer/scheduled alarm for this task has elapsed now.]\nDeliver this reminder/scheduled alert directly to the user:\n"${promptText}"`
         : promptText;
@@ -511,7 +515,8 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       }
 
       if (!finalText) {
-        finalText = "I finished executing the requested tool actions and reached the step limit.";
+        finalText =
+          "I finished executing the requested tool actions and reached the step limit.";
       }
     }
 

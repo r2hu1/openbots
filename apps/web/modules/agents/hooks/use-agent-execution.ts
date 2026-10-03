@@ -124,6 +124,9 @@ export function useAgentExecution({
         queryClient.invalidateQueries({
           queryKey: ["runs", agentId],
         });
+        queryClient.invalidateQueries({
+          queryKey: ["agents"],
+        });
       }
       setActiveRunId(null);
     }

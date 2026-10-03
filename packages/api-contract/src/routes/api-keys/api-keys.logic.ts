@@ -158,16 +158,22 @@ export async function getDecryptedUserApiKey(
   if (!record) {
     try {
       const redis = getRedis();
-      if (redis) redis.setex(cacheKey, CACHE_TTL_SECONDS, "__NONE__").catch(() => {});
+      if (redis)
+        redis.setex(cacheKey, CACHE_TTL_SECONDS, "__NONE__").catch(() => {});
     } catch {}
     return null;
   }
 
   try {
-    const decrypted = decryptApiKey(record.encryptedKey, record.iv, record.authTag);
+    const decrypted = decryptApiKey(
+      record.encryptedKey,
+      record.iv,
+      record.authTag,
+    );
     try {
       const redis = getRedis();
-      if (redis) redis.setex(cacheKey, CACHE_TTL_SECONDS, decrypted).catch(() => {});
+      if (redis)
+        redis.setex(cacheKey, CACHE_TTL_SECONDS, decrypted).catch(() => {});
     } catch {}
     return decrypted;
   } catch (err) {

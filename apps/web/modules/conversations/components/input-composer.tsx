@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import { Button } from "@openbots/ui/components/button"
-import { Spinner } from "@openbots/ui/components/spinner"
-import { Textarea } from "@openbots/ui/components/textarea"
-import { IconArrowUp, IconPlayerStop } from "@tabler/icons-react"
-import * as React from "react"
+import { Button } from "@openbots/ui/components/button";
+import { Spinner } from "@openbots/ui/components/spinner";
+import { Textarea } from "@openbots/ui/components/textarea";
+import { IconArrowUp, IconPlayerStop } from "@tabler/icons-react";
+import * as React from "react";
 
 interface InputComposerProps {
-  onSend: (prompt: string) => void
-  isSubmitting?: boolean
-  isActiveRun?: boolean
-  onCancelRun?: () => void
-  isCancelling?: boolean
-  placeholder?: string
-  disabled?: boolean
+  onSend: (prompt: string) => void;
+  isSubmitting?: boolean;
+  isActiveRun?: boolean;
+  onCancelRun?: () => void;
+  isCancelling?: boolean;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
 export function InputComposer({
@@ -25,30 +25,30 @@ export function InputComposer({
   placeholder = "Message your agent...",
   disabled = false,
 }: InputComposerProps) {
-  const [text, setText] = React.useState("")
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const [text, setText] = React.useState("");
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const isDisabled = disabled || isSubmitting
-  const canSubmit = text.trim().length > 0 && !isDisabled && !isActiveRun
+  const isDisabled = disabled || isSubmitting;
+  const canSubmit = text.trim().length > 0 && !isDisabled && !isActiveRun;
 
   // Auto-resize textarea
   React.useLayoutEffect(() => {
-    const textarea = textareaRef.current
-    if (!textarea) return
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-    textarea.style.height = "auto"
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`
-  }, [text])
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`;
+  }, [text]);
 
   // Press "/" anywhere on the page to focus the composer
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "/") return
-      if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (event.isComposing) return
+      if (event.key !== "/") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.isComposing) return;
 
       // Don't hijack "/" while the user is already typing somewhere
-      const target = event.target as HTMLElement | null
+      const target = event.target as HTMLElement | null;
       if (
         target &&
         (target.tagName === "INPUT" ||
@@ -56,56 +56,56 @@ export function InputComposer({
           target.tagName === "SELECT" ||
           target.isContentEditable)
       ) {
-        return
+        return;
       }
 
-      const textarea = textareaRef.current
-      if (!textarea || textarea.disabled) return
+      const textarea = textareaRef.current;
+      if (!textarea || textarea.disabled) return;
 
-      event.preventDefault() // stops "/" from being typed into the textarea
-      textarea.focus()
-    }
+      event.preventDefault(); // stops "/" from being typed into the textarea
+      textarea.focus();
+    };
 
-    document.addEventListener("keydown", onKeyDown)
-    return () => document.removeEventListener("keydown", onKeyDown)
-  }, [])
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const handleSubmit = React.useCallback(() => {
-    const prompt = text.trim()
+    const prompt = text.trim();
 
-    if (!prompt || !canSubmit) return
+    if (!prompt || !canSubmit) return;
 
-    onSend(prompt)
-    setText("")
+    onSend(prompt);
+    setText("");
 
     requestAnimationFrame(() => {
-      textareaRef.current?.focus()
-    })
-  }, [text, canSubmit, onSend])
+      textareaRef.current?.focus();
+    });
+  }, [text, canSubmit, onSend]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.nativeEvent.isComposing) return
+    if (event.nativeEvent.isComposing) return;
 
     if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault()
-      handleSubmit()
+      event.preventDefault();
+      handleSubmit();
     }
-  }
+  };
 
   const handleContainerClick = (event: React.MouseEvent<HTMLDivElement>) => {
     // Don't steal focus from interactive children (send / stop buttons)
-    if ((event.target as HTMLElement).closest("button")) return
+    if ((event.target as HTMLElement).closest("button")) return;
 
-    textareaRef.current?.focus()
-  }
+    textareaRef.current?.focus();
+  };
 
   return (
     <div className="w-full px-3 pb-4">
       <div className="mx-auto max-w-4xl">
         <form
           onSubmit={(event) => {
-            event.preventDefault()
-            handleSubmit()
+            event.preventDefault();
+            handleSubmit();
           }}
         >
           <div
@@ -160,5 +160,5 @@ export function InputComposer({
         </form>
       </div>
     </div>
-  )
+  );
 }

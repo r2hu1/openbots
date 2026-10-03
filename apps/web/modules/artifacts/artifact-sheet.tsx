@@ -1,23 +1,23 @@
-"use client"
+"use client";
 
-import { Button, buttonVariants } from "@openbots/ui/components/button"
+import { Button, buttonVariants } from "@openbots/ui/components/button";
 import {
   ButtonGroup,
   ButtonGroupSeparator,
-} from "@openbots/ui/components/button-group"
+} from "@openbots/ui/components/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@openbots/ui/components/dropdown-menu"
+} from "@openbots/ui/components/dropdown-menu";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetTitle,
-} from "@openbots/ui/components/sheet"
-import { Tabs, TabsList, TabsTrigger } from "@openbots/ui/components/tabs"
+} from "@openbots/ui/components/sheet";
+import { Tabs, TabsList, TabsTrigger } from "@openbots/ui/components/tabs";
 import {
   IconArrowsDiagonal,
   IconArrowsDiagonalMinimize2,
@@ -26,27 +26,27 @@ import {
   IconCode,
   IconEye,
   IconX,
-} from "@tabler/icons-react"
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import type { ParsedArtifact } from "./parser"
-import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes"
+} from "@tabler/icons-react";
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import type { ParsedArtifact } from "./parser";
+import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes";
 
 interface ArtifactSheetProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  artifact: ParsedArtifact | null
-  onPublish?: (artifact: ParsedArtifact) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  artifact: ParsedArtifact | null;
+  onPublish?: (artifact: ParsedArtifact) => void;
 }
 
-type View = "preview" | "code"
-type Token = { text: string; cls?: string }
+type View = "preview" | "code";
+type Token = { text: string; cls?: string };
 
 const FILE_META: Record<string, { ext: string; mime: string }> = {
   html: { ext: "html", mime: "text/html" },
   svg: { ext: "svg", mime: "image/svg+xml" },
   mermaid: { ext: "mmd", mime: "text/plain" },
-}
+};
 
 const TOKEN_RE = new RegExp(
   [
@@ -56,8 +56,8 @@ const TOKEN_RE = new RegExp(
     "(\\b\\d+(?:\\.\\d+)?\\b)",
     "(\\b(?:import|from|export|default|const|let|var|function|return|if|else|for|while|new|class|interface|type|async|await|true|false|null|undefined|typeof|this)\\b)",
   ].join("|"),
-  "g"
-)
+  "g",
+);
 
 const TOKEN_CLASSES = [
   "text-muted-foreground italic",
@@ -65,38 +65,38 @@ const TOKEN_CLASSES = [
   "text-orange-600 dark:text-orange-300",
   "text-amber-600 dark:text-amber-300",
   "text-violet-600 dark:text-violet-400",
-]
+];
 
 function highlight(code: string, enabled: boolean): Token[][] {
-  const tokens: Token[] = []
+  const tokens: Token[] = [];
 
   if (!enabled) {
-    tokens.push({ text: code })
+    tokens.push({ text: code });
   } else {
-    let last = 0
+    let last = 0;
     for (const match of code.matchAll(TOKEN_RE)) {
-      const index = match.index ?? 0
-      if (index > last) tokens.push({ text: code.slice(last, index) })
-      const group = match.findIndex((value, i) => i > 0 && value !== undefined)
-      tokens.push({ text: match[0], cls: TOKEN_CLASSES[group - 1] })
-      last = index + match[0].length
+      const index = match.index ?? 0;
+      if (index > last) tokens.push({ text: code.slice(last, index) });
+      const group = match.findIndex((value, i) => i > 0 && value !== undefined);
+      tokens.push({ text: match[0], cls: TOKEN_CLASSES[group - 1] });
+      last = index + match[0].length;
     }
-    if (last < code.length) tokens.push({ text: code.slice(last) })
+    if (last < code.length) tokens.push({ text: code.slice(last) });
   }
 
-  let current: Token[] = []
-  const lines: Token[][] = [current]
+  let current: Token[] = [];
+  const lines: Token[][] = [current];
   for (const token of tokens) {
-    const parts = token.text.split("\n")
+    const parts = token.text.split("\n");
     parts.forEach((part, i) => {
       if (i > 0) {
-        current = []
-        lines.push(current)
+        current = [];
+        lines.push(current);
       }
-      if (part) current.push({ text: part, cls: token.cls })
-    })
+      if (part) current.push({ text: part, cls: token.cls });
+    });
   }
-  return lines
+  return lines;
 }
 
 function slugify(value: string) {
@@ -105,7 +105,7 @@ function slugify(value: string) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "artifact"
-  )
+  );
 }
 
 export function ArtifactSheet({
@@ -114,57 +114,57 @@ export function ArtifactSheet({
   artifact,
   onPublish,
 }: ArtifactSheetProps) {
-  const [view, setView] = React.useState<View>("preview")
-  const [copied, setCopied] = React.useState(false)
-  const [maximized, setMaximized] = React.useState(false)
-  const copyTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [view, setView] = React.useState<View>("preview");
+  const [copied, setCopied] = React.useState(false);
+  const [maximized, setMaximized] = React.useState(false);
+  const copyTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
-    setView("preview")
-  }, [artifact])
+    setView("preview");
+  }, [artifact]);
 
   React.useEffect(() => {
     return () => {
-      if (copyTimeout.current) clearTimeout(copyTimeout.current)
-    }
-  }, [])
+      if (copyTimeout.current) clearTimeout(copyTimeout.current);
+    };
+  }, []);
 
   const lines = React.useMemo(
     () =>
       artifact ? highlight(artifact.content, artifact.type !== "mermaid") : [],
-    [artifact]
-  )
+    [artifact],
+  );
 
   const handleCopy = React.useCallback(async () => {
-    if (!artifact?.content) return
+    if (!artifact?.content) return;
     try {
-      await navigator.clipboard.writeText(artifact.content)
-      setCopied(true)
-      if (copyTimeout.current) clearTimeout(copyTimeout.current)
-      copyTimeout.current = setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(artifact.content);
+      setCopied(true);
+      if (copyTimeout.current) clearTimeout(copyTimeout.current);
+      copyTimeout.current = setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy code:", err)
+      console.error("Failed to copy code:", err);
     }
-  }, [artifact])
+  }, [artifact]);
 
   const handleDownload = React.useCallback(() => {
-    if (!artifact) return
+    if (!artifact) return;
     const meta = FILE_META[artifact.type] ?? {
       ext: artifact.type,
       mime: "text/plain",
-    }
-    const blob = new Blob([artifact.content], { type: meta.mime })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `${slugify(artifact.title)}.${meta.ext}`
-    link.click()
-    URL.revokeObjectURL(url)
-  }, [artifact])
+    };
+    const blob = new Blob([artifact.content], { type: meta.mime });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${slugify(artifact.title)}.${meta.ext}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [artifact]);
 
-  if (!artifact) return null
+  if (!artifact) return null;
 
-  const typeLabel = artifact.type.toUpperCase()
+  const typeLabel = artifact.type.toUpperCase();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -174,7 +174,7 @@ export function ArtifactSheet({
         className={cn(
           "gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:w-3/4 data-[side=right]:sm:max-w-4xl",
           maximized &&
-            "data-[side=right]:sm:left-3 data-[side=right]:sm:w-auto! data-[side=right]:sm:max-w-none!"
+            "data-[side=right]:sm:left-3 data-[side=right]:sm:w-auto! data-[side=right]:sm:max-w-none!",
         )}
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">
@@ -276,7 +276,7 @@ export function ArtifactSheet({
           <div
             className={cn(
               "min-h-0 flex-1 overflow-hidden bg-background",
-              view !== "preview" && "hidden"
+              view !== "preview" && "hidden",
             )}
           >
             {artifact.type === "html" && (
@@ -302,7 +302,7 @@ export function ArtifactSheet({
           <div
             className={cn(
               "min-h-0 flex-1 overflow-auto bg-sidebar py-4 font-mono text-[13px] leading-6 [scrollbar-width:thin]",
-              view !== "code" && "hidden"
+              view !== "code" && "hidden",
             )}
           >
             <table className="w-full border-collapse">
@@ -329,5 +329,5 @@ export function ArtifactSheet({
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

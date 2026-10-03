@@ -1,34 +1,34 @@
-"use client"
+"use client";
 
-import { Button } from "@openbots/ui/components/button"
+import { Button } from "@openbots/ui/components/button";
 import {
   IconArrowsDiagonal,
   IconChartDots3,
   IconCode,
   IconVectorTriangle,
-} from "@tabler/icons-react"
-import type { ParsedArtifact } from "./parser"
-import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes"
+} from "@tabler/icons-react";
+import type { ParsedArtifact } from "./parser";
+import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes";
 
 interface ArtifactCardProps {
-  artifact: ParsedArtifact
-  onClick: () => void
+  artifact: ParsedArtifact;
+  onClick: () => void;
 }
 
 const TYPE_LABEL: Record<string, string> = {
   html: "HTML",
   svg: "SVG",
   mermaid: "Diagram",
-}
+};
 
 function ArtifactIcon({ type }: { type: ParsedArtifact["type"] }) {
   switch (type) {
     case "svg":
-      return <IconVectorTriangle className="size-4" />
+      return <IconVectorTriangle className="size-4" />;
     case "mermaid":
-      return <IconChartDots3 className="size-4" />
+      return <IconChartDots3 className="size-4" />;
     default:
-      return <IconCode className="size-4" />
+      return <IconCode className="size-4" />;
   }
 }
 
@@ -93,5 +93,5 @@ export function ArtifactCard({ artifact, onClick }: ArtifactCardProps) {
         </button>
       </div>
     </div>
-  )
+  );
 }

@@ -7,6 +7,7 @@ export type Agent = {
   maxSteps: number;
   autonomy: string;
   status: string;
+  lastMessage?: string | null;
 };
 
 export type AgentTool = {

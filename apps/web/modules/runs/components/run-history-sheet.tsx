@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Button } from "@openbots/ui/components/button"
+import { Button } from "@openbots/ui/components/button";
 import {
   Sheet,
   SheetContent,
@@ -8,27 +8,27 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@openbots/ui/components/sheet"
-import { Spinner } from "@openbots/ui/components/spinner"
-import { IconChevronRight, IconHistory } from "@tabler/icons-react"
-import * as React from "react"
-import { useRunsQuery } from "../queries"
-import { formatDuration, formatTimestamp, getInputText } from "../utils"
-import { RunDetailView } from "./run-detail-view"
-import { RunStatusBadge } from "./run-status-badge"
+} from "@openbots/ui/components/sheet";
+import { Spinner } from "@openbots/ui/components/spinner";
+import { IconChevronRight, IconHistory } from "@tabler/icons-react";
+import * as React from "react";
+import { useRunsQuery } from "../queries";
+import { formatDuration, formatTimestamp, getInputText } from "../utils";
+import { RunDetailView } from "./run-detail-view";
+import { RunStatusBadge } from "./run-status-badge";
 
 interface RunHistorySheetProps {
-  agentId: string | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  selectedRunId?: string | null
-  onSelectRunId?: (runId: string | null) => void
+  agentId: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedRunId?: string | null;
+  onSelectRunId?: (runId: string | null) => void;
 }
 
 const SCROLL_CLASS =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
   "[scrollbar-gutter:stable] [scrollbar-width:thin] " +
-  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]"
+  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]";
 
 export function RunHistorySheet({
   agentId,
@@ -37,32 +37,32 @@ export function RunHistorySheet({
   selectedRunId: externalSelectedRunId,
   onSelectRunId,
 }: RunHistorySheetProps) {
-  const [internalRunId, setInternalRunId] = React.useState<string | null>(null)
+  const [internalRunId, setInternalRunId] = React.useState<string | null>(null);
 
   const activeRunId =
-    externalSelectedRunId !== undefined ? externalSelectedRunId : internalRunId
+    externalSelectedRunId !== undefined ? externalSelectedRunId : internalRunId;
 
   const handleSelectRun = React.useCallback(
     (id: string | null) => {
       if (onSelectRunId) {
-        onSelectRunId(id)
+        onSelectRunId(id);
       } else {
-        setInternalRunId(id)
+        setInternalRunId(id);
       }
     },
-    [onSelectRunId]
-  )
+    [onSelectRunId],
+  );
 
   const { data: runs = [], isLoading } = useRunsQuery(agentId, {
     enabled: open,
     refetchInterval: open ? 3000 : false,
-  })
+  });
 
   React.useEffect(() => {
     if (!open) {
-      handleSelectRun(null)
+      handleSelectRun(null);
     }
-  }, [open, handleSelectRun])
+  }, [open, handleSelectRun]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -94,11 +94,11 @@ export function RunHistorySheet({
           ) : (
             <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
               {runs.map((run) => {
-                const preview = getInputText(run.input, "Agent run")
+                const preview = getInputText(run.input, "Agent run");
                 const duration = formatDuration(
                   run.startedAt ?? run.createdAt,
-                  run.completedAt
-                )
+                  run.completedAt,
+                );
 
                 return (
                   <button
@@ -126,12 +126,12 @@ export function RunHistorySheet({
 
                     <IconChevronRight className="size-4 shrink-0 text-muted-foreground" />
                   </button>
-                )
+                );
               })}
             </div>
           )}
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

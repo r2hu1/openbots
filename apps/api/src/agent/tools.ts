@@ -5,7 +5,7 @@ import {
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
 import { agentTools, connections, db, runs, schedules } from "@openbots/db";
-import { runs as triggerRuns, tasks } from "@trigger.dev/sdk";
+import { tasks, runs as triggerRuns } from "@trigger.dev/sdk";
 import { jsonSchema, tool } from "ai";
 import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
@@ -1356,7 +1356,9 @@ export function manageScheduleTool(
       newPrompt: z
         .string()
         .optional()
-        .describe("New prompt or instruction for the task when action is 'modify'"),
+        .describe(
+          "New prompt or instruction for the task when action is 'modify'",
+        ),
       delaySeconds: z
         .number()
         .optional()
@@ -1709,10 +1711,14 @@ export function manageScheduleTool(
           if (runAt) {
             const targetTime = new Date(runAt).getTime();
             const now = Date.now();
-            computedDelaySeconds = Math.max(1, Math.round((targetTime - now) / 1000));
+            computedDelaySeconds = Math.max(
+              1,
+              Math.round((targetTime - now) / 1000),
+            );
           }
 
-          const updatedName = newName ?? oldInput.scheduledTaskName ?? "Reminder";
+          const updatedName =
+            newName ?? oldInput.scheduledTaskName ?? "Reminder";
           const updatedPrompt = newPrompt ?? oldInput.prompt ?? "";
           const updatedScheduledFor = computedDelaySeconds
             ? new Date(Date.now() + computedDelaySeconds * 1000).toISOString()
@@ -1744,7 +1750,10 @@ export function manageScheduleTool(
                 },
               );
             } catch (triggerErr) {
-              console.warn("Could not dispatch modified Trigger.dev task:", triggerErr);
+              console.warn(
+                "Could not dispatch modified Trigger.dev task:",
+                triggerErr,
+              );
             }
           }
 

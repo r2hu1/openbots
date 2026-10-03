@@ -7,7 +7,7 @@ import {
   runs,
 } from "@openbots/db";
 import { tasks } from "@trigger.dev/sdk";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import {
   getApiKeyForModel,
   getDecryptedUserApiKey,
@@ -25,9 +25,20 @@ import type {
 
 export async function listAgents(userId: string) {
   const userAgents = await db
-    .select()
+    .select({
+      ...getTableColumns(agents),
+      lastMessage: sql<string | null>`(
+        SELECT coalesce(m.content->>'text', m.content->>'prompt', '')
+        FROM ${conversations} c
+        JOIN ${messages} m ON m.conversation_id = c.id
+        WHERE c.agent_id = "agents"."id"
+        ORDER BY m.created_at DESC
+        LIMIT 1
+      )`.as("last_message"),
+    })
     .from(agents)
-    .where(eq(agents.userId, userId));
+    .where(eq(agents.userId, userId))
+    .orderBy(desc(agents.createdAt));
   return { agents: userAgents };
 }
 
@@ -291,14 +302,17 @@ export async function createAgentRun(
       })
       .returning(),
     conversationId && data.prompt
-      ? db.insert(messages).values({
-          conversationId,
-          role: "user",
-          content: { text: data.prompt },
-        }).catch((err) => {
-          console.warn("Could not immediately persist user message:", err);
-          return null;
-        })
+      ? db
+          .insert(messages)
+          .values({
+            conversationId,
+            role: "user",
+            content: { text: data.prompt },
+          })
+          .catch((err) => {
+            console.warn("Could not immediately persist user message:", err);
+            return null;
+          })
       : Promise.resolve(null),
   ]);
 
@@ -338,7 +352,9 @@ export async function createAgentRun(
   };
 }
 
-async function fetchLiveGoogleModels(apiKey: string): Promise<AvailableModel[]> {
+async function fetchLiveGoogleModels(
+  apiKey: string,
+): Promise<AvailableModel[]> {
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
@@ -394,7 +410,10 @@ async function fetchLiveOpenAICompatibleModels(
     if (provider === "openai") {
       filtered = filtered.filter(
         (m) =>
-          (m.id.startsWith("gpt-") || m.id.startsWith("o1") || m.id.startsWith("o3") || m.id.startsWith("chatgpt")) &&
+          (m.id.startsWith("gpt-") ||
+            m.id.startsWith("o1") ||
+            m.id.startsWith("o3") ||
+            m.id.startsWith("chatgpt")) &&
           !m.id.includes("realtime") &&
           !m.id.includes("audio") &&
           !m.id.includes("transcription"),
@@ -413,7 +432,9 @@ async function fetchLiveOpenAICompatibleModels(
   }
 }
 
-async function fetchLiveAnthropicModels(apiKey: string): Promise<AvailableModel[]> {
+async function fetchLiveAnthropicModels(
+  apiKey: string,
+): Promise<AvailableModel[]> {
   try {
     const res = await fetch("https://api.anthropic.com/v1/models", {
       headers: {
@@ -451,7 +472,9 @@ export async function listAvailableModels(userId?: string) {
 
   // Get user's configured keys
   const userKeysResult = await listUserApiKeys(userId);
-  const configuredProviders = new Set(userKeysResult.keys.map((k) => k.provider));
+  const configuredProviders = new Set(
+    userKeysResult.keys.map((k) => k.provider),
+  );
 
   const allModels: AvailableModel[] = [];
 
@@ -466,9 +489,21 @@ export async function listAvailableModels(userId?: string) {
         const live = await fetchLiveGoogleModels(key);
         if (live.length > 0) return live;
         return [
-          { id: "google/gemini-2.5-flash", displayName: "Gemini 2.5 Flash", provider: "google" },
-          { id: "google/gemini-2.5-pro", displayName: "Gemini 2.5 Pro", provider: "google" },
-          { id: "google/gemini-2.0-flash", displayName: "Gemini 2.0 Flash", provider: "google" },
+          {
+            id: "google/gemini-2.5-flash",
+            displayName: "Gemini 2.5 Flash",
+            provider: "google",
+          },
+          {
+            id: "google/gemini-2.5-pro",
+            displayName: "Gemini 2.5 Pro",
+            provider: "google",
+          },
+          {
+            id: "google/gemini-2.0-flash",
+            displayName: "Gemini 2.0 Flash",
+            provider: "google",
+          },
         ];
       })(),
     );
@@ -479,11 +514,19 @@ export async function listAvailableModels(userId?: string) {
       (async () => {
         const key = await getDecryptedUserApiKey(userId, "openai");
         if (!key) return [];
-        const live = await fetchLiveOpenAICompatibleModels("openai", key, "https://api.openai.com/v1/models");
+        const live = await fetchLiveOpenAICompatibleModels(
+          "openai",
+          key,
+          "https://api.openai.com/v1/models",
+        );
         if (live.length > 0) return live;
         return [
           { id: "openai/gpt-4o", displayName: "GPT-4o", provider: "openai" },
-          { id: "openai/gpt-4o-mini", displayName: "GPT-4o mini", provider: "openai" },
+          {
+            id: "openai/gpt-4o-mini",
+            displayName: "GPT-4o mini",
+            provider: "openai",
+          },
           { id: "openai/o3-mini", displayName: "o3-mini", provider: "openai" },
         ];
       })(),
@@ -498,9 +541,21 @@ export async function listAvailableModels(userId?: string) {
         const live = await fetchLiveAnthropicModels(key);
         if (live.length > 0) return live;
         return [
-          { id: "anthropic/claude-3-7-sonnet", displayName: "Claude 3.7 Sonnet", provider: "anthropic" },
-          { id: "anthropic/claude-3-5-sonnet", displayName: "Claude 3.5 Sonnet", provider: "anthropic" },
-          { id: "anthropic/claude-3-5-haiku", displayName: "Claude 3.5 Haiku", provider: "anthropic" },
+          {
+            id: "anthropic/claude-3-7-sonnet",
+            displayName: "Claude 3.7 Sonnet",
+            provider: "anthropic",
+          },
+          {
+            id: "anthropic/claude-3-5-sonnet",
+            displayName: "Claude 3.5 Sonnet",
+            provider: "anthropic",
+          },
+          {
+            id: "anthropic/claude-3-5-haiku",
+            displayName: "Claude 3.5 Haiku",
+            provider: "anthropic",
+          },
         ];
       })(),
     );
@@ -511,11 +566,23 @@ export async function listAvailableModels(userId?: string) {
       (async () => {
         const key = await getDecryptedUserApiKey(userId, "deepseek");
         if (!key) return [];
-        const live = await fetchLiveOpenAICompatibleModels("deepseek", key, "https://api.deepseek.com/v1/models");
+        const live = await fetchLiveOpenAICompatibleModels(
+          "deepseek",
+          key,
+          "https://api.deepseek.com/v1/models",
+        );
         if (live.length > 0) return live;
         return [
-          { id: "deepseek/deepseek-chat", displayName: "DeepSeek V3", provider: "deepseek" },
-          { id: "deepseek/deepseek-reasoner", displayName: "DeepSeek R1", provider: "deepseek" },
+          {
+            id: "deepseek/deepseek-chat",
+            displayName: "DeepSeek V3",
+            provider: "deepseek",
+          },
+          {
+            id: "deepseek/deepseek-reasoner",
+            displayName: "DeepSeek R1",
+            provider: "deepseek",
+          },
         ];
       })(),
     );
@@ -526,10 +593,18 @@ export async function listAvailableModels(userId?: string) {
       (async () => {
         const key = await getDecryptedUserApiKey(userId, "groq");
         if (!key) return [];
-        const live = await fetchLiveOpenAICompatibleModels("groq", key, "https://api.groq.com/openai/v1/models");
+        const live = await fetchLiveOpenAICompatibleModels(
+          "groq",
+          key,
+          "https://api.groq.com/openai/v1/models",
+        );
         if (live.length > 0) return live;
         return [
-          { id: "groq/llama-3.3-70b-versatile", displayName: "Llama 3.3 70B", provider: "groq" },
+          {
+            id: "groq/llama-3.3-70b-versatile",
+            displayName: "Llama 3.3 70B",
+            provider: "groq",
+          },
         ];
       })(),
     );
@@ -540,11 +615,13 @@ export async function listAvailableModels(userId?: string) {
       (async () => {
         const key = await getDecryptedUserApiKey(userId, "xai");
         if (!key) return [];
-        const live = await fetchLiveOpenAICompatibleModels("xai", key, "https://api.x.ai/v1/models");
+        const live = await fetchLiveOpenAICompatibleModels(
+          "xai",
+          key,
+          "https://api.x.ai/v1/models",
+        );
         if (live.length > 0) return live;
-        return [
-          { id: "xai/grok-2", displayName: "Grok 2", provider: "xai" },
-        ];
+        return [{ id: "xai/grok-2", displayName: "Grok 2", provider: "xai" }];
       })(),
     );
   }
@@ -554,10 +631,18 @@ export async function listAvailableModels(userId?: string) {
       (async () => {
         const key = await getDecryptedUserApiKey(userId, "openrouter");
         if (!key) return [];
-        const live = await fetchLiveOpenAICompatibleModels("openrouter", key, "https://openrouter.ai/api/v1/models");
+        const live = await fetchLiveOpenAICompatibleModels(
+          "openrouter",
+          key,
+          "https://openrouter.ai/api/v1/models",
+        );
         if (live.length > 0) return live;
         return [
-          { id: "openrouter/auto", displayName: "OpenRouter Auto", provider: "openrouter" },
+          {
+            id: "openrouter/auto",
+            displayName: "OpenRouter Auto",
+            provider: "openrouter",
+          },
         ];
       })(),
     );
@@ -572,4 +657,3 @@ export async function listAvailableModels(userId?: string) {
     models: allModels,
   };
 }
-

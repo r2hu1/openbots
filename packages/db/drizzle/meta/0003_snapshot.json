@@ -84,12 +84,8 @@
           "name": "agent_tools_agent_id_agents_id_fk",
           "tableFrom": "agent_tools",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -99,10 +95,7 @@
         "agent_tools_agent_id_tool_name_unique": {
           "name": "agent_tools_agent_id_tool_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "agent_id",
-            "tool_name"
-          ]
+          "columns": ["agent_id", "tool_name"]
         }
       },
       "policies": {},
@@ -211,12 +204,8 @@
           "name": "agents_user_id_user_id_fk",
           "tableFrom": "agents",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -334,12 +323,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -427,12 +412,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -442,9 +423,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -508,9 +487,7 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -664,12 +641,8 @@
           "name": "connections_user_id_user_id_fk",
           "tableFrom": "connections",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -679,11 +652,7 @@
         "connections_user_provider_account_unique": {
           "name": "connections_user_provider_account_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "provider",
-            "external_account_id"
-          ]
+          "columns": ["user_id", "provider", "external_account_id"]
         }
       },
       "policies": {},
@@ -771,12 +740,8 @@
           "name": "conversations_user_id_user_id_fk",
           "tableFrom": "conversations",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -784,12 +749,8 @@
           "name": "conversations_agent_id_agents_id_fk",
           "tableFrom": "conversations",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -872,12 +833,8 @@
           "name": "messages_conversation_id_conversations_id_fk",
           "tableFrom": "messages",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1016,12 +973,8 @@
           "name": "run_steps_run_id_runs_id_fk",
           "tableFrom": "run_steps",
           "tableTo": "runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1031,10 +984,7 @@
         "run_steps_run_id_step_number_unique": {
           "name": "run_steps_run_id_step_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "run_id",
-            "step_number"
-          ]
+          "columns": ["run_id", "step_number"]
         }
       },
       "policies": {},
@@ -1206,12 +1156,8 @@
           "name": "runs_user_id_user_id_fk",
           "tableFrom": "runs",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1219,12 +1165,8 @@
           "name": "runs_agent_id_agents_id_fk",
           "tableFrom": "runs",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1232,12 +1174,8 @@
           "name": "runs_conversation_id_conversations_id_fk",
           "tableFrom": "runs",
           "tableTo": "conversations",
-          "columnsFrom": [
-            "conversation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1362,12 +1300,8 @@
           "name": "schedules_user_id_user_id_fk",
           "tableFrom": "schedules",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1375,12 +1309,8 @@
           "name": "schedules_agent_id_agents_id_fk",
           "tableFrom": "schedules",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1475,12 +1405,8 @@
           "name": "user_api_keys_user_id_user_id_fk",
           "tableFrom": "user_api_keys",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1490,10 +1416,7 @@
         "user_api_keys_user_provider_unique": {
           "name": "user_api_keys_user_provider_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "provider"
-          ]
+          "columns": ["user_id", "provider"]
         }
       },
       "policies": {},
@@ -1505,65 +1428,37 @@
     "public.agent_tool_provider": {
       "name": "agent_tool_provider",
       "schema": "public",
-      "values": [
-        "internal",
-        "composio",
-        "mcp"
-      ]
+      "values": ["internal", "composio", "mcp"]
     },
     "public.agent_autonomy": {
       "name": "agent_autonomy",
       "schema": "public",
-      "values": [
-        "manual",
-        "approved",
-        "autonomous"
-      ]
+      "values": ["manual", "approved", "autonomous"]
     },
     "public.agent_status": {
       "name": "agent_status",
       "schema": "public",
-      "values": [
-        "active",
-        "paused",
-        "archived"
-      ]
+      "values": ["active", "paused", "archived"]
     },
     "public.connection_status": {
       "name": "connection_status",
       "schema": "public",
-      "values": [
-        "active",
-        "disconnected",
-        "error"
-      ]
+      "values": ["active", "disconnected", "error"]
     },
     "public.message_role": {
       "name": "message_role",
       "schema": "public",
-      "values": [
-        "system",
-        "user",
-        "assistant",
-        "tool"
-      ]
+      "values": ["system", "user", "assistant", "tool"]
     },
     "public.run_step_status": {
       "name": "run_step_status",
       "schema": "public",
-      "values": [
-        "running",
-        "completed",
-        "failed"
-      ]
+      "values": ["running", "completed", "failed"]
     },
     "public.run_step_type": {
       "name": "run_step_type",
       "schema": "public",
-      "values": [
-        "model",
-        "tool"
-      ]
+      "values": ["model", "tool"]
     },
     "public.run_status": {
       "name": "run_status",
@@ -1580,20 +1475,12 @@
     "public.run_trigger_type": {
       "name": "run_trigger_type",
       "schema": "public",
-      "values": [
-        "manual",
-        "schedule",
-        "event",
-        "webhook"
-      ]
+      "values": ["manual", "schedule", "event", "webhook"]
     },
     "public.schedule_status": {
       "name": "schedule_status",
       "schema": "public",
-      "values": [
-        "active",
-        "paused"
-      ]
+      "values": ["active", "paused"]
     }
   },
   "schemas": {},

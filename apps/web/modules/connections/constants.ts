@@ -23,8 +23,8 @@ import {
   IconFlame,
   IconNews,
   IconWaveSine,
-} from "@tabler/icons-react"
-import type { IntegrationApp } from "./types"
+} from "@tabler/icons-react";
+import type { IntegrationApp } from "./types";
 
 export const AVAILABLE_INTEGRATIONS: readonly IntegrationApp[] = [
   {
@@ -206,4 +206,4 @@ export const AVAILABLE_INTEGRATIONS: readonly IntegrationApp[] = [
     icon: IconChartBar,
     accountId: "posthog_connected_account",
   },
-]
+];

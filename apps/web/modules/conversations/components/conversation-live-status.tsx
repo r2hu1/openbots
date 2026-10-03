@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { Bubble, BubbleContent } from "@openbots/ui/components/bubble"
+import { Bubble, BubbleContent } from "@openbots/ui/components/bubble";
 import {
   Marker,
   MarkerContent,
   MarkerIcon,
-} from "@openbots/ui/components/marker"
+} from "@openbots/ui/components/marker";
 import {
   Message,
   MessageContent,
   MessageFooter,
   MessageGroup,
-} from "@openbots/ui/components/message"
-import { Blobatar } from "@openbots/ui/components/ui/blobatar"
-import { IconAlertCircle, IconPlayerStop } from "@tabler/icons-react"
-import { ExecutionStepsCard } from "@/modules/runs/components/execution-steps-card"
-import type { RunRecord, StepItem } from "@/modules/runs/types"
+} from "@openbots/ui/components/message";
+import { Blobatar } from "@openbots/ui/components/ui/blobatar";
+import { IconAlertCircle, IconPlayerStop } from "@tabler/icons-react";
+import { ExecutionStepsCard } from "@/modules/runs/components/execution-steps-card";
+import type { RunRecord, StepItem } from "@/modules/runs/types";
 
 interface ConversationLiveStatusProps {
-  agentName: string
-  activeRun: RunRecord | null
-  activeRunSteps: StepItem[]
-  isActiveRunOngoing: boolean
-  hasStreamingContent?: boolean
+  agentName: string;
+  activeRun: RunRecord | null;
+  activeRunSteps: StepItem[];
+  isActiveRunOngoing: boolean;
+  hasStreamingContent?: boolean;
 }
 
 export function ConversationLiveStatus({
@@ -69,7 +69,7 @@ export function ConversationLiveStatus({
           </MessageGroup>
         )}
       </div>
-    )
+    );
   }
 
   if (
@@ -98,8 +98,8 @@ export function ConversationLiveStatus({
           </Marker>
         )}
       </div>
-    )
+    );
   }
 
-  return null
+  return null;
 }

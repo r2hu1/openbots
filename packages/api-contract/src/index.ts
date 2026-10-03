@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { auth } from "./lib/auth.js";
 import { agentsRoute } from "./routes/agents/agents.route.js";
+import { apiKeysRoute } from "./routes/api-keys/api-keys.route.js";
 import { connectionsRoute } from "./routes/connections/connections.route.js";
 import { conversationsRoute } from "./routes/conversations/conversations.route.js";
 import { runsRoute } from "./routes/runs/runs.route.js";
@@ -13,6 +14,7 @@ const app = new Hono()
   })
   .on(["POST", "GET"], "/auth/*", (c) => auth.handler(c.req.raw))
   .route("/agents", agentsRoute)
+  .route("/api-keys", apiKeysRoute)
   .route("/tasks", tasksRoute)
   .route("/runs", runsRoute)
   .route("/conversations", conversationsRoute)
@@ -20,6 +22,8 @@ const app = new Hono()
 
 export type AppType = typeof app;
 export * from "./routes/agents/agents.logic.js";
+export * from "./routes/api-keys/api-keys.logic.js";
 export * from "./routes/conversations/conversations.logic.js";
 export * from "./routes/runs/runs.logic.js";
 export { app };
+

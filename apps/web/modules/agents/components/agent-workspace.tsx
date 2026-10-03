@@ -117,6 +117,8 @@ const ChatPane = React.memo(function ChatPane({
     cancelActiveRun,
     isSubmitting,
     isCancelling,
+    executionError,
+    clearExecutionError,
   } = useAgentExecution({
     agentId,
     activeConversationId,
@@ -135,7 +137,7 @@ const ChatPane = React.memo(function ChatPane({
     hasNextPage: hasOlderMessages,
     fetchNextPage,
   } = useInfiniteConversationDetailQuery(activeConversationId, {
-    refetchInterval: isPolling ? 1500 : false,
+    refetchInterval: isPolling ? 1500 : 3500,
   })
 
   // Combine pages: older pages are fetched later and prepend to the timeline
@@ -188,6 +190,8 @@ const ChatPane = React.memo(function ChatPane({
             fetchNextPage()
           }
         }}
+        executionError={executionError}
+        onDismissError={clearExecutionError}
       />
 
       <MemoComposer

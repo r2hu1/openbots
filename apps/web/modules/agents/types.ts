@@ -22,6 +22,7 @@ export type AvailableModel = {
   id: string;
   displayName: string;
   description?: string;
+  provider?: string;
 };
 
 export interface CreateAgentInput {

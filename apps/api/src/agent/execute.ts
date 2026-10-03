@@ -1,5 +1,7 @@
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { runEventHub } from "@openbots/api-contract";
+import { createOpenAI } from "@ai-sdk/openai";
+import { getApiKeyForModel, runEventHub } from "@openbots/api-contract";
 import {
   agents,
   connections,
@@ -12,26 +14,122 @@ import { stepCountIs, ToolLoopAgent } from "ai";
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { buildAgentTools } from "./tools.js";
 
-function getGoogleClient() {
-  const apiKey =
-    process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) {
+async function resolveModel(userId: string, modelName: string) {
+  const apiKey = await getApiKeyForModel(userId, modelName);
+  const normalized = modelName.trim();
+
+  // 1. Google Gemini
+  if (normalized.startsWith("google/") || normalized.startsWith("gemini-") || normalized === "default") {
+    const key =
+      apiKey ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!key) {
+      throw new Error(
+        "Google API Key is not configured. Please add your Gemini API key in Settings > API Keys.",
+      );
+    }
+    const client = createGoogleGenerativeAI({ apiKey: key });
+    const cleanId = normalized.replace("google/", "");
+    return client(cleanId || "gemini-2.5-flash");
+  }
+
+  // 2. OpenAI
+  if (normalized.startsWith("openai/")) {
+    const key = apiKey || process.env.OPENAI_API_KEY;
+    if (!key) {
+      throw new Error(
+        "OpenAI API Key is not configured. Please add your OpenAI API key in Settings > API Keys.",
+      );
+    }
+    const client = createOpenAI({ apiKey: key });
+    return client(normalized.replace("openai/", ""));
+  }
+
+  // 3. Anthropic
+  if (normalized.startsWith("anthropic/")) {
+    const key = apiKey || process.env.ANTHROPIC_API_KEY;
+    if (!key) {
+      throw new Error(
+        "Anthropic API Key is not configured. Please add your Anthropic API key in Settings > API Keys.",
+      );
+    }
+    const client = createAnthropic({ apiKey: key });
+    return client(normalized.replace("anthropic/", ""));
+  }
+
+  // 4. DeepSeek (OpenAI-compatible)
+  if (normalized.startsWith("deepseek/")) {
+    const key = apiKey || process.env.DEEPSEEK_API_KEY;
+    if (!key) {
+      throw new Error(
+        "DeepSeek API Key is not configured. Please add your DeepSeek API key in Settings > API Keys.",
+      );
+    }
+    const client = createOpenAI({
+      apiKey: key,
+      baseURL: "https://api.deepseek.com/v1",
+    });
+    return client(normalized.replace("deepseek/", ""));
+  }
+
+  // 5. Groq (OpenAI-compatible)
+  if (normalized.startsWith("groq/")) {
+    const key = apiKey || process.env.GROQ_API_KEY;
+    if (!key) {
+      throw new Error(
+        "Groq API Key is not configured. Please add your Groq API key in Settings > API Keys.",
+      );
+    }
+    const client = createOpenAI({
+      apiKey: key,
+      baseURL: "https://api.groq.com/openai/v1",
+    });
+    return client(normalized.replace("groq/", ""));
+  }
+
+  // 6. xAI Grok (OpenAI-compatible)
+  if (normalized.startsWith("xai/") || normalized.startsWith("grok/")) {
+    const key = apiKey || process.env.XAI_API_KEY;
+    if (!key) {
+      throw new Error(
+        "xAI API Key is not configured. Please add your xAI API key in Settings > API Keys.",
+      );
+    }
+    const client = createOpenAI({
+      apiKey: key,
+      baseURL: "https://api.x.ai/v1",
+    });
+    return client(normalized.replace("xai/", "").replace("grok/", ""));
+  }
+
+  // 7. OpenRouter (OpenAI-compatible)
+  if (normalized.startsWith("openrouter/")) {
+    const key = apiKey || process.env.OPENROUTER_API_KEY;
+    if (!key) {
+      throw new Error(
+        "OpenRouter API Key is not configured. Please add your OpenRouter API key in Settings > API Keys.",
+      );
+    }
+    const client = createOpenAI({
+      apiKey: key,
+      baseURL: "https://openrouter.ai/api/v1",
+    });
+    return client(normalized.replace("openrouter/", ""));
+  }
+
+  // Fallback to Google Gemini
+  const key =
+    apiKey ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!key) {
     throw new Error(
-      "GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY environment variable is required",
+      "No API key configured for model. Please configure your API key in Settings > API Keys.",
     );
   }
-  return createGoogleGenerativeAI({ apiKey });
-}
-
-function resolveModel(modelName: string) {
-  let normalized = modelName;
-  if (normalized.startsWith("google/")) {
-    normalized = normalized.replace("google/", "");
-  } else if (normalized.startsWith("openai/") || normalized === "default") {
-    normalized = "gemini-2.5-flash";
-  }
-  const client = getGoogleClient();
-  return client(normalized);
+  const client = createGoogleGenerativeAI({ apiKey: key });
+  return client("gemini-2.5-flash");
 }
 
 export function sanitizeErrorMessage(error: unknown): string {
@@ -248,14 +346,20 @@ export async function executeAgentRun(
     if (promptText) {
       // Check if promptText is already the last message in history to prevent duplicates
       const lastMsg = inputMessages[inputMessages.length - 1];
+      const isScheduleTrigger = runRecord.triggerType === "schedule";
+      
+      const effectiveUserPrompt = isScheduleTrigger
+        ? `[SYSTEM NOTIFICATION: The timer/scheduled alarm for this task has elapsed now.]\nDeliver this reminder/scheduled alert directly to the user:\n"${promptText}"`
+        : promptText;
+
       if (
         !lastMsg ||
         lastMsg.role !== "user" ||
-        lastMsg.content !== promptText
+        lastMsg.content !== effectiveUserPrompt
       ) {
         inputMessages.push({
           role: "user",
-          content: promptText,
+          content: effectiveUserPrompt,
         });
       }
     } else if (Array.isArray(inputObj?.messages)) {
@@ -267,7 +371,7 @@ export async function executeAgentRun(
     const connectedApps = activeConnections.map((c) => c.provider);
 
     // Construct ToolLoopAgent using AI SDK
-    const model = resolveModel(agentRecord.model);
+    const model = await resolveModel(runRecord.userId, agentRecord.model);
 
     let connectionsInstruction = "";
     if (connectedApps.length > 0) {
@@ -279,7 +383,17 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
 - If a tool call fails with an auth error for a connected app, inform the user of the specific error instead of asking them to reconnect.`;
     }
 
-    const systemInstructions = `${agentRecord.instructions || "You are an AI assistant."}
+    const isScheduledExecution = runRecord.triggerType === "schedule";
+    const scheduledExecutionInstruction = isScheduledExecution
+      ? `\n\n## SCHEDULED REMINDER EXECUTION:
+- You are executing a timer/scheduled reminder that has just fired right now.
+- Speak directly to the user to remind or alert them about the task (e.g., "⏰ Reminder: It's time to drink water!" or "Hey, here is your reminder to...").
+- DO NOT treat the reminder text as a message sent by the user to you.
+- DO NOT ask the user if they did it yet or thank them for reminding you. You are the one reminding the user.
+- DO NOT reschedule or recreate this reminder unless explicitly requested.`
+      : "";
+
+    const systemInstructions = `${agentRecord.instructions || "You are an AI assistant."}${scheduledExecutionInstruction}
 
 ## Scheduling & Reminders:
 - You have access to the 'create_schedule' and 'manage_schedule' tools.

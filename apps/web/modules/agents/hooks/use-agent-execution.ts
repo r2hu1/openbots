@@ -43,13 +43,14 @@ export function useAgentExecution({
       setLastTerminalRun(null);
       setIsOptimisticRunning(false);
       setOptimisticMessages([]);
+      setExecutionError(null);
       dismissedRunIds.current.clear();
     }
   }, [agentId]);
 
-  // Discover and Poll Active Run across reloads
+  // Discover and Poll Active Run across reloads and background scheduled triggers
   const { data: runs = [] } = useRunsQuery(agentId, {
-    refetchInterval: isOptimisticRunning || activeRunId ? 3000 : false,
+    refetchInterval: isOptimisticRunning || activeRunId ? 2000 : 3500,
   });
 
   React.useEffect(() => {
@@ -76,6 +77,29 @@ export function useAgentExecution({
   });
 
   const activeRunStatus = activeRunData?.run?.status;
+
+  // Watch for background runs completing for the current conversation and invalidate queries
+  const seenCompletedRunIdsRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    if (!activeConversationId || runs.length === 0) return;
+    let shouldInvalidate = false;
+    for (const r of runs) {
+      if (
+        r.conversationId === activeConversationId &&
+        (r.status === "completed" || r.status === "failed")
+      ) {
+        if (!seenCompletedRunIdsRef.current.has(r.id)) {
+          seenCompletedRunIdsRef.current.add(r.id);
+          shouldInvalidate = true;
+        }
+      }
+    }
+    if (shouldInvalidate) {
+      queryClient.invalidateQueries({
+        queryKey: ["conversation", activeConversationId],
+      });
+    }
+  }, [runs, activeConversationId, queryClient]);
 
   // Watch active run state transitions to cleanly release UI lock
   React.useEffect(() => {
@@ -112,6 +136,10 @@ export function useAgentExecution({
     queryClient,
   ]);
 
+  const [executionError, setExecutionError] = React.useState<string | null>(
+    null,
+  );
+
   // Run Mutations
   const triggerRunMutation = useTriggerAgentRunMutation(
     agentId,
@@ -119,12 +147,17 @@ export function useAgentExecution({
   );
   const cancelRunMutation = useCancelRunMutation(agentId);
 
+  const clearExecutionError = React.useCallback(() => {
+    setExecutionError(null);
+  }, []);
+
   const sendPrompt = React.useCallback(
     (prompt: string) => {
       if (!agentId) return;
 
       setIsOptimisticRunning(true);
       setLastTerminalRun(null);
+      setExecutionError(null);
 
       const tempId = `optimistic-${Date.now()}`;
       const optimisticMsg: MessageItem = {
@@ -145,11 +178,11 @@ export function useAgentExecution({
             }
             setActiveRunId(data.run.id);
           },
-          onError: () => {
+          onError: (err: any) => {
             setIsOptimisticRunning(false);
-            setOptimisticMessages((prev) =>
-              prev.filter((m) => m.id !== tempId),
-            );
+            const errorMessage =
+              err?.message || "Failed to start agent run. Please try again.";
+            setExecutionError(errorMessage);
           },
         },
       );
@@ -188,5 +221,7 @@ export function useAgentExecution({
     cancelActiveRun,
     isSubmitting: triggerRunMutation.isPending,
     isCancelling: cancelRunMutation.isPending,
+    executionError,
+    clearExecutionError,
   };
 }

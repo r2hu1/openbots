@@ -38,7 +38,7 @@ import {
 import { Textarea } from "@openbots/ui/components/textarea"
 import { IconCheck, IconTrash } from "@tabler/icons-react"
 import * as React from "react"
-import { DEFAULT_MODELS, TOOL_DESCRIPTIONS } from "../constants"
+import { TOOL_DESCRIPTIONS } from "../constants"
 import {
   useAgentToolsQuery,
   useAvailableModelsQuery,
@@ -47,6 +47,16 @@ import {
   useUpdateAgentMutation,
 } from "../queries"
 import type { Agent } from "../types"
+
+const PROVIDER_LABELS: Record<string, string> = {
+  google: "Google Gemini",
+  openai: "OpenAI",
+  anthropic: "Anthropic Claude",
+  deepseek: "DeepSeek",
+  groq: "Groq",
+  xai: "xAI Grok",
+  openrouter: "OpenRouter",
+}
 
 interface ConfigureAgentSheetProps {
   agent: Agent | null
@@ -73,19 +83,24 @@ export function ConfigureAgentSheet({
   const [saveError, setSaveError] = React.useState<string | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false)
 
-  React.useEffect(() => {
-    if (agent) {
-      setName(agent.name)
-      setDescription(agent.description || "")
-      setInstructions(agent.instructions)
-      setModel(agent.model)
-      setMaxSteps(agent.maxSteps || 25)
-      setSaveSuccess(false)
-      setSaveError(null)
-    }
-  }, [agent])
+  const [selectedProvider, setSelectedProvider] =
+    React.useState<string>("google")
 
   const { data: availableModels = [] } = useAvailableModelsQuery(open)
+
+  // Group models by provider
+  const modelsByProvider = React.useMemo(() => {
+    const groups: Record<string, typeof availableModels> = {}
+    for (const m of availableModels) {
+      const p = m.provider || m.id.split("/")[0] || "other"
+      if (!groups[p]) groups[p] = []
+      groups[p].push(m)
+    }
+    return groups
+  }, [availableModels])
+
+  const providerKeys = Object.keys(modelsByProvider)
+
   const { data: tools = [], isLoading: isLoadingTools } = useAgentToolsQuery(
     agent?.id,
     open
@@ -95,10 +110,37 @@ export function ConfigureAgentSheet({
   const deleteMutation = useDeleteAgentMutation(agent?.id)
   const toggleToolMutation = useToggleAgentToolMutation(agent?.id)
 
-  if (!agent) return null
+  React.useEffect(() => {
+    if (agent) {
+      setName(agent.name)
+      setDescription(agent.description || "")
+      setInstructions(agent.instructions)
+      setModel(agent.model)
+      const agentProvider = agent.model.split("/")[0] || "google"
+      setSelectedProvider(agentProvider)
+      setMaxSteps(agent.maxSteps || 25)
+      setSaveSuccess(false)
+      setSaveError(null)
+    }
+  }, [agent])
 
-  const modelsList =
-    availableModels.length > 0 ? availableModels : DEFAULT_MODELS
+  // Sync selectedProvider if not present
+  React.useEffect(() => {
+    if (providerKeys.length > 0 && !modelsByProvider[selectedProvider]) {
+      setSelectedProvider(providerKeys[0] || "")
+    }
+  }, [providerKeys, selectedProvider, modelsByProvider])
+
+  // Sync model with selectedProvider
+  const currentProviderModels = modelsByProvider[selectedProvider] || []
+  React.useEffect(() => {
+    if (currentProviderModels.length > 0) {
+      const hasCurrent = currentProviderModels.some((m) => m.id === model)
+      if (!hasCurrent && currentProviderModels[0]) {
+        setModel(currentProviderModels[0].id)
+      }
+    }
+  }, [selectedProvider, currentProviderModels, model])
 
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault()
@@ -140,6 +182,8 @@ export function ConfigureAgentSheet({
       },
     })
   }
+
+  if (!agent) return null
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -210,42 +254,70 @@ export function ConfigureAgentSheet({
                   <Textarea
                     id="cfg-instructions"
                     rows={8}
-                    className="font-mono text-xs"
+                    className="max-h-40 font-mono text-xs"
                     value={instructions}
                     onChange={(e) => setInstructions(e.target.value)}
                     required
                   />
                 </Field>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Field>
-                    <FieldLabel htmlFor="cfg-model">Model</FieldLabel>
-                    <NativeSelect
-                      id="cfg-model"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      className="w-full text-xs"
-                    >
-                      {modelsList.map((m) => (
-                        <NativeSelectOption key={m.id} value={m.id}>
-                          {m.displayName}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                  </Field>
+                {providerKeys.length === 0 ? (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
+                    No LLM API keys configured yet. Please configure a provider
+                    in Settings &gt; API Keys.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field>
+                      <FieldLabel htmlFor="cfg-provider">Provider</FieldLabel>
+                      <NativeSelect
+                        id="cfg-provider"
+                        value={selectedProvider}
+                        onChange={(e) => {
+                          const newP = e.target.value
+                          setSelectedProvider(newP)
+                          const firstModel = modelsByProvider[newP]?.[0]?.id
+                          if (firstModel) setModel(firstModel)
+                        }}
+                        className="w-full text-xs"
+                      >
+                        {providerKeys.map((p) => (
+                          <NativeSelectOption key={p} value={p}>
+                            {PROVIDER_LABELS[p] || p.toUpperCase()}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    </Field>
 
-                  <Field>
-                    <FieldLabel htmlFor="cfg-steps">Max steps</FieldLabel>
-                    <Input
-                      id="cfg-steps"
-                      type="number"
-                      min={1}
-                      max={50}
-                      value={maxSteps}
-                      onChange={(e) => setMaxSteps(Number(e.target.value))}
-                    />
-                  </Field>
-                </div>
+                    <Field>
+                      <FieldLabel htmlFor="cfg-model">Model</FieldLabel>
+                      <NativeSelect
+                        id="cfg-model"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        className="w-full text-xs"
+                      >
+                        {currentProviderModels.map((m) => (
+                          <NativeSelectOption key={m.id} value={m.id}>
+                            {m.displayName}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    </Field>
+                  </div>
+                )}
+
+                <Field>
+                  <FieldLabel htmlFor="cfg-steps">Max steps</FieldLabel>
+                  <Input
+                    id="cfg-steps"
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={maxSteps}
+                    onChange={(e) => setMaxSteps(Number(e.target.value))}
+                  />
+                </Field>
               </FieldGroup>
             </form>
           </TabsContent>

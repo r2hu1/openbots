@@ -39,7 +39,8 @@ export const agentsRoute = new Hono<Env>()
   .use("*", authMiddleware)
 
   .get("/models", async (c) => {
-    const result = await listAvailableModels();
+    const user = c.get("user");
+    const result = await listAvailableModels(user.id);
     return c.json(result);
   })
   .get("/", async (c) => {

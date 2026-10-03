@@ -11,14 +11,14 @@ import {
 } from "@openbots/ui/components/message-scroller"
 import { Spinner } from "@openbots/ui/components/spinner"
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
-import { IconChevronUp } from "@tabler/icons-react"
+import { IconAlertCircle, IconChevronUp, IconX } from "@tabler/icons-react"
 import * as React from "react"
 import type { ParsedArtifact } from "@/modules/artifacts/parser"
 import type { RunRecord, StepItem } from "@/modules/runs/types"
 import type { MessageItem } from "../types"
 import { ConversationLiveStatus } from "./conversation-live-status"
 import { ConversationMessageItem } from "./conversation-message-item"
-import { Marker, MarkerContent } from "@openbots/ui/components/marker"
+import { Marker, MarkerContent, MarkerIcon } from "@openbots/ui/components/marker"
 
 interface ConversationTimelineProps {
   messages: MessageItem[]
@@ -33,6 +33,8 @@ interface ConversationTimelineProps {
   hasOlderMessages?: boolean
   isLoadingOlder?: boolean
   onLoadOlderMessages?: () => void
+  executionError?: string | null
+  onDismissError?: () => void
 }
 
 export function ConversationTimeline({
@@ -46,6 +48,8 @@ export function ConversationTimeline({
   hasOlderMessages = false,
   isLoadingOlder = false,
   onLoadOlderMessages,
+  executionError,
+  onDismissError,
 }: ConversationTimelineProps) {
   const isActiveRunOngoing =
     isOptimisticRunning ||
@@ -154,7 +158,7 @@ export function ConversationTimeline({
               <div className="space-y-6 py-30">
                 <Spinner className="mx-auto size-6" />
               </div>
-            ) : messages.length === 0 && !activeRun ? (
+            ) : messages.length === 0 && !activeRun && !executionError ? (
               <MessageScrollerItem>
                 <div className="mx-auto max-w-lg py-20 text-center">
                   <div className="flex items-center justify-center">
@@ -198,6 +202,32 @@ export function ConversationTimeline({
                   activeRunSteps={activeRunSteps}
                   isActiveRunOngoing={isActiveRunOngoing}
                 />
+              </MessageScrollerItem>
+            )}
+
+            {executionError && (
+              <MessageScrollerItem key="execution-error">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-destructive">
+                  <div className="flex items-start gap-2.5">
+                    <IconAlertCircle className="size-4.5 shrink-0 translate-y-0.5 text-destructive" />
+                    <div className="flex-1 space-y-1">
+                      <p className="text-xs font-semibold">Unable to run agent</p>
+                      <p className="text-xs leading-relaxed opacity-90">{executionError}</p>
+                    </div>
+                    {onDismissError && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={onDismissError}
+                        className="size-5 text-destructive hover:bg-destructive/20"
+                        title="Dismiss error"
+                      >
+                        <IconX className="size-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </MessageScrollerItem>
             )}
           </MessageScrollerContent>

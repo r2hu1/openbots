@@ -26,7 +26,7 @@ interface RunHistorySheetProps {
 }
 
 const SCROLL_CLASS =
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 " +
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
   "[scrollbar-gutter:stable] [scrollbar-width:thin] " +
   "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]"
 
@@ -66,11 +66,7 @@ export function RunHistorySheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        showCloseButton={false}
-        side="right"
-        className="flex flex-col sm:max-w-md!"
-      >
+      <SheetContent side="right" className="flex flex-col sm:max-w-md!">
         <SheetHeader>
           <SheetTitle>Execution history</SheetTitle>
           <SheetDescription>
@@ -79,7 +75,7 @@ export function RunHistorySheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className={`px-4 ${SCROLL_CLASS}`}>
+        <div className={`px-4 pb-6 ${SCROLL_CLASS}`}>
           {activeRunId ? (
             <RunDetailView
               runId={activeRunId}
@@ -135,16 +131,6 @@ export function RunHistorySheet({
             </div>
           )}
         </div>
-
-        <SheetFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Close
-          </Button>
-        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

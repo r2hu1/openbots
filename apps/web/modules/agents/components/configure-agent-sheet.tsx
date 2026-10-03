@@ -143,7 +143,7 @@ export function ConfigureAgentSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex flex-col sm:max-w-md!">
+      <SheetContent side="right">
         <SheetHeader>
           <SheetTitle>Configure agent</SheetTitle>
           <SheetDescription>

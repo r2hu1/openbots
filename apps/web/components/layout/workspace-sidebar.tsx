@@ -30,11 +30,13 @@ import type { Agent } from "@/modules/agents/types"
 import { ConnectionsSheet } from "@/modules/connections/components/connections-sheet"
 import { BrandRow } from "./brand-row"
 import { UserMenu } from "./user-menu"
+import { Skeleton } from "@openbots/ui/components/skeleton"
 
 interface WorkspaceSidebarProps {
   agents: Agent[]
   onOpenCreate: () => void
   onOpenConnections?: () => void
+  agentsPending: boolean
 }
 
 const rowClass =
@@ -44,6 +46,7 @@ export function WorkspaceSidebar({
   agents,
   onOpenCreate,
   onOpenConnections,
+  agentsPending,
 }: WorkspaceSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -110,7 +113,7 @@ export function WorkspaceSidebar({
               My Agents
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              {filteredAgents.length === 0 ? (
+              {!agentsPending && filteredAgents.length === 0 ? (
                 <p className="flex flex-col gap-2 rounded-md border px-3 py-6 text-center text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
                   {search
                     ? "No agents match your search"
@@ -125,43 +128,53 @@ export function WorkspaceSidebar({
                 </p>
               ) : (
                 <SidebarMenu className="gap-0.5 gap-2">
-                  {filteredAgents.map((agent) => {
-                    const isActive = pathname === `/agent/${agent.id}`
+                  {!agentsPending &&
+                    filteredAgents.map((agent) => {
+                      const isActive = pathname === `/agent/${agent.id}`
 
-                    return (
-                      <SidebarMenuItem key={agent.id}>
-                        <SidebarMenuButton
-                          render={<Link href={`/agent/${agent.id}`} />}
-                          isActive={isActive}
-                          tooltip={agent.name}
-                          className={cn(
-                            rowClass,
-                            "h-11 rounded-md group-data-[collapsible=icon]:p-0!"
-                          )}
-                        >
-                          <span className="relative flex shrink-0 group-data-[collapsible=icon]:mx-auto">
-                            <Blobatar
-                              name={agent.name || agent.id}
-                              className="size-7! group-data-[collapsible=icon]:size-6"
-                              blobatar={{
-                                animate: "hover",
-                              }}
-                            />
-                          </span>
+                      return (
+                        <SidebarMenuItem key={agent.id}>
+                          <SidebarMenuButton
+                            render={<Link href={`/agent/${agent.id}`} />}
+                            isActive={isActive}
+                            tooltip={agent.name}
+                            className={cn(
+                              rowClass,
+                              "h-11 rounded-md group-data-[collapsible=icon]:p-0!"
+                            )}
+                          >
+                            <span className="relative flex shrink-0 group-data-[collapsible=icon]:mx-auto">
+                              <Blobatar
+                                name={agent.name || agent.id}
+                                className="size-7! group-data-[collapsible=icon]:size-6"
+                                blobatar={{
+                                  animate: "hover",
+                                }}
+                              />
+                            </span>
 
-                          <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-                            <span className="block truncate text-[13px] font-medium">
-                              {agent.name}
+                            <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+                              <span className="block truncate text-[13px] font-medium">
+                                {agent.name}
+                              </span>
+                              <span className="block truncate text-[11px] text-muted-foreground">
+                                {agent.description ?? agent.model}
+                              </span>
                             </span>
-                            <span className="block truncate text-[11px] text-muted-foreground">
-                              {agent.description ?? agent.model}
-                            </span>
-                          </span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    )
-                  })}
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )
+                    })}
                 </SidebarMenu>
+              )}
+              {agentsPending && (
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
               )}
             </SidebarGroupContent>
           </SidebarGroup>

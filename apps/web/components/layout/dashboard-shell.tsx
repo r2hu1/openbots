@@ -1,22 +1,22 @@
-"use client";
+"use client"
 
-import { SidebarProvider } from "@openbots/ui/components/sidebar";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-import { AuthGuard } from "@/components/shared/auth-guard";
-import { CreateAgentDialog } from "@/modules/agents/components/create-agent-dialog";
-import { useAgentsQuery } from "@/modules/agents/queries";
-import { WorkspaceSidebar } from "./workspace-sidebar";
+import { SidebarProvider } from "@openbots/ui/components/sidebar"
+import { useRouter } from "next/navigation"
+import * as React from "react"
+import { AuthGuard } from "@/components/shared/auth-guard"
+import { CreateAgentDialog } from "@/modules/agents/components/create-agent-dialog"
+import { useAgentsQuery } from "@/modules/agents/queries"
+import { WorkspaceSidebar } from "./workspace-sidebar"
 
 interface DashboardShellProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export function DashboardShell({ children }: DashboardShellProps) {
-  const router = useRouter();
-  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const router = useRouter()
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
 
-  const { data: agents = [] } = useAgentsQuery();
+  const { data: agents = [], isPending: agentsPending } = useAgentsQuery()
 
   return (
     <AuthGuard>
@@ -25,6 +25,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
           <WorkspaceSidebar
             agents={agents}
             onOpenCreate={() => setCreateDialogOpen(true)}
+            agentsPending={agentsPending}
           />
 
           {children}
@@ -33,11 +34,11 @@ export function DashboardShell({ children }: DashboardShellProps) {
             open={createDialogOpen}
             onOpenChange={setCreateDialogOpen}
             onAgentCreated={(newId) => {
-              router.push(`/agent/${newId}`);
+              router.push(`/agent/${newId}`)
             }}
           />
         </div>
       </SidebarProvider>
     </AuthGuard>
-  );
+  )
 }

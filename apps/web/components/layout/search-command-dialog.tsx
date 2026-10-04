@@ -77,27 +77,12 @@ export function SearchCommandDialog({
         router.push(targetUrl)
 
         if (typeof window !== "undefined") {
+          window.location.hash = `message-${messageId}`
           window.dispatchEvent(
             new CustomEvent("openbots:navigate-message", {
               detail: { agentId, conversationId, messageId },
             })
           )
-          const el = document.getElementById(`message-${messageId}`)
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" })
-            el.classList.add(
-              "ring-2",
-              "ring-primary/50",
-              "rounded-xl",
-              "transition-all"
-            )
-            setTimeout(() => {
-              el.classList.remove("ring-2", "ring-primary/50")
-            }, 2500)
-            if (window.history.replaceState) {
-              window.history.replaceState(null, "", `/agent/${agentId}`)
-            }
-          }
         }
       })
     },

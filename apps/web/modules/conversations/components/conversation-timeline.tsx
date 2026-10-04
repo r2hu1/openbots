@@ -207,8 +207,28 @@ export function ConversationTimeline({
 
     const el = document.getElementById(targetId)
     if (el) {
-      // Element is present in DOM, scroll & highlight
-      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      const viewport =
+        viewportRef.current ||
+        topSentinelRef.current?.closest<HTMLElement>(
+          "[data-slot='message-scroller-viewport']"
+        )
+
+      if (viewport) {
+        // Calculate exact target scrollTop so element is centered in the scrollable viewport
+        const viewportRect = viewport.getBoundingClientRect()
+        const elRect = el.getBoundingClientRect()
+        const relativeTop = elRect.top - viewportRect.top
+        const targetScrollTop =
+          viewport.scrollTop + relativeTop - (viewport.clientHeight - elRect.height) / 2
+
+        viewport.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: "smooth",
+        })
+      } else {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+
       el.classList.add(
         "ring-2",
         "ring-primary/50",

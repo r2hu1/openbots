@@ -23,7 +23,7 @@ import { Kbd } from "@openbots/ui/components/kbd"
 import { Skeleton } from "@openbots/ui/components/skeleton"
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 import { cn } from "@openbots/ui/lib/utils"
-import { IconPlus, IconSearch } from "@tabler/icons-react"
+import { Plus as IconPlus, Search as IconSearch } from "reicon-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -86,13 +86,17 @@ export function WorkspaceSidebar({
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-3 group-data-[collapsible=icon]:px-2">
-        <BrandRow onOpenCreate={onOpenCreate} rowClass={rowClass} />
+        <BrandRow
+          onOpenCreate={onOpenCreate}
+          onOpenSearch={onOpenSearch}
+          rowClass={rowClass}
+        />
 
         {onOpenSearch ? (
           <button
             type="button"
             onClick={onOpenSearch}
-            className="mt-1 flex h-8 w-full items-center justify-between rounded-lg border border-border bg-background px-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground group-data-[collapsible=icon]:hidden"
+            className="mt-1 flex h-8 w-full items-center justify-between rounded-lg border border-border bg-background px-2.5 text-xs text-muted-foreground transition-colors group-data-[collapsible=icon]:hidden hover:border-primary/40 hover:text-foreground"
           >
             <span className="flex items-center gap-2">
               <IconSearch className="size-3.5 opacity-70" />

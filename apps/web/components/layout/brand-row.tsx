@@ -14,16 +14,21 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@openbots/ui/components/tooltip"
-import { Plus, SidebarRight2 } from "reicon-react"
+import { Plus, Search2, SidebarRight2 } from "reicon-react"
 import { cn } from "@/lib/utils"
 import { useShortcutLabel } from "@openbots/ui/hooks/use-hotkey"
 
 interface BrandRowProps {
   onOpenCreate: () => void
+  onOpenSearch?: () => void
   rowClass: string
 }
 
-export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
+export function BrandRow({
+  onOpenCreate,
+  onOpenSearch,
+  rowClass,
+}: BrandRowProps) {
   const { state, toggleSidebar } = useSidebar()
   const collapsed = state === "collapsed"
   const shortcut = useShortcutLabel("mod+shift+a")
@@ -41,11 +46,11 @@ export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
               <SidebarRight2 />
             </SidebarMenuButton>
             <SidebarMenuButton
-              tooltip="New agent"
-              onClick={onOpenCreate}
+              tooltip="Search & jump to..."
+              onClick={onOpenSearch}
               className={cn(rowClass, "p-0")}
             >
-              <Plus />
+              <Search2 />
             </SidebarMenuButton>
           </div>
         ) : (

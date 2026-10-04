@@ -41,6 +41,7 @@ interface ConversationTimelineProps {
   executionError?: string | null
   onDismissError?: () => void
   onReply?: (target: ReplyTarget) => void
+  onReact?: (messageId: string, emoji: string) => void
 }
 
 export function ConversationTimeline({
@@ -57,6 +58,7 @@ export function ConversationTimeline({
   executionError,
   onDismissError,
   onReply,
+  onReact,
 }: ConversationTimelineProps) {
   const isActiveRunOngoing =
     isOptimisticRunning ||
@@ -166,30 +168,82 @@ export function ConversationTimeline({
   }
 
   // Scroll to targeted message if URL hash is present (e.g., #message-123)
+  // If the message is older and not loaded yet, fetch older pages until it appears
+  const targetMessageIdRef = React.useRef<string | null>(null)
+
   React.useEffect(() => {
-    if (isLoading) return
-    const checkAndScroll = () => {
-      if (typeof window === "undefined") return
+    if (typeof window === "undefined") return
+
+    const updateTargetFromHash = () => {
       const hash = window.location.hash
-      if (!hash || !hash.startsWith("#message-")) return
-      const messageId = hash.slice(1) // message-<id>
-      const el = document.getElementById(messageId)
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" })
-        el.classList.add("ring-2", "ring-primary/50", "rounded-xl", "transition-all")
-        setTimeout(() => {
-          el.classList.remove("ring-2", "ring-primary/50")
-        }, 2500)
+      if (hash && hash.startsWith("#message-")) {
+        targetMessageIdRef.current = hash.slice(1) // "message-<id>"
       }
     }
 
-    const timer = setTimeout(checkAndScroll, 200)
-    window.addEventListener("hashchange", checkAndScroll)
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener("hashchange", checkAndScroll)
+    const handleNavigate = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        messageId?: string
+      }>
+      if (customEvent.detail?.messageId) {
+        targetMessageIdRef.current = `message-${customEvent.detail.messageId}`
+      }
     }
-  }, [isLoading, messages.length])
+
+    updateTargetFromHash()
+    window.addEventListener("hashchange", updateTargetFromHash)
+    window.addEventListener("openbots:navigate-message", handleNavigate)
+
+    return () => {
+      window.removeEventListener("hashchange", updateTargetFromHash)
+      window.removeEventListener("openbots:navigate-message", handleNavigate)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (isLoading) return
+    const targetId = targetMessageIdRef.current
+    if (!targetId) return
+
+    const el = document.getElementById(targetId)
+    if (el) {
+      // Element is present in DOM, scroll & highlight
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      el.classList.add(
+        "ring-2",
+        "ring-primary/50",
+        "rounded-xl",
+        "transition-all"
+      )
+      setTimeout(() => {
+        el.classList.remove("ring-2", "ring-primary/50")
+      }, 2500)
+      targetMessageIdRef.current = null
+
+      // Clean up URL query parameters (?conversationId=...) and hash (#message-...)
+      if (typeof window !== "undefined" && window.history.replaceState) {
+        const cleanUrl = window.location.pathname
+        window.history.replaceState(null, "", cleanUrl)
+      }
+      return
+    }
+
+    // Message element not yet loaded in DOM
+    // If there are older messages available and we aren't currently loading, fetch next page
+    if (hasOlderMessages && !isLoadingOlder && !isFetchingOlderRef.current && onLoadOlderMessages) {
+      triggerLoadOlder()
+    } else if (!hasOlderMessages && !isLoadingOlder) {
+      // Reached the earliest message and still not found, clear target
+      targetMessageIdRef.current = null
+    }
+  }, [
+    isLoading,
+    messages.length,
+    hasOlderMessages,
+    isLoadingOlder,
+    onLoadOlderMessages,
+    triggerLoadOlder,
+  ])
 
   return (
     <MessageScrollerProvider defaultScrollPosition="end" autoScroll>
@@ -271,6 +325,7 @@ export function ConversationTimeline({
                     agentName={agentName}
                     onOpenArtifact={onOpenArtifact}
                     onReply={onReply}
+                    onReact={onReact}
                   />
                 </MessageScrollerItem>
               ))}

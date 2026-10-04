@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { getClient } from "@/lib/api";
 import type { Conversation, MessageItem } from "./types";
 
@@ -135,5 +135,31 @@ export function useTimelineSearchQuery(query: string, enabled: boolean = true) {
     },
     enabled: enabled && trimmed.length >= 2,
     staleTime: 30_000,
+  });
+}
+
+export function useToggleMessageReactionMutation(conversationId?: string | null) {
+  return useMutation({
+    mutationFn: async ({
+      messageId,
+      emoji,
+    }: {
+      messageId: string;
+      emoji: string;
+    }) => {
+      const client = getClient();
+      const res = await (client.api.conversations as any).messages[
+        ":messageId"
+      ].reaction.$post({
+        param: { messageId },
+        json: { emoji },
+      });
+      if (!res.ok) throw new Error("Failed to toggle reaction");
+      return (await res.json()) as {
+        success: boolean;
+        messageId: string;
+        reactions: string[];
+      };
+    },
   });
 }

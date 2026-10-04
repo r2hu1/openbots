@@ -71,14 +71,17 @@ export function SearchCommandDialog({
   )
 
   const navigateToMessage = React.useCallback(
-    (agentId: string, messageId: string) => {
+    (agentId: string, conversationId: string, messageId: string) => {
       handleSelect(() => {
-        const targetUrl = `/agent/${agentId}#message-${messageId}`
+        const targetUrl = `/agent/${agentId}?conversationId=${conversationId}#message-${messageId}`
         router.push(targetUrl)
 
-        // If already on the same page, scroll and highlight directly
         if (typeof window !== "undefined") {
-          window.location.hash = `message-${messageId}`
+          window.dispatchEvent(
+            new CustomEvent("openbots:navigate-message", {
+              detail: { agentId, conversationId, messageId },
+            })
+          )
           const el = document.getElementById(`message-${messageId}`)
           if (el) {
             el.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -91,6 +94,9 @@ export function SearchCommandDialog({
             setTimeout(() => {
               el.classList.remove("ring-2", "ring-primary/50")
             }, 2500)
+            if (window.history.replaceState) {
+              window.history.replaceState(null, "", `/agent/${agentId}`)
+            }
           }
         }
       })
@@ -130,7 +136,11 @@ export function SearchCommandDialog({
                   key={`timeline-${item.messageId}`}
                   value={`message ${item.text} ${agentLabel} ${item.conversationTitle || ""}`}
                   onSelect={() =>
-                    navigateToMessage(item.agentId, item.messageId)
+                    navigateToMessage(
+                      item.agentId,
+                      item.conversationId,
+                      item.messageId
+                    )
                   }
                   className="flex items-start gap-2.5 py-2"
                 >

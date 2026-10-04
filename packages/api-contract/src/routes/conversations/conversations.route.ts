@@ -1,10 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { z } from "zod";
 import { authMiddleware } from "../../middleware/auth.js";
 import {
   getConversation,
   listConversations,
   searchTimelineMessages,
+  toggleMessageReaction,
 } from "./conversations.logic.js";
 import { getConversationQuerySchema } from "./conversations.schema.js";
 
@@ -30,6 +32,25 @@ export const conversationsRoute = new Hono<Env>()
     const result = await listConversations(user.id, agentId);
     return c.json(result);
   })
+  .post(
+    "/messages/:messageId/reaction",
+    zValidator(
+      "json",
+      z.object({
+        emoji: z.string().min(1),
+      }),
+    ),
+    async (c) => {
+      const user = c.get("user");
+      const messageId = c.req.param("messageId");
+      const { emoji } = c.req.valid("json");
+      const result = await toggleMessageReaction(user.id, messageId, emoji);
+      if ("error" in result) {
+        return c.json({ error: result.error }, result.status);
+      }
+      return c.json(result);
+    },
+  )
   .get("/:id", zValidator("query", getConversationQuerySchema), async (c) => {
     const user = c.get("user");
     const id = c.req.param("id");

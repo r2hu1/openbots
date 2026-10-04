@@ -17,6 +17,12 @@ import {
   ContextMenuTrigger,
 } from "@openbots/ui/components/context-menu"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@openbots/ui/components/dropdown-menu"
+import {
   Message,
   MessageContent,
   MessageFooter,
@@ -24,6 +30,7 @@ import {
 } from "@openbots/ui/components/message"
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 import {
+  EmojiHappy as IconEmojiHappy,
   Check as IconCheck,
   Copy as IconCopy,
   Download as IconDownload,
@@ -32,6 +39,7 @@ import {
   FileText as IconFileTypeTxt,
   Reply as IconMessageReply,
   Share as IconShare,
+  SmileCircle,
 } from "reicon-react"
 import confetti from "canvas-confetti"
 import * as React from "react"
@@ -42,17 +50,25 @@ import type { MessageItem, ReplyTarget } from "../types"
 import { formatMsgTime, getMessageText, splitIntoMessageParts } from "../utils"
 
 function fireEmojiConfetti(emoji: string, origin?: { x: number; y: number }) {
+  if (typeof window === "undefined") return
   try {
+    const clampedOrigin = origin
+      ? {
+          x: Math.min(Math.max(origin.x, 0.05), 0.95),
+          y: Math.min(Math.max(origin.y, 0.05), 0.95),
+        }
+      : { x: 0.85, y: 0.7 }
+
     const shape = confetti.shapeFromText({ text: emoji, scalar: 2.2 })
     confetti({
       shapes: [shape],
       scalar: 2.2,
-      particleCount: 24,
-      spread: 60,
-      startVelocity: 25,
+      particleCount: 20,
+      spread: 55,
+      startVelocity: 24,
       decay: 0.9,
-      origin: origin ?? { x: 0.85, y: 0.7 },
-      ticks: 150,
+      origin: clampedOrigin,
+      ticks: 120,
       disableForReducedMotion: true,
     })
   } catch (err) {
@@ -60,11 +76,14 @@ function fireEmojiConfetti(emoji: string, origin?: { x: number; y: number }) {
   }
 }
 
+const QUICK_REACTIONS = ["👍", "👎", "❤️", "🔥", "🎉", "👏", "👀", "🤝"]
+
 interface ConversationMessageItemProps {
   message: MessageItem
   agentName: string
   onOpenArtifact?: (artifact: ParsedArtifact) => void
   onReply?: (target: ReplyTarget) => void
+  onReact?: (messageId: string, emoji: string) => void
   isStreaming?: boolean
 }
 
@@ -73,10 +92,25 @@ export function ConversationMessageItem({
   agentName,
   onOpenArtifact,
   onReply,
+  onReact,
   isStreaming = false,
 }: ConversationMessageItemProps) {
   const isUser = message.role === "user"
   const text = getMessageText(message.content)
+
+  // Set of reactions recently fired by user click to avoid firing twice on query refetch
+  const userFiredReactionsRef = React.useRef<Set<string>>(new Set())
+
+  const handleReaction = React.useCallback(
+    (emoji: string, origin?: { x: number; y: number }) => {
+      // Users can only react to agent messages, not their own
+      if (isUser) return
+      userFiredReactionsRef.current.add(emoji)
+      fireEmojiConfetti(emoji, origin)
+      onReact?.(message.id, emoji)
+    },
+    [isUser, message.id, onReact]
+  )
 
   const reactions = React.useMemo(() => {
     const meta = (message.metadata as Record<string, any>) || {}
@@ -86,14 +120,35 @@ export function ConversationMessageItem({
     return []
   }, [message.metadata])
 
-  // Track previously seen reactions for this message to fire confetti once when a new reaction appears
+  // Track previously seen reactions for this message to fire confetti only when a new reaction appears after mount
   const prevReactionsRef = React.useRef<string[]>(reactions)
+  const isMountedRef = React.useRef(false)
+
   React.useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true
+      prevReactionsRef.current = reactions
+      return
+    }
+
     const prev = prevReactionsRef.current
     if (reactions.length > prev.length) {
       const newlyAdded = reactions.filter((r) => !prev.includes(r))
       for (const emoji of newlyAdded) {
-        fireEmojiConfetti(emoji)
+        // If this was already fired by user interaction in handleReaction, don't fire again
+        if (userFiredReactionsRef.current.has(emoji)) {
+          userFiredReactionsRef.current.delete(emoji)
+        } else {
+          // If added remotely (e.g. from agent), burst near the message bubble
+          const rect = bubbleRef.current?.getBoundingClientRect()
+          const origin = rect
+            ? {
+                x: (rect.left + 40) / window.innerWidth,
+                y: (rect.bottom - 10) / window.innerHeight,
+              }
+            : undefined
+          fireEmojiConfetti(emoji, origin)
+        }
       }
     }
     prevReactionsRef.current = reactions
@@ -384,11 +439,7 @@ export function ConversationMessageItem({
                       {text}
                     </BubbleContent>
                     {reactions.length > 0 && (
-                      <BubbleReactions
-                        side="bottom"
-                        align="end"
-                        className="border-none! bg-secondary ring-0! outline-none!"
-                      >
+                      <BubbleReactions side="bottom" align="end">
                         {reactions.map((emoji, i) => (
                           <button
                             key={i}
@@ -442,6 +493,7 @@ export function ConversationMessageItem({
                                 key={seg.id}
                                 variant="secondary"
                                 align="start"
+                                className="relative"
                               >
                                 <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
                                   <Markdown>{seg.text}</Markdown>
@@ -452,6 +504,34 @@ export function ConversationMessageItem({
                                     />
                                   )}
                                 </BubbleContent>
+                                {isVeryLastSegment && reactions.length > 0 && (
+                                  <BubbleReactions side="bottom" align="start">
+                                    {reactions.map((emoji, i) => (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          const rect =
+                                            e.currentTarget.getBoundingClientRect()
+                                          handleReaction(emoji, {
+                                            x:
+                                              (rect.left + rect.width / 2) /
+                                              window.innerWidth,
+                                            y:
+                                              (rect.top + rect.height / 2) /
+                                              window.innerHeight,
+                                          })
+                                        }}
+                                        title={`Reacted ${emoji} (click to toggle)`}
+                                        aria-label={`Reaction ${emoji}`}
+                                        className="cursor-pointer px-1 py-px transition-transform hover:scale-125 active:scale-95"
+                                      >
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </BubbleReactions>
+                                )}
                               </Bubble>
                             )
                           }
@@ -520,7 +600,51 @@ export function ConversationMessageItem({
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          openOnHover
+                          render={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-xs"
+                              className="size-6 text-muted-foreground hover:text-foreground"
+                              title="Add reaction"
+                              aria-label="Add reaction"
+                            >
+                              <SmileCircle className="size-3" />
+                            </Button>
+                          }
+                        />
+                        <DropdownMenuContent
+                          align="start"
+                          side="top"
+                          className="no-scrollbar flex w-full"
+                        >
+                          {QUICK_REACTIONS.map((emoji) => (
+                            <DropdownMenuItem
+                              key={emoji}
+                              onClick={(e) => {
+                                const rect =
+                                  e.currentTarget.getBoundingClientRect()
+                                handleReaction(emoji, {
+                                  x:
+                                    (rect.left + rect.width / 2) /
+                                    window.innerWidth,
+                                  y:
+                                    (rect.top + rect.height / 2) /
+                                    window.innerHeight,
+                                })
+                              }}
+                              className="cursor-pointer px-1.5 py-1 text-base transition-transform hover:scale-125"
+                            >
+                              {emoji}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
                       <Button
                         type="button"
                         variant="ghost"
@@ -561,6 +685,32 @@ export function ConversationMessageItem({
       </ContextMenuTrigger>
 
       <ContextMenuContent className="w-48">
+        {!isUser && (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <SmileCircle className="mr-2" />
+              <span>React</span>
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="flex min-w-0 flex-row items-center gap-1 p-1">
+              {QUICK_REACTIONS.map((emoji) => (
+                <ContextMenuItem
+                  key={emoji}
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    handleReaction(emoji, {
+                      x: (rect.left + rect.width / 2) / window.innerWidth,
+                      y: (rect.top + rect.height / 2) / window.innerHeight,
+                    })
+                  }}
+                  className="cursor-pointer px-1.5 py-1 text-base transition-transform hover:scale-125"
+                >
+                  {emoji}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
+
         <ContextMenuItem onClick={handleCopy}>
           <IconCopy />
           <span>Copy</span>

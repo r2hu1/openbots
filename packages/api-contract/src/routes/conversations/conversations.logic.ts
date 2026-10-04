@@ -157,3 +157,70 @@ export async function searchTimelineMessages(
     }),
   };
 }
+
+export async function toggleMessageReaction(
+  userId: string,
+  messageId: string,
+  emoji: string,
+) {
+  // Ensure the user owns the conversation this message belongs to
+  const [msg] = await db
+    .select({
+      id: messages.id,
+      conversationId: messages.conversationId,
+      role: messages.role,
+      metadata: messages.metadata,
+    })
+    .from(messages)
+    .innerJoin(conversations, eq(messages.conversationId, conversations.id))
+    .where(
+      and(
+        eq(messages.id, messageId),
+        eq(conversations.userId, userId),
+      ),
+    );
+
+  if (!msg) {
+    return { error: "Message not found", status: 404 as const };
+  }
+
+  // Users cannot react to their own messages, only to agent/assistant messages
+  if (msg.role === "user") {
+    return {
+      error: "You can only react to agent messages",
+      status: 400 as const,
+    };
+  }
+
+  const meta = (msg.metadata as Record<string, any>) || {};
+  const currentReactions: string[] = Array.isArray(meta.reactions)
+    ? [...meta.reactions]
+    : [];
+
+  const index = currentReactions.indexOf(emoji);
+  if (index > -1) {
+    currentReactions.splice(index, 1);
+  } else {
+    currentReactions.push(emoji);
+  }
+
+  const updatedMetadata = {
+    ...meta,
+    reactions: currentReactions,
+  };
+
+  await db
+    .update(messages)
+    .set({
+      metadata: updatedMetadata,
+    })
+    .where(eq(messages.id, msg.id));
+
+  return {
+    success: true,
+    messageId: msg.id,
+    reactions: currentReactions,
+    status: 200 as const,
+  };
+}
+

@@ -1,6 +1,7 @@
 "use client"
 
 import { SidebarInset } from "@openbots/ui/components/sidebar"
+import { useQueryClient } from "@tanstack/react-query"
 import { IconPlus } from "@tabler/icons-react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
@@ -17,6 +18,7 @@ import { useReconciledMessages } from "@/modules/conversations/hooks/use-reconci
 import {
   useConversationsQuery,
   useInfiniteConversationDetailQuery,
+  useToggleMessageReactionMutation,
 } from "@/modules/conversations/queries"
 import type { ReplyTarget } from "@/modules/conversations/types"
 import { useHotkey } from "@openbots/ui/hooks/use-hotkey"
@@ -95,7 +97,34 @@ const ChatPane = React.memo(function ChatPane({
 }: ChatPaneProps) {
   const [selectedConversationId, setSelectedConversationId] = React.useState<
     string | null
-  >(null)
+  >(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search)
+      return urlParams.get("conversationId")
+    }
+    return null
+  })
+
+  React.useEffect(() => {
+    const handleNavigate = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        agentId: string
+        conversationId?: string
+        messageId?: string
+      }>
+      if (
+        customEvent.detail?.agentId === agentId &&
+        customEvent.detail?.conversationId
+      ) {
+        setSelectedConversationId(customEvent.detail.conversationId)
+      }
+    }
+
+    window.addEventListener("openbots:navigate-message", handleNavigate)
+    return () => {
+      window.removeEventListener("openbots:navigate-message", handleNavigate)
+    }
+  }, [agentId])
 
   const [replyTarget, setReplyTarget] = React.useState<ReplyTarget | null>(null)
 
@@ -166,13 +195,34 @@ const ChatPane = React.memo(function ChatPane({
     onClearOptimistic: clearOptimistic,
   })
 
+  const queryClient = useQueryClient()
+  const toggleReactionMutation = useToggleMessageReactionMutation(activeConversationId)
+
+  const handleToggleReaction = React.useCallback(
+    (messageId: string, emoji: string) => {
+      toggleReactionMutation.mutate(
+        { messageId, emoji },
+        {
+          onSuccess: () => {
+            if (activeConversationId) {
+              queryClient.invalidateQueries({
+                queryKey: ["conversation", activeConversationId],
+              })
+            }
+          },
+        }
+      )
+    },
+    [activeConversationId, toggleReactionMutation, queryClient]
+  )
+
   const isChatLoading =
     !isOptimisticRunning &&
     optimisticMessages.length === 0 &&
     (isLoadingConversations ||
       (activeConversationId !== null && isLoadingMessages))
 
-  const placeholder = `Send task to ${agentName}...`
+  const placeholder = `Message ${agentName}...`
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -196,6 +246,7 @@ const ChatPane = React.memo(function ChatPane({
         executionError={executionError}
         onDismissError={clearExecutionError}
         onReply={setReplyTarget}
+        onReact={handleToggleReaction}
       />
 
       <MemoComposer

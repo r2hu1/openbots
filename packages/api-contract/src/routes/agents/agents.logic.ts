@@ -289,6 +289,12 @@ export async function createAgentRun(
     conversationId = conv?.id;
   }
 
+  const hasUserMessage = !!(data.prompt || (data.images && data.images.length > 0));
+  const userContent = {
+    text: data.prompt || "",
+    ...(data.images && data.images.length > 0 ? { images: data.images } : {}),
+  };
+
   // Parallelize run and user message insertion
   const [[run]] = await Promise.all([
     db
@@ -299,16 +305,18 @@ export async function createAgentRun(
         conversationId,
         status: "queued",
         triggerType: "manual",
-        input: data.prompt ? { prompt: data.prompt } : (data.input ?? null),
+        input: hasUserMessage
+          ? userContent
+          : (data.input ?? null),
       })
       .returning(),
-    conversationId && data.prompt
+    conversationId && hasUserMessage
       ? db
           .insert(messages)
           .values({
             conversationId,
             role: "user",
-            content: { text: data.prompt },
+            content: userContent,
           })
           .catch((err) => {
             console.warn("Could not immediately persist user message:", err);

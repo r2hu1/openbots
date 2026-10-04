@@ -24,6 +24,7 @@ export type ConfigureToolInput = z.infer<typeof configureToolSchema>;
 
 export const createAgentRunSchema = z.object({
   prompt: z.string().optional(),
+  images: z.array(z.string().url()).max(10).optional(),
   input: z.any().optional(),
   conversationId: z.string().uuid().optional(),
 });

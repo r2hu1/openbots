@@ -46,11 +46,21 @@ import {
 import { Markdown } from "@/components/shared/markdown";
 import { ArtifactCard } from "@/modules/artifacts/artifact-card";
 import {
+  Attachment,
+  AttachmentGroup,
+  AttachmentMedia,
+} from "@openbots/ui/components/attachment";
+import {
   type ParsedArtifact,
   parseArtifacts,
 } from "@/modules/artifacts/parser";
 import type { MessageItem, ReplyTarget } from "../types";
-import { formatMsgTime, getMessageText, splitIntoMessageParts } from "../utils";
+import {
+  formatMsgTime,
+  getMessageImages,
+  getMessageText,
+  splitIntoMessageParts,
+} from "../utils";
 
 function fireEmojiConfetti(emoji: string, origin?: { x: number; y: number }) {
   if (typeof window === "undefined") return;
@@ -100,6 +110,10 @@ export function ConversationMessageItem({
 }: ConversationMessageItemProps) {
   const isUser = message.role === "user";
   const text = getMessageText(message.content);
+  const images = React.useMemo(
+    () => getMessageImages(message.content),
+    [message.content],
+  );
 
   // Set of reactions recently fired by user click to avoid firing twice on query refetch
   const userFiredReactionsRef = React.useRef<Set<string>>(new Set());
@@ -437,39 +451,100 @@ export function ConversationMessageItem({
                 )}
 
                 {isUser ? (
-                  <Bubble variant="default" align="end" className="relative">
-                    <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
-                      {text}
-                    </BubbleContent>
-                    {reactions.length > 0 && (
-                      <BubbleReactions side="bottom" align="end">
-                        {reactions.map((emoji, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const rect =
-                                e.currentTarget.getBoundingClientRect();
-                              fireEmojiConfetti(emoji, {
-                                x:
-                                  (rect.left + rect.width / 2) /
-                                  window.innerWidth,
-                                y:
-                                  (rect.top + rect.height / 2) /
-                                  window.innerHeight,
-                              });
-                            }}
-                            title={`Reacted by ${agentName} (click for confetti)`}
-                            aria-label={`Reaction ${emoji}`}
-                            className="cursor-pointer px-1 py-px transition-transform hover:scale-125 active:scale-95"
+                  <div className="flex flex-col items-end gap-2">
+                    {images.length > 0 && (
+                      <AttachmentGroup className="max-w-full justify-end">
+                        {images.map((imgUrl, idx) => (
+                          <Attachment
+                            key={idx}
+                            size="default"
+                            state="done"
+                            className="overflow-hidden border-border/80 bg-background/50 shadow-xs"
                           >
-                            {emoji}
-                          </button>
+                            <AttachmentMedia
+                              variant="image"
+                              className="size-16 sm:size-20"
+                            >
+                              <img
+                                src={imgUrl}
+                                alt={`Attachment ${idx + 1}`}
+                                className="size-full object-cover"
+                                loading="lazy"
+                              />
+                            </AttachmentMedia>
+                          </Attachment>
                         ))}
-                      </BubbleReactions>
+                      </AttachmentGroup>
                     )}
-                  </Bubble>
+                    {text ? (
+                      <Bubble
+                        variant="default"
+                        align="end"
+                        className="relative"
+                      >
+                        <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
+                          {text}
+                        </BubbleContent>
+                        {reactions.length > 0 && (
+                          <BubbleReactions side="bottom" align="end">
+                            {reactions.map((emoji, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const rect =
+                                    e.currentTarget.getBoundingClientRect();
+                                  fireEmojiConfetti(emoji, {
+                                    x:
+                                      (rect.left + rect.width / 2) /
+                                      window.innerWidth,
+                                    y:
+                                      (rect.top + rect.height / 2) /
+                                      window.innerHeight,
+                                  });
+                                }}
+                                title={`Reacted by ${agentName} (click for confetti)`}
+                                aria-label={`Reaction ${emoji}`}
+                                className="cursor-pointer px-1 py-px transition-transform hover:scale-125 active:scale-95"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </BubbleReactions>
+                        )}
+                      </Bubble>
+                    ) : (
+                      reactions.length > 0 && (
+                        <BubbleReactions side="bottom" align="end">
+                          {reactions.map((emoji, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const rect =
+                                  e.currentTarget.getBoundingClientRect();
+                                fireEmojiConfetti(emoji, {
+                                  x:
+                                    (rect.left + rect.width / 2) /
+                                    window.innerWidth,
+                                  y:
+                                    (rect.top + rect.height / 2) /
+                                    window.innerHeight,
+                                });
+                              }}
+                              title={`Reacted by ${agentName} (click for confetti)`}
+                              aria-label={`Reaction ${emoji}`}
+                              className="cursor-pointer px-1 py-px transition-transform hover:scale-125 active:scale-95"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </BubbleReactions>
+                      )
+                    )}
+                  </div>
                 ) : (
                   messageParts.map((part, partIndex) => {
                     const isLastPart = partIndex === messageParts.length - 1;

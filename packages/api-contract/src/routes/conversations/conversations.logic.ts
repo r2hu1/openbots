@@ -218,3 +218,109 @@ export async function toggleMessageReaction(
     status: 200 as const,
   };
 }
+
+export async function uploadConversationImage(
+  userId: string,
+  file: File | Blob,
+  fileName?: string,
+) {
+  // Validate file size: 5MB maximum
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      error: "File size exceeds the 5MB maximum limit.",
+      status: 400 as const,
+    };
+  }
+
+  // Validate mime type: images only
+  const contentType = file.type || "image/jpeg";
+  if (!contentType.startsWith("image/")) {
+    return {
+      error: "Only image files (JPEG, PNG, WebP, GIF, SVG) are allowed.",
+      status: 400 as const,
+    };
+  }
+
+  const extension =
+    fileName?.split(".").pop() || contentType.split("/")[1] || "png";
+  const uniqueId = crypto.randomUUID();
+  const bucket =
+    process.env.SUPABASE_STORAGE_BUCKET || "conversation-attachments";
+  const path = `${userId}/${uniqueId}.${extension}`;
+
+  const { uploadStorageObject, getStoragePublicUrl } = await import(
+    "@openbots/db"
+  );
+  const arrayBuffer = await file.arrayBuffer();
+
+  const { data, error } = await uploadStorageObject({
+    bucket,
+    path,
+    fileBody: arrayBuffer,
+    contentType,
+    upsert: false,
+  });
+
+  if (error || !data) {
+    console.error("Failed to upload image to Supabase storage:", error);
+    return {
+      error: error?.message || "Failed to upload image to storage.",
+      status: 500 as const,
+    };
+  }
+
+  const { data: publicUrlData } = getStoragePublicUrl(bucket, path);
+
+  return {
+    success: true,
+    url: publicUrlData.publicUrl,
+    path,
+    status: 200 as const,
+  };
+}
+
+export async function deleteConversationImage(
+  userId: string,
+  filePathOrUrl: string,
+) {
+  const bucket =
+    process.env.SUPABASE_STORAGE_BUCKET || "conversation-attachments";
+  let targetPath = filePathOrUrl;
+
+  // If a full public URL was provided, extract the path after bucket name
+  if (
+    filePathOrUrl.startsWith("http://") ||
+    filePathOrUrl.startsWith("https://")
+  ) {
+    const urlParts = filePathOrUrl.split(`/${bucket}/`);
+    if (urlParts.length > 1) {
+      targetPath = decodeURIComponent(urlParts[1]!.split("?")[0]!);
+    }
+  }
+
+  // Security check: ensure user owns this file path
+  if (!targetPath.startsWith(`${userId}/`)) {
+    return {
+      error: "Unauthorized to delete this file",
+      status: 403 as const,
+    };
+  }
+
+  const { deleteStorageObject } = await import("@openbots/db");
+  const { error } = await deleteStorageObject(bucket, targetPath);
+
+  if (error) {
+    console.warn("Failed to delete object from storage:", error);
+    return {
+      error: error.message || "Failed to delete file from storage.",
+      status: 500 as const,
+    };
+  }
+
+  return {
+    success: true,
+    path: targetPath,
+    status: 200 as const,
+  };
+}

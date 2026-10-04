@@ -4,6 +4,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import "@openbots/ui/globals.css";
 import "@openbots/ui/styles/typeset.css";
 import { cn } from "@openbots/ui/lib/utils";
+import { Toaster } from "@openbots/ui/components/toast";
 import { ThemeProvider } from "@/providers/theme-provider";
 
 export const metadata: Metadata = {
@@ -40,7 +41,10 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -165,3 +165,46 @@ export function useToggleMessageReactionMutation(
     },
   });
 }
+
+export function useUploadConversationImageMutation() {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const client = getClient();
+      const res = await (client.api.conversations as any).upload.$post({
+        form: { file },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to upload image");
+      }
+
+      return (await res.json()) as {
+        success: boolean;
+        url: string;
+        path: string;
+      };
+    },
+  });
+}
+
+export function useDeleteConversationImageMutation() {
+  return useMutation({
+    mutationFn: async (path: string) => {
+      const client = getClient();
+      const res = await (client.api.conversations as any).upload.$delete({
+        json: { path },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete image");
+      }
+
+      return (await res.json()) as {
+        success: boolean;
+        path: string;
+      };
+    },
+  });
+}

@@ -155,7 +155,7 @@ export function useAgentExecution({
   }, []);
 
   const sendPrompt = React.useCallback(
-    (prompt: string) => {
+    (prompt: string, images?: string[]) => {
       if (!agentId) return;
 
       setIsOptimisticRunning(true);
@@ -167,13 +167,16 @@ export function useAgentExecution({
         id: tempId,
         conversationId: activeConversationId || "temp",
         role: "user",
-        content: { text: prompt },
+        content: {
+          text: prompt,
+          ...(images && images.length > 0 ? { images } : {}),
+        },
         createdAt: new Date(),
       };
       setOptimisticMessages((prev) => [...prev, optimisticMsg]);
 
       triggerRunMutation.mutate(
-        { prompt, conversationId: activeConversationId },
+        { prompt, images, conversationId: activeConversationId },
         {
           onSuccess: (data) => {
             if (data.run.conversationId && !activeConversationId) {

@@ -315,14 +315,45 @@ export async function executeAgentRun(
 
     resolvedTools = resolvedToolsResult;
 
-    // Prepare conversation messages
-    const inputMessages: Array<{
-      role: "user" | "assistant" | "system";
-      content: string;
-    }> = [];
+    // Prepare conversation messages (supporting multimodal user inputs)
+    const inputMessages: Array<any> = [];
 
     for (const m of historyMessages) {
-      if (m.role === "user" || m.role === "assistant" || m.role === "system") {
+      if (m.role === "user") {
+        const contentObj = (
+          m.content && typeof m.content === "object" ? m.content : {}
+        ) as any;
+        const textContent =
+          typeof m.content === "string"
+            ? m.content
+            : (contentObj.text ?? contentObj.prompt ?? "");
+        const images: string[] = Array.isArray(contentObj.images)
+          ? contentObj.images
+          : [];
+
+        if (images.length > 0) {
+          const parts: Array<any> = [];
+          if (textContent) {
+            parts.push({ type: "text", text: textContent });
+          }
+          for (const imgUrl of images) {
+            parts.push({ type: "image", image: new URL(imgUrl) });
+          }
+          inputMessages.push({
+            role: "user",
+            content: parts,
+          });
+        } else {
+          inputMessages.push({
+            role: "user",
+            content:
+              textContent ||
+              (typeof m.content === "string"
+                ? m.content
+                : JSON.stringify(m.content)),
+          });
+        }
+      } else if (m.role === "assistant" || m.role === "system") {
         let textContent = "";
         if (typeof m.content === "string") {
           textContent = m.content;
@@ -346,26 +377,45 @@ export async function executeAgentRun(
         ? inputObj
         : (inputObj?.prompt ??
           inputObj?.text ??
-          (inputObj?.messages ? null : JSON.stringify(inputObj ?? "")));
+          (inputObj?.messages ? null : ""));
+    const runImages: string[] = Array.isArray(inputObj?.images)
+      ? inputObj.images
+      : [];
 
-    if (promptText) {
-      // Check if promptText is already the last message in history to prevent duplicates
-      const lastMsg = inputMessages[inputMessages.length - 1];
+    if (promptText || runImages.length > 0) {
       const isScheduleTrigger = runRecord.triggerType === "schedule";
-
       const effectiveUserPrompt = isScheduleTrigger
         ? `[SYSTEM NOTIFICATION: The timer/scheduled alarm for this task has elapsed now.]\nDeliver this reminder/scheduled alert directly to the user:\n"${promptText}"`
         : promptText;
 
-      if (
-        !lastMsg ||
-        lastMsg.role !== "user" ||
-        lastMsg.content !== effectiveUserPrompt
-      ) {
-        inputMessages.push({
-          role: "user",
-          content: effectiveUserPrompt,
-        });
+      // Check if already in history as the last message
+      const lastMsg = inputMessages[inputMessages.length - 1];
+      const isDuplicate =
+        lastMsg &&
+        lastMsg.role === "user" &&
+        (typeof lastMsg.content === "string"
+          ? lastMsg.content === effectiveUserPrompt && runImages.length === 0
+          : false);
+
+      if (!isDuplicate) {
+        if (runImages.length > 0) {
+          const parts: Array<any> = [];
+          if (effectiveUserPrompt) {
+            parts.push({ type: "text", text: effectiveUserPrompt });
+          }
+          for (const imgUrl of runImages) {
+            parts.push({ type: "image", image: new URL(imgUrl) });
+          }
+          inputMessages.push({
+            role: "user",
+            content: parts,
+          });
+        } else if (effectiveUserPrompt) {
+          inputMessages.push({
+            role: "user",
+            content: effectiveUserPrompt,
+          });
+        }
       }
     } else if (Array.isArray(inputObj?.messages)) {
       for (const m of inputObj.messages) {

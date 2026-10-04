@@ -90,9 +90,11 @@ export function useTriggerAgentRunMutation(
   return useMutation({
     mutationFn: async ({
       prompt,
+      images,
       conversationId,
     }: {
       prompt: string;
+      images?: string[];
       conversationId?: string | null;
     }) => {
       if (!agentId) throw new Error("No agent selected");
@@ -101,6 +103,7 @@ export function useTriggerAgentRunMutation(
         param: { id: agentId },
         json: {
           prompt,
+          images: images && images.length > 0 ? images : undefined,
           conversationId: conversationId || undefined,
         },
       });

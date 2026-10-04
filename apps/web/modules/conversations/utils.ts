@@ -5,9 +5,19 @@ export function getMessageText(content: unknown): string {
     const obj = content as Record<string, unknown>;
     if (typeof obj.text === "string") return obj.text;
     if (typeof obj.prompt === "string") return obj.prompt;
+    if (Array.isArray(obj.images)) return "";
     return JSON.stringify(obj, null, 2);
   }
   return String(content);
+}
+
+export function getMessageImages(content: unknown): string[] {
+  if (!content || typeof content !== "object") return [];
+  const obj = content as Record<string, unknown>;
+  if (Array.isArray(obj.images)) {
+    return obj.images.filter((img): img is string => typeof img === "string");
+  }
+  return [];
 }
 
 export function formatMsgTime(dateVal: string | Date): string {

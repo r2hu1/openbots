@@ -33,7 +33,7 @@ export function DashboardShell({
           onOpenConnections={() => setConnectionsOpen(true)}
           agentsPending={agentsPending}
         />
-        <SidebarInset className="flex h-svh w-full overflow-hidden bg-background">
+        <div className="flex h-svh w-full overflow-hidden bg-background">
           {children}
 
           <CreateAgentDialog
@@ -43,7 +43,7 @@ export function DashboardShell({
               router.push(`/agent/${newId}`)
             }}
           />
-        </SidebarInset>
+        </div>
 
         <ConnectionsSheet
           open={connectionsOpen}

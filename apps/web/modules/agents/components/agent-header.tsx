@@ -1,21 +1,21 @@
-"use client";
+"use client"
 
-import { Badge } from "@openbots/ui/components/badge";
-import { Button } from "@openbots/ui/components/button";
+import { Badge } from "@openbots/ui/components/badge"
+import { Button } from "@openbots/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@openbots/ui/components/dropdown-menu";
-import { SidebarTrigger, useSidebar } from "@openbots/ui/components/sidebar";
+} from "@openbots/ui/components/dropdown-menu"
+import { SidebarTrigger, useSidebar } from "@openbots/ui/components/sidebar"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@openbots/ui/components/tooltip";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
+} from "@openbots/ui/components/tooltip"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 import {
   IconCalendar,
   IconChevronDown,
@@ -24,23 +24,23 @@ import {
   IconPlug,
   IconSettings,
   IconTrash,
-} from "@tabler/icons-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import type { Agent } from "../types";
-import { DeleteAgentDialog } from "./delete-agent-dialog";
-import { RenameAgentDialog } from "./rename-agent-dialog";
+} from "@tabler/icons-react"
+import { useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import type { Agent } from "../types"
+import { DeleteAgentDialog } from "./delete-agent-dialog"
+import { RenameAgentDialog } from "./rename-agent-dialog"
 
 interface AgentHeaderProps {
-  selectedAgent: Agent | null;
-  onOpenConfigure: () => void;
-  onOpenHistory: () => void;
-  onOpenConnections?: () => void;
-  onOpenSchedules?: () => void;
-  onAgentRenamed?: (updatedAgent: Agent) => void;
-  onAgentDeleted?: (deletedId: string) => void;
+  selectedAgent: Agent | null
+  onOpenConfigure: () => void
+  onOpenHistory: () => void
+  onOpenConnections?: () => void
+  onOpenSchedules?: () => void
+  onAgentRenamed?: (updatedAgent: Agent) => void
+  onAgentDeleted?: (deletedId: string) => void
 }
 
 export function AgentHeader({
@@ -52,22 +52,21 @@ export function AgentHeader({
   onAgentRenamed,
   onAgentDeleted,
 }: AgentHeaderProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [renameOpen, setRenameOpen] = React.useState(false);
-  const [deleteOpen, setDeleteOpen] = React.useState(false);
-  const { open } = useSidebar();
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [renameOpen, setRenameOpen] = React.useState(false)
+  const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const { open } = useSidebar()
 
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 left-0 z-50 flex items-center justify-between p-2 px-3 transition-[left] duration-200",
+        "fixed top-0 right-0 z-50 flex items-center justify-between p-2 px-3 transition-[left] duration-200",
         open && "md:left-[var(--sidebar-width)]",
-        !open && "md:left-[var(--sidebar-width-icon)]",
+        !open && "left-[var(--sidebar-width-icon)]"
       )}
     >
       <div className="flex items-center gap-1.5">
-        <SidebarTrigger className="size-7 border-border bg-sidebar md:hidden" />
         {selectedAgent ? (
           <>
             <DropdownMenu>
@@ -125,23 +124,23 @@ export function AgentHeader({
               open={renameOpen}
               onOpenChange={setRenameOpen}
               onSuccess={(updated) => {
-                queryClient.invalidateQueries({ queryKey: ["agents"] });
+                queryClient.invalidateQueries({ queryKey: ["agents"] })
                 queryClient.invalidateQueries({
                   queryKey: ["agent", updated.id],
-                });
+                })
                 queryClient.setQueryData(["agent", updated.id], (old: any) =>
-                  old ? { ...old, agent: updated } : old,
-                );
+                  old ? { ...old, agent: updated } : old
+                )
                 queryClient.setQueryData(["agents"], (old: any) => {
-                  if (!old?.agents) return old;
+                  if (!old?.agents) return old
                   return {
                     ...old,
                     agents: old.agents.map((a: Agent) =>
-                      a.id === updated.id ? { ...a, ...updated } : a,
+                      a.id === updated.id ? { ...a, ...updated } : a
                     ),
-                  };
-                });
-                onAgentRenamed?.(updated);
+                  }
+                })
+                onAgentRenamed?.(updated)
               }}
             />
 
@@ -150,17 +149,17 @@ export function AgentHeader({
               open={deleteOpen}
               onOpenChange={setDeleteOpen}
               onSuccess={(id) => {
-                queryClient.invalidateQueries({ queryKey: ["agents"] });
-                queryClient.removeQueries({ queryKey: ["agent", id] });
+                queryClient.invalidateQueries({ queryKey: ["agents"] })
+                queryClient.removeQueries({ queryKey: ["agent", id] })
                 queryClient.setQueryData(["agents"], (old: any) => {
-                  if (!old?.agents) return old;
+                  if (!old?.agents) return old
                   return {
                     ...old,
                     agents: old.agents.filter((a: Agent) => a.id !== id),
-                  };
-                });
-                onAgentDeleted?.(id);
-                router.push("/");
+                  }
+                })
+                onAgentDeleted?.(id)
+                router.push("/")
               }}
             />
           </>
@@ -170,19 +169,6 @@ export function AgentHeader({
       <div className="flex items-center gap-1.5 sm:gap-2">
         {selectedAgent && (
           <>
-            {onOpenConnections && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onOpenConnections}
-                className="h-7 gap-1.5 border border-border bg-sidebar text-xs"
-                title="Integrations & Tools"
-              >
-                <IconPlug className="size-3.5" />
-                <span className="hidden md:inline">Connections</span>
-              </Button>
-            )}
-
             {onOpenSchedules && (
               <Button
                 variant="secondary"
@@ -220,5 +206,5 @@ export function AgentHeader({
         )}
       </div>
     </header>
-  );
+  )
 }

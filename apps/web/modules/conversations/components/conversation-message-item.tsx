@@ -1,29 +1,26 @@
-"use client";
+"use client"
 
-import { Bubble, BubbleContent } from "@openbots/ui/components/bubble";
-import { Button } from "@openbots/ui/components/button";
+import { Bubble, BubbleContent } from "@openbots/ui/components/bubble"
+import { Button } from "@openbots/ui/components/button"
 import {
   Message,
   MessageContent,
   MessageFooter,
   MessageGroup,
-} from "@openbots/ui/components/message";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
-import { IconCheck, IconCopy, IconShare } from "@tabler/icons-react";
-import * as React from "react";
-import { Markdown } from "@/components/shared/markdown";
-import { ArtifactCard } from "@/modules/artifacts/artifact-card";
-import {
-  type ParsedArtifact,
-  parseArtifacts,
-} from "@/modules/artifacts/parser";
-import type { MessageItem } from "../types";
-import { formatMsgTime, getMessageText } from "../utils";
+} from "@openbots/ui/components/message"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
+import { IconCheck, IconCopy, IconShare } from "@tabler/icons-react"
+import * as React from "react"
+import { Markdown } from "@/components/shared/markdown"
+import { ArtifactCard } from "@/modules/artifacts/artifact-card"
+import { type ParsedArtifact, parseArtifacts } from "@/modules/artifacts/parser"
+import type { MessageItem } from "../types"
+import { formatMsgTime, getMessageText } from "../utils"
 
 interface ConversationMessageItemProps {
-  message: MessageItem;
-  agentName: string;
-  onOpenArtifact?: (artifact: ParsedArtifact) => void;
+  message: MessageItem
+  agentName: string
+  onOpenArtifact?: (artifact: ParsedArtifact) => void
 }
 
 export function ConversationMessageItem({
@@ -31,51 +28,51 @@ export function ConversationMessageItem({
   agentName,
   onOpenArtifact,
 }: ConversationMessageItemProps) {
-  const isUser = message.role === "user";
-  const text = getMessageText(message.content);
+  const isUser = message.role === "user"
+  const text = getMessageText(message.content)
 
   const { segments } = React.useMemo(() => {
     if (isUser) {
       return {
         segments: [{ id: `usr-${message.id}`, type: "text" as const, text }],
-      };
+      }
     }
-    return parseArtifacts(text);
-  }, [isUser, message.id, text]);
+    return parseArtifacts(text)
+  }, [isUser, message.id, text])
 
-  const [copied, setCopied] = React.useState(false);
-  const [shared, setShared] = React.useState(false);
+  const [copied, setCopied] = React.useState(false)
+  const [shared, setShared] = React.useState(false)
 
   const handleCopy = React.useCallback(async () => {
-    if (!text) return;
+    if (!text) return
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error("Failed to copy message:", err);
+      console.error("Failed to copy message:", err)
     }
-  }, [text]);
+  }, [text])
 
   const handleShare = React.useCallback(async () => {
-    if (!text) return;
+    if (!text) return
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({
           title: `Message from ${isUser ? "User" : agentName}`,
           text,
-        });
+        })
       } else {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(text)
       }
-      setShared(true);
-      setTimeout(() => setShared(false), 2000);
+      setShared(true)
+      setTimeout(() => setShared(false), 2000)
     } catch (err) {
       if ((err as Error)?.name !== "AbortError") {
-        console.error("Failed to share message:", err);
+        console.error("Failed to share message:", err)
       }
     }
-  }, [text, isUser, agentName]);
+  }, [text, isUser, agentName])
 
   return (
     <MessageGroup className="group">
@@ -91,7 +88,7 @@ export function ConversationMessageItem({
             <div className="flex w-full flex-col gap-2">
               {segments.map((seg) => {
                 if (seg.type === "artifact" && seg.artifact) {
-                  const artifact = seg.artifact;
+                  const artifact = seg.artifact
                   return (
                     <div key={seg.id} className="w-full max-w-2xl">
                       <ArtifactCard
@@ -99,18 +96,18 @@ export function ConversationMessageItem({
                         onClick={() => onOpenArtifact?.(artifact)}
                       />
                     </div>
-                  );
+                  )
                 }
                 if (seg.text) {
                   return (
-                    <Bubble key={seg.id} variant="secondary" align="start">
+                    <Bubble key={seg.id} variant="ghost" align="start">
                       <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
                         <Markdown>{seg.text}</Markdown>
                       </BubbleContent>
                     </Bubble>
-                  );
+                  )
                 }
-                return null;
+                return null
               })}
             </div>
           )}
@@ -210,5 +207,5 @@ export function ConversationMessageItem({
         </MessageContent>
       </Message>
     </MessageGroup>
-  );
+  )
 }

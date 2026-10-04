@@ -1,17 +1,15 @@
-import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { QueryProvider } from "@/providers/query-provider";
-import { ThemeProvider } from "@/providers/theme-provider";
+import { DashboardShell } from "@/components/layout/dashboard-shell"
+import { QueryProvider } from "@/providers/query-provider"
+import { ThemeProvider } from "@/providers/theme-provider"
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <ThemeProvider>
-      <QueryProvider>
-        <DashboardShell>{children}</DashboardShell>
-      </QueryProvider>
-    </ThemeProvider>
-  );
+    <QueryProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </QueryProvider>
+  )
 }

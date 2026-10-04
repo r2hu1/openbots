@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@openbots/ui/components/dropdown-menu"
@@ -97,6 +98,13 @@ export function AgentHeader({
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="min-w-48">
+                <div className="space-y-px p-1 pt-0.5">
+                  <p className="text-sm font-medium">{selectedAgent.name}</p>
+                  <p className="text-xs font-normal text-foreground/90">
+                    {selectedAgent.description}
+                  </p>
+                </div>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setRenameOpen(true)}>
                   <Edit className="size-4" />
                   <span>Rename Agent</span>

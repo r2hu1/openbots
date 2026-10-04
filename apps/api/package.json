@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "start": "bun ./dist/index.js",
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" --outfile=dist/index.js --external:hono --external:@hono/node-server --external:better-auth --external:resend --external:drizzle-orm --external:postgres --external:ioredis --external:@composio/core",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" --outfile=dist/index.js --external:hono --external:@hono/node-server --external:better-auth --external:resend --external:drizzle-orm --external:postgres --external:ioredis --external:@composio/core --external:undici",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",

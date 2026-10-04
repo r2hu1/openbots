@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@openbots/ui/components/button"
+import { Kbd } from "@openbots/ui/components/kbd"
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -13,11 +14,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@openbots/ui/components/tooltip"
-import { Blobatar } from "@openbots/ui/components/ui/blobatar"
-import { IconLayoutSidebarLeftExpand, IconPlus } from "@tabler/icons-react"
-import { cn } from "@/lib/utils"
-import { Kbd } from "@openbots/ui/components/kbd"
 import { Plus, SidebarRight2 } from "reicon-react"
+import { cn } from "@/lib/utils"
+import { useShortcutLabel } from "@openbots/ui/hooks/use-hotkey"
 
 interface BrandRowProps {
   onOpenCreate: () => void
@@ -27,12 +26,13 @@ interface BrandRowProps {
 export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
   const { state, toggleSidebar } = useSidebar()
   const collapsed = state === "collapsed"
+  const shortcut = useShortcutLabel("mod+shift+a")
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         {collapsed ? (
-          <>
+          <div className="flex flex-col gap-2">
             <SidebarMenuButton
               tooltip="Expand sidebar"
               onClick={toggleSidebar}
@@ -41,36 +41,41 @@ export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
               <SidebarRight2 />
             </SidebarMenuButton>
             <SidebarMenuButton
-              tooltip="Add agent"
+              tooltip="New agent"
               onClick={onOpenCreate}
-              className={cn(rowClass, "mt-2 p-0")}
+              className={cn(rowClass, "p-0")}
             >
               <Plus />
             </SidebarMenuButton>
-          </>
+          </div>
         ) : (
-          <div className="mb-px space-y-3">
-            <div className="flex items-center gap-1">
-              <SidebarTrigger
-                size="icon-sm"
-                className="size-7 rounded-lg p-0 text-sidebar-accent-foreground/50"
+          <div className="flex items-center gap-1">
+            <SidebarTrigger
+              size="icon-sm"
+              className="size-7 shrink-0 rounded-lg p-0 text-sidebar-accent-foreground/50"
+            />
+            <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-tight">
+              OpenBots
+            </span>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onOpenCreate}
+                    aria-label="New agent"
+                    className="size-7 shrink-0 rounded-lg text-sidebar-accent-foreground/60 hover:text-sidebar-accent-foreground"
+                  >
+                    <Plus />
+                  </Button>
+                }
               />
-              <span className="font-medium tracking-tight">OpenBots</span>
-            </div>
-            <div className="space-y-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="group/btn w-full justify-normal px-2 pl-0.5 text-left text-sm font-normal text-sidebar-accent-foreground/80"
-                onClick={onOpenCreate}
-              >
-                <div className="mr-1 flex size-5.5 items-center justify-center rounded-full bg-sidebar-accent">
-                  <Plus />
-                </div>
-                New Agent
-                <Kbd className="ml-auto hidden group-hover/btn:flex">⌘⇧A</Kbd>
-              </Button>
-            </div>
+              <TooltipContent side="right" className="flex items-center gap-2">
+                New agent
+                <Kbd>{shortcut}</Kbd>
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
       </SidebarMenuItem>

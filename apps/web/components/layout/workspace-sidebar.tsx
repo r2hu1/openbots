@@ -145,10 +145,22 @@ export function WorkspaceSidebar({
                             <span className="block truncate text-[13px] font-medium">
                               {agent.name}
                             </span>
-                            <span className="block truncate text-[11px] font-normal text-muted-foreground">
-                              {agent.lastMessage ||
-                                agent.description ||
-                                agent.model}
+
+                            <span className="flex min-w-0 items-center text-[11px] font-normal text-muted-foreground">
+                              <span className="max-w-30 shrink-0 truncate text-[10px] text-muted-foreground">
+                                {agent.description}
+                              </span>
+
+                              {agent.lastMessage && (
+                                <>
+                                  <span className="mx-1 shrink-0 text-[10px] text-muted-foreground/80">
+                                    •
+                                  </span>
+                                  <span className="min-w-0 truncate">
+                                    {agent.lastMessage}
+                                  </span>
+                                </>
+                              )}
                             </span>
                           </span>
                         </SidebarMenuButton>

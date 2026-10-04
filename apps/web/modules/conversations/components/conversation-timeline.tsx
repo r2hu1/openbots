@@ -244,7 +244,7 @@ export function ConversationTimeline({
             )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton variant="default" />
+        <MessageScrollerButton variant="outline" />
       </MessageScroller>
     </MessageScrollerProvider>
   )

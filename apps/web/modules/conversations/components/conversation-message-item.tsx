@@ -169,7 +169,7 @@ export function ConversationMessageItem({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-0.5 transition-opacity group-hover:opacity-100 md:opacity-0">
+                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
                     type="button"
                     variant="ghost"

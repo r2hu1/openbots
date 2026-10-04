@@ -95,39 +95,150 @@ export function ConversationMessageItem({
     }
   }, [text, isUser, agentName])
 
-  const handleReply = React.useCallback(() => {
-    if (!text) return
-    const sender = isUser ? "You" : agentName
-    if (onReply) {
-      onReply({
-        id: message.id,
-        sender,
-        text,
+  const bubbleRef = React.useRef<HTMLDivElement>(null)
+  const [selectedText, setSelectedText] = React.useState<string | null>(null)
+  const [selectionPosition, setSelectionPosition] = React.useState<{
+    top: number
+    left: number
+  } | null>(null)
+
+  // Track text selection inside this message's text bubbles (ignoring artifacts)
+  const handleMouseUp = React.useCallback(() => {
+    // Wait a tick for window.getSelection to update
+    requestAnimationFrame(() => {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed || !bubbleRef.current) {
+        setSelectedText(null)
+        setSelectionPosition(null)
+        return
+      }
+
+      const raw = selection.toString().trim()
+      if (!raw) {
+        setSelectedText(null)
+        setSelectionPosition(null)
+        return
+      }
+
+      // Check if the selection is inside our text content
+      const anchorNode = selection.anchorNode
+      const focusNode = selection.focusNode
+      if (!anchorNode || !focusNode) return
+
+      const isInside =
+        bubbleRef.current.contains(anchorNode) &&
+        bubbleRef.current.contains(focusNode)
+
+      if (!isInside) {
+        setSelectedText(null)
+        setSelectionPosition(null)
+        return
+      }
+
+      // Make sure the selection is NOT inside an artifact card
+      const anchorElement =
+        anchorNode instanceof Element ? anchorNode : anchorNode.parentElement
+      const focusElement =
+        focusNode instanceof Element ? focusNode : focusNode.parentElement
+
+      if (
+        anchorElement?.closest("[data-artifact-card]") ||
+        focusElement?.closest("[data-artifact-card]")
+      ) {
+        setSelectedText(null)
+        setSelectionPosition(null)
+        return
+      }
+
+      const range = selection.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      const bubbleRect = bubbleRef.current.getBoundingClientRect()
+
+      setSelectedText(raw)
+      setSelectionPosition({
+        top: rect.top - bubbleRect.top - 36, // position 36px above selection
+        left: rect.left - bubbleRect.left + rect.width / 2,
       })
+    })
+  }, [])
+
+  // Clear floating menu on click away or selection change
+  React.useEffect(() => {
+    const handleDocumentSelectionChange = () => {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed) {
+        setSelectedText(null)
+        setSelectionPosition(null)
+      }
+    }
+
+    document.addEventListener("selectionchange", handleDocumentSelectionChange)
+    return () => {
+      document.removeEventListener(
+        "selectionchange",
+        handleDocumentSelectionChange
+      )
+    }
+  }, [])
+
+  const handleReplySelected = React.useCallback(
+    (replyText?: string) => {
+      const targetText = replyText || selectedText || text
+      if (!targetText) return
+
+      const sender = isUser ? "You" : agentName
+      if (onReply) {
+        onReply({
+          id: message.id,
+          sender,
+          text: targetText,
+        })
+      } else {
+        const textarea = document.querySelector(
+          "textarea"
+        ) as HTMLTextAreaElement | null
+        if (textarea) {
+          const quoted = targetText
+            .split("\n")
+            .map((line) => `> ${line}`)
+            .join("\n")
+          const current = textarea.value
+          const separator = current
+            ? current.endsWith("\n\n")
+              ? ""
+              : current.endsWith("\n")
+                ? "\n"
+                : "\n\n"
+            : ""
+          textarea.value = `${current}${separator}${quoted}\n\n`
+          textarea.dispatchEvent(new Event("input", { bubbles: true }))
+          textarea.focus()
+        }
+      }
+
+      // Clear selection
+      window.getSelection()?.removeAllRanges()
+      setSelectedText(null)
+      setSelectionPosition(null)
+    },
+    [selectedText, text, isUser, agentName, message.id, onReply]
+  )
+
+  const handleReply = React.useCallback(() => {
+    // If text was selected prior to opening the context menu, reply to that selection
+    if (selectedText) {
+      handleReplySelected(selectedText)
       return
     }
 
-    const textarea = document.querySelector(
-      "textarea"
-    ) as HTMLTextAreaElement | null
-    if (textarea) {
-      const quoted = text
-        .split("\n")
-        .map((line) => `> ${line}`)
-        .join("\n")
-      const current = textarea.value
-      const separator = current
-        ? current.endsWith("\n\n")
-          ? ""
-          : current.endsWith("\n")
-            ? "\n"
-            : "\n\n"
-        : ""
-      textarea.value = `${current}${separator}${quoted}\n\n`
-      textarea.dispatchEvent(new Event("input", { bubbles: true }))
-      textarea.focus()
+    const currentSelection = window.getSelection()?.toString().trim()
+    if (currentSelection) {
+      handleReplySelected(currentSelection)
+      return
     }
-  }, [text, isUser, agentName, message.id, onReply])
+
+    handleReplySelected(text)
+  }, [selectedText, text, handleReplySelected])
 
   const handleDownload = React.useCallback(
     (format: "txt" | "md" | "json") => {
@@ -173,15 +284,43 @@ export function ConversationMessageItem({
         <MessageGroup className="group">
           <Message align={isUser ? "end" : "start"} className="gap-2">
             <MessageContent>
-              {isUser ? (
-                <Bubble variant="default" align="end">
-                  <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
-                    {text}
-                  </BubbleContent>
-                </Bubble>
-              ) : (
-                <div className="flex w-full flex-col gap-2">
-                  {segments.map((seg) => {
+              <div
+                ref={bubbleRef}
+                onMouseUp={handleMouseUp}
+                className="relative flex w-full flex-col gap-2"
+              >
+                {selectionPosition && selectedText && (
+                  <div
+                    style={{
+                      top: `${selectionPosition.top}px`,
+                      left: `${selectionPosition.left}px`,
+                      transform: "translateX(-50%)",
+                    }}
+                    className="absolute z-30 animate-in duration-150 fade-in-0 zoom-in-95"
+                  >
+                    <Button
+                      type="button"
+                      size="xs"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReplySelected()
+                      }}
+                      className="h-7 gap-1.5 rounded-full px-2.5 text-xs"
+                    >
+                      <IconMessageReply className="size-3.5" />
+                      <span>Reply</span>
+                    </Button>
+                  </div>
+                )}
+
+                {isUser ? (
+                  <Bubble variant="default" align="end">
+                    <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
+                      {text}
+                    </BubbleContent>
+                  </Bubble>
+                ) : (
+                  segments.map((seg) => {
                     if (seg.type === "artifact" && seg.artifact) {
                       const artifact = seg.artifact
                       return (
@@ -203,9 +342,9 @@ export function ConversationMessageItem({
                       )
                     }
                     return null
-                  })}
-                </div>
-              )}
+                  })
+                )}
+              </div>
 
               <MessageFooter
                 className={
@@ -311,7 +450,7 @@ export function ConversationMessageItem({
         </ContextMenuItem>
         <ContextMenuItem onClick={handleReply}>
           <IconMessageReply />
-          <span>Reply</span>
+          <span>{selectedText ? "Reply to selection" : "Reply"}</span>
         </ContextMenuItem>
         <ContextMenuItem onClick={handleShare}>
           <IconShare />

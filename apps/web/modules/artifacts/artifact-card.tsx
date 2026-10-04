@@ -34,7 +34,10 @@ function ArtifactIcon({ type }: { type: ParsedArtifact["type"] }) {
 
 export function ArtifactCard({ artifact, onClick }: ArtifactCardProps) {
   return (
-    <div className="group/artifact w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-sidebar">
+    <div
+      data-artifact-card="true"
+      className="group/artifact w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-sidebar"
+    >
       {/* Header */}
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-foreground">

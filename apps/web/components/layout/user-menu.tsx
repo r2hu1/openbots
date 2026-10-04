@@ -75,9 +75,14 @@ export function UserMenu({
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger
-            render={<SidebarMenuButton className="w-full py-2!" size="lg" />}
+            render={
+              <SidebarMenuButton
+                className="w-full py-2! group-data-[collapsible=icon]:rounded-full"
+                size="lg"
+              />
+            }
           >
-            <Avatar className="size-8 shrink-0 group-data-[collapsible=icon]:size-7">
+            <Avatar className="size-8 shrink-0 group-data-[collapsible=icon]:size-8">
               <AvatarFallback className="bg-sidebar-accent text-xs font-semibold">
                 {initials}
               </AvatarFallback>

@@ -244,10 +244,7 @@ export function ConversationTimeline({
             )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton size="sm" className="font-normal">
-          Lastest
-          <ChevronDown />
-        </MessageScrollerButton>
+        <MessageScrollerButton variant="default" />
       </MessageScroller>
     </MessageScrollerProvider>
   )

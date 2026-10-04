@@ -36,7 +36,7 @@ export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
             <SidebarMenuButton
               tooltip="Expand sidebar"
               onClick={toggleSidebar}
-              className={cn(rowClass, "p-0")}
+              className={cn(rowClass, "bg-secondary p-0")}
             >
               <SidebarRight2 />
             </SidebarMenuButton>

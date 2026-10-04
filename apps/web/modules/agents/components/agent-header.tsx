@@ -80,7 +80,7 @@ export function AgentHeader({
           <>
             <DropdownMenu>
               <DropdownMenuTrigger openOnHover>
-                <div className="flex cursor-pointer items-center gap-1 rounded-md border bg-sidebar px-1 pr-1.5 pl-0.5 transition-colors">
+                <div className="flex cursor-pointer items-center gap-1 rounded-md border border-border bg-sidebar px-1 pr-1.5 pl-0.5 transition-colors">
                   <Blobatar
                     name={selectedAgent.name || selectedAgent.id}
                     className="size-6.5! shrink-0"

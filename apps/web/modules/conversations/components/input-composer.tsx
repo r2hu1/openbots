@@ -110,7 +110,7 @@ export function InputComposer({
         >
           <div
             onClick={handleContainerClick}
-            className="relative cursor-text overflow-hidden rounded-3xl border border-border bg-sidebar transition focus-within:border-ring focus-within:ring-3 focus-within:ring-border"
+            className="relative cursor-text overflow-hidden rounded-3xl border border-border bg-background transition focus-within:border-primary/40 focus-within:ring-3 focus-within:ring-border"
           >
             <Textarea
               ref={textareaRef}

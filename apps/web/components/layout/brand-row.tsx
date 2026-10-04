@@ -5,6 +5,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@openbots/ui/components/sidebar"
 import {
@@ -15,6 +16,8 @@ import {
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 import { IconLayoutSidebarLeftExpand, IconPlus } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
+import { Kbd } from "@openbots/ui/components/kbd"
+import { Plus, SidebarRight2 } from "reicon-react"
 
 interface BrandRowProps {
   onOpenCreate: () => void
@@ -33,37 +36,41 @@ export function BrandRow({ onOpenCreate, rowClass }: BrandRowProps) {
             <SidebarMenuButton
               tooltip="Expand sidebar"
               onClick={toggleSidebar}
-              className={cn(rowClass, "bg-sidebar-accent p-0")}
+              className={cn(rowClass, "p-0")}
             >
-              <IconLayoutSidebarLeftExpand />
+              <SidebarRight2 />
             </SidebarMenuButton>
             <SidebarMenuButton
               tooltip="Add agent"
               onClick={onOpenCreate}
-              className={cn(rowClass, "mt-2 bg-sidebar-accent p-0")}
+              className={cn(rowClass, "mt-2 p-0")}
             >
-              <IconPlus />
+              <Plus />
             </SidebarMenuButton>
           </>
         ) : (
-          <div className="mb-px flex items-center gap-1 rounded-md">
-            <Blobatar name="openbots" className="size-6!" />
-            <span className="text-sm font-semibold tracking-tight">
-              OpenBots
-            </span>
-            <Tooltip>
-              <TooltipTrigger render={<div />} className="ml-auto">
-                <Button
-                  size="icon-xs"
-                  variant="secondary"
-                  onClick={onOpenCreate}
-                  title="New agent"
-                >
-                  <IconPlus />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Create new agent</TooltipContent>
-            </Tooltip>
+          <div className="mb-px space-y-3">
+            <div className="flex items-center gap-1">
+              <SidebarTrigger
+                size="icon-sm"
+                className="size-7 rounded-lg p-0 text-sidebar-accent-foreground/50"
+              />
+              <span className="font-medium tracking-tight">OpenBots</span>
+            </div>
+            <div className="space-y-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="group/btn w-full justify-normal px-2 pl-0.5 text-left text-sm font-normal text-sidebar-accent-foreground/80"
+                onClick={onOpenCreate}
+              >
+                <div className="mr-1 flex size-5.5 items-center justify-center rounded-full bg-sidebar-accent">
+                  <Plus />
+                </div>
+                New Agent
+                <Kbd className="ml-auto hidden group-hover/btn:flex">⌘⇧A</Kbd>
+              </Button>
+            </div>
           </div>
         )}
       </SidebarMenuItem>

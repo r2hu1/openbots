@@ -21,7 +21,12 @@ import {
 import { useIsMobile } from "@openbots/ui/hooks/use-mobile"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
-import { PanelLeftIcon } from "lucide-react"
+import {
+  SidebarLeft,
+  SidebarLeft2,
+  SidebarRight,
+  SidebarRight2,
+} from "reicon-react"
 import * as React from "react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -268,7 +273,7 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, open } = useSidebar()
 
   return (
     <Button
@@ -283,7 +288,11 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <PanelLeftIcon className="size-3.5" />
+      {open ? (
+        <SidebarLeft2 className="size-4" />
+      ) : (
+        <SidebarRight2 className="size-4" />
+      )}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

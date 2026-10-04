@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
+import { Button } from "@openbots/ui/components/button"
 import {
   Card,
   CardContent,
@@ -8,52 +8,51 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@openbots/ui/components/card";
-import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field";
-import { Input } from "@openbots/ui/components/input";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
-import { IconRobot } from "@tabler/icons-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import * as React from "react";
-import { signUp } from "@/lib/auth-client";
+} from "@openbots/ui/components/card"
+import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field"
+import { Input } from "@openbots/ui/components/input"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
+import { IconRobot } from "@tabler/icons-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import * as React from "react"
+import { signUp } from "@/lib/auth-client"
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const router = useRouter()
+  const [name, setName] = React.useState("")
+  const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
 
     try {
       const res = await signUp.email({
         name,
         email,
         password,
-      });
+      })
 
       if (res.error) {
-        setError(res.error.message || "Failed to create account.");
-        return;
+        setError(res.error.message || "Failed to create account.")
+        return
       }
 
-      router.push("/");
-      router.refresh();
+      router.push("/")
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "An unexpected error occurred.";
-      setError(message);
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      setError(message)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center bg-background p-4">
@@ -134,5 +133,5 @@ export default function SignupPage() {
         </form>
       </Card>
     </div>
-  );
+  )
 }

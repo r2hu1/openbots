@@ -32,6 +32,15 @@ import { cn } from "@/lib/utils"
 import type { Agent } from "../types"
 import { DeleteAgentDialog } from "./delete-agent-dialog"
 import { RenameAgentDialog } from "./rename-agent-dialog"
+import {
+  Calendar2Newicons,
+  ChevronDown,
+  Edit,
+  History2,
+  Plug2,
+  Setting,
+  Trash2,
+} from "reicon-react"
 
 interface AgentHeaderProps {
   selectedAgent: Agent | null
@@ -71,7 +80,7 @@ export function AgentHeader({
           <>
             <DropdownMenu>
               <DropdownMenuTrigger openOnHover>
-                <div className="flex cursor-pointer items-center gap-1 rounded-md border bg-sidebar px-1 pl-0.5 transition-colors">
+                <div className="flex cursor-pointer items-center gap-1 rounded-md border bg-sidebar px-1 pr-1.5 pl-0.5 transition-colors">
                   <Blobatar
                     name={selectedAgent.name || selectedAgent.id}
                     className="size-6.5! shrink-0"
@@ -84,27 +93,27 @@ export function AgentHeader({
                       {selectedAgent.name}
                     </span>
                   </div>
-                  <IconChevronDown className="ml-1 size-3.5 text-muted-foreground" />
+                  <ChevronDown className="ml-0.5 size-3.5 text-muted-foreground" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="min-w-48">
                 <DropdownMenuItem onClick={() => setRenameOpen(true)}>
-                  <IconEdit className="size-4" />
+                  <Edit className="size-4" />
                   <span>Rename Agent</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onOpenConfigure}>
-                  <IconSettings className="size-4" />
+                  <Setting className="size-4" />
                   <span>Configure Agent</span>
                 </DropdownMenuItem>
                 {onOpenConnections && (
                   <DropdownMenuItem onClick={onOpenConnections}>
-                    <IconPlug className="size-4" />
+                    <Plug2 className="size-4" />
                     <span>Connections</span>
                   </DropdownMenuItem>
                 )}
                 {onOpenSchedules && (
                   <DropdownMenuItem onClick={onOpenSchedules}>
-                    <IconCalendar className="size-4" />
+                    <Calendar2Newicons className="size-4" />
                     <span>Schedules</span>
                   </DropdownMenuItem>
                 )}
@@ -113,7 +122,7 @@ export function AgentHeader({
                   variant="destructive"
                   onClick={() => setDeleteOpen(true)}
                 >
-                  <IconTrash className="size-4" />
+                  <Trash2 className="size-4" />
                   <span>Delete Agent</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -177,7 +186,7 @@ export function AgentHeader({
                 className="h-7 gap-1.5 border border-border bg-sidebar text-xs"
                 title="Scheduled Autonomous Tasks"
               >
-                <IconCalendar className="size-3.5" />
+                <Calendar2Newicons className="size-3.5" />
                 <span className="hidden md:inline">Schedules</span>
               </Button>
             )}
@@ -189,7 +198,7 @@ export function AgentHeader({
               className="h-7 gap-1.5 border border-border bg-sidebar text-xs"
               title="Execution History"
             >
-              <IconHistory className="size-3.5" />
+              <History2 className="size-3.5" />
               <span>Runs</span>
             </Button>
 
@@ -200,7 +209,7 @@ export function AgentHeader({
               className="size-7 gap-1.5 border border-border bg-sidebar text-xs"
               title="Agent Settings"
             >
-              <IconSettings className="size-3.5" />
+              <Setting className="size-3.5" />
             </Button>
           </>
         )}

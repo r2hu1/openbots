@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
-import { Avatar, AvatarFallback } from "@openbots/ui/components/avatar"
+import { Avatar, AvatarFallback } from "@openbots/ui/components/avatar";
+import { Button } from "@openbots/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,13 +11,13 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@openbots/ui/components/dropdown-menu"
+} from "@openbots/ui/components/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@openbots/ui/components/sidebar"
+} from "@openbots/ui/components/sidebar";
 import {
   IconCheck,
   IconDeviceLaptop,
@@ -25,11 +26,9 @@ import {
   IconPlug,
   IconSettings,
   IconSun,
-} from "@tabler/icons-react"
-import { useTheme } from "next-themes"
-import * as React from "react"
-import { SettingsSheet } from "./settings-sheet"
-import { Button } from "@openbots/ui/components/button"
+} from "@tabler/icons-react";
+import { useTheme } from "next-themes";
+import * as React from "react";
 import {
   Check,
   ChevronDown,
@@ -39,15 +38,16 @@ import {
   Plug2,
   Setting,
   Sun2,
-} from "reicon-react"
+} from "reicon-react";
+import { SettingsSheet } from "./settings-sheet";
 
 interface UserMenuProps {
-  name: string
-  email?: string
-  initials: string
-  onSettings?: () => void
-  onConnections?: () => void
-  onSignOut: () => void
+  name: string;
+  email?: string;
+  initials: string;
+  onSettings?: () => void;
+  onConnections?: () => void;
+  onSignOut: () => void;
 }
 
 export function UserMenu({
@@ -58,17 +58,17 @@ export function UserMenu({
   onConnections,
   onSignOut,
 }: UserMenuProps) {
-  const { isMobile } = useSidebar()
-  const { theme, setTheme, resolvedTheme } = useTheme()
-  const [settingsOpen, setSettingsOpen] = React.useState(false)
+  const { isMobile } = useSidebar();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   const handleSettingsClick = () => {
     if (onSettings) {
-      onSettings()
+      onSettings();
     } else {
-      setSettingsOpen(true)
+      setSettingsOpen(true);
     }
-  }
+  };
 
   return (
     <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
@@ -167,5 +167,5 @@ export function UserMenu({
 
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
     </SidebarMenu>
-  )
+  );
 }

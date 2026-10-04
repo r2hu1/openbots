@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Button } from "@openbots/ui/components/button"
+import { Button } from "@openbots/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -8,23 +8,23 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@openbots/ui/components/dialog"
-import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field"
-import { Input } from "@openbots/ui/components/input"
+} from "@openbots/ui/components/dialog";
+import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field";
+import { Input } from "@openbots/ui/components/input";
 import {
   NativeSelect,
   NativeSelectOptGroup,
   NativeSelectOption,
-} from "@openbots/ui/components/native-select"
-import { Spinner } from "@openbots/ui/components/spinner"
-import { Textarea } from "@openbots/ui/components/textarea"
-import * as React from "react"
-import { useAvailableModelsQuery, useCreateAgentMutation } from "../queries"
+} from "@openbots/ui/components/native-select";
+import { Spinner } from "@openbots/ui/components/spinner";
+import { Textarea } from "@openbots/ui/components/textarea";
+import * as React from "react";
+import { useAvailableModelsQuery, useCreateAgentMutation } from "../queries";
 
 interface CreateAgentDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onAgentCreated: (agentId: string) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAgentCreated: (agentId: string) => void;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -35,41 +35,41 @@ const PROVIDER_LABELS: Record<string, string> = {
   groq: "Groq",
   xai: "xAI Grok",
   openrouter: "OpenRouter",
-}
+};
 
 export function CreateAgentDialog({
   open,
   onOpenChange,
   onAgentCreated,
 }: CreateAgentDialogProps) {
-  const { data: availableModels = [] } = useAvailableModelsQuery(open)
+  const { data: availableModels = [] } = useAvailableModelsQuery(open);
 
-  const [name, setName] = React.useState("")
-  const [description, setDescription] = React.useState("")
+  const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
   const [instructions, setInstructions] = React.useState(
-    "You are a helpful assistant. Use tools when helpful to answer questions."
-  )
-  const [model, setModel] = React.useState("google/gemini-2.5-flash")
-  const [maxSteps, setMaxSteps] = React.useState(25)
-  const [autonomy, _setAutonomy] = React.useState<"manual">("manual")
-  const [error, setError] = React.useState<string | null>(null)
+    "You are a helpful assistant. Use tools when helpful to answer questions.",
+  );
+  const [model, setModel] = React.useState("google/gemini-2.5-flash");
+  const [maxSteps, setMaxSteps] = React.useState(25);
+  const [autonomy, _setAutonomy] = React.useState<"manual">("manual");
+  const [error, setError] = React.useState<string | null>(null);
 
   const createMutation = useCreateAgentMutation({
     onSuccess: (newId) => {
-      onOpenChange(false)
-      setName("")
-      setDescription("")
-      onAgentCreated(newId)
+      onOpenChange(false);
+      setName("");
+      setDescription("");
+      onAgentCreated(newId);
     },
-  })
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!name.trim()) {
-      setError("Agent name is required.")
-      return
+      setError("Agent name is required.");
+      return;
     }
-    setError(null)
+    setError(null);
     createMutation.mutate(
       {
         name: name.trim(),
@@ -81,45 +81,45 @@ export function CreateAgentDialog({
       },
       {
         onError: (err) => {
-          setError(err.message)
+          setError(err.message);
         },
-      }
-    )
-  }
+      },
+    );
+  };
 
   const [selectedProvider, setSelectedProvider] =
-    React.useState<string>("google")
+    React.useState<string>("google");
 
   // Group models by provider
   const modelsByProvider = React.useMemo(() => {
-    const groups: Record<string, typeof availableModels> = {}
+    const groups: Record<string, typeof availableModels> = {};
     for (const m of availableModels) {
-      const p = m.provider || m.id.split("/")[0] || "other"
-      if (!groups[p]) groups[p] = []
-      groups[p].push(m)
+      const p = m.provider || m.id.split("/")[0] || "other";
+      if (!groups[p]) groups[p] = [];
+      groups[p].push(m);
     }
-    return groups
-  }, [availableModels])
+    return groups;
+  }, [availableModels]);
 
-  const providerKeys = Object.keys(modelsByProvider)
+  const providerKeys = Object.keys(modelsByProvider);
 
   // Sync selected provider when available providers load
   React.useEffect(() => {
     if (providerKeys.length > 0 && !modelsByProvider[selectedProvider]) {
-      setSelectedProvider(providerKeys[0] || "")
+      setSelectedProvider(providerKeys[0] || "");
     }
-  }, [providerKeys, selectedProvider, modelsByProvider])
+  }, [providerKeys, selectedProvider, modelsByProvider]);
 
   // Sync model when selectedProvider or models change
-  const currentProviderModels = modelsByProvider[selectedProvider] || []
+  const currentProviderModels = modelsByProvider[selectedProvider] || [];
   React.useEffect(() => {
     if (currentProviderModels.length > 0) {
-      const hasCurrent = currentProviderModels.some((m) => m.id === model)
+      const hasCurrent = currentProviderModels.some((m) => m.id === model);
       if (!hasCurrent && currentProviderModels[0]) {
-        setModel(currentProviderModels[0].id)
+        setModel(currentProviderModels[0].id);
       }
     }
-  }, [selectedProvider, currentProviderModels, model])
+  }, [selectedProvider, currentProviderModels, model]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -190,10 +190,10 @@ export function CreateAgentDialog({
                     id="provider"
                     value={selectedProvider}
                     onChange={(e) => {
-                      const newP = e.target.value
-                      setSelectedProvider(newP)
-                      const firstModel = modelsByProvider[newP]?.[0]?.id
-                      if (firstModel) setModel(firstModel)
+                      const newP = e.target.value;
+                      setSelectedProvider(newP);
+                      const firstModel = modelsByProvider[newP]?.[0]?.id;
+                      if (firstModel) setModel(firstModel);
                     }}
                     className="w-full text-xs"
                   >
@@ -252,5 +252,5 @@ export function CreateAgentDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

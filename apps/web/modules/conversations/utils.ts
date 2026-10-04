@@ -33,7 +33,10 @@ export function formatMsgTime(dateVal: string | Date): string {
  * If text contains code blocks or openbots-artifacts, it preserves them intact.
  * Breaks on paragraph doubles (\n\n+) or major section breaks when text exceeds threshold.
  */
-export function splitIntoMessageParts(text: string, minChunkLength = 250): string[] {
+export function splitIntoMessageParts(
+  text: string,
+  minChunkLength = 250,
+): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
 

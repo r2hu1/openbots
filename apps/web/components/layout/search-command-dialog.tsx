@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   CommandDialog,
@@ -9,10 +9,11 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from "@openbots/ui/components/command"
-import { Blobatar } from "@openbots/ui/components/ui/blobatar"
-import { useRouter } from "next/navigation"
-import * as React from "react"
+} from "@openbots/ui/components/command";
+import { Blobatar } from "@openbots/ui/components/ui/blobatar";
+import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import * as React from "react";
 import {
   Check,
   Devices,
@@ -26,20 +27,19 @@ import {
   Setting,
   Sun2,
   User,
-} from "reicon-react"
-import { useTheme } from "next-themes"
-import { useDebounce } from "@/hooks/use-debounce"
-import { signOut } from "@/lib/auth-client"
-import type { Agent } from "@/modules/agents/types"
-import { useTimelineSearchQuery } from "@/modules/conversations/queries"
+} from "reicon-react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { signOut } from "@/lib/auth-client";
+import type { Agent } from "@/modules/agents/types";
+import { useTimelineSearchQuery } from "@/modules/conversations/queries";
 
 interface SearchCommandDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  agents: Agent[]
-  onOpenCreateAgent?: () => void
-  onOpenSettings?: () => void
-  onOpenConnections?: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  agents: Agent[];
+  onOpenCreateAgent?: () => void;
+  onOpenSettings?: () => void;
+  onOpenConnections?: () => void;
 }
 
 export function SearchCommandDialog({
@@ -50,51 +50,51 @@ export function SearchCommandDialog({
   onOpenSettings,
   onOpenConnections,
 }: SearchCommandDialogProps) {
-  const router = useRouter()
-  const { theme, setTheme } = useTheme()
-  const [search, setSearch] = React.useState("")
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const [search, setSearch] = React.useState("");
 
   // Debounce search query to safeguard database from high query frequency
-  const debouncedSearch = useDebounce(search.trim(), 280)
+  const debouncedSearch = useDebounce(search.trim(), 280);
 
   // Remote full-text search across conversation messages
   const { data: timelineResults = [], isFetching: isSearchingTimeline } =
-    useTimelineSearchQuery(debouncedSearch, open)
+    useTimelineSearchQuery(debouncedSearch, open);
 
   const handleSelect = React.useCallback(
     (action: () => void) => {
-      onOpenChange(false)
-      setSearch("")
-      action()
+      onOpenChange(false);
+      setSearch("");
+      action();
     },
-    [onOpenChange]
-  )
+    [onOpenChange],
+  );
 
   const navigateToMessage = React.useCallback(
     (agentId: string, conversationId: string, messageId: string) => {
       handleSelect(() => {
-        const targetUrl = `/agent/${agentId}?conversationId=${conversationId}#message-${messageId}`
-        router.push(targetUrl)
+        const targetUrl = `/agent/${agentId}?conversationId=${conversationId}#message-${messageId}`;
+        router.push(targetUrl);
 
         if (typeof window !== "undefined") {
-          window.location.hash = `message-${messageId}`
+          window.location.hash = `message-${messageId}`;
           window.dispatchEvent(
             new CustomEvent("openbots:navigate-message", {
               detail: { agentId, conversationId, messageId },
-            })
-          )
+            }),
+          );
         }
-      })
+      });
     },
-    [handleSelect, router]
-  )
+    [handleSelect, router],
+  );
 
   return (
     <CommandDialog
       open={open}
       onOpenChange={(nextOpen) => {
-        onOpenChange(nextOpen)
-        if (!nextOpen) setSearch("")
+        onOpenChange(nextOpen);
+        if (!nextOpen) setSearch("");
       }}
       title="Search and Navigation"
       description="Quickly jump between agents, pages, commands, and chat history."
@@ -113,9 +113,9 @@ export function SearchCommandDialog({
         {timelineResults.length > 0 && (
           <CommandGroup heading="Chat Timeline Messages">
             {timelineResults.map((item) => {
-              const matchedAgent = agents.find((a) => a.id === item.agentId)
-              const agentLabel = matchedAgent?.name || "Agent"
-              const agentRole = matchedAgent?.description
+              const matchedAgent = agents.find((a) => a.id === item.agentId);
+              const agentLabel = matchedAgent?.name || "Agent";
+              const agentRole = matchedAgent?.description;
               return (
                 <CommandItem
                   key={`timeline-${item.messageId}`}
@@ -124,7 +124,7 @@ export function SearchCommandDialog({
                     navigateToMessage(
                       item.agentId,
                       item.conversationId,
-                      item.messageId
+                      item.messageId,
                     )
                   }
                   className="flex items-start gap-2.5 py-2"
@@ -142,7 +142,7 @@ export function SearchCommandDialog({
                     </p>
                   </div>
                 </CommandItem>
-              )
+              );
             })}
           </CommandGroup>
         )}
@@ -155,7 +155,7 @@ export function SearchCommandDialog({
               value={`agent ${agent.name} ${agent.description || ""}`}
               onSelect={() =>
                 handleSelect(() => {
-                  router.push(`/agent/${agent.id}`)
+                  router.push(`/agent/${agent.id}`);
                 })
               }
               className="relative"
@@ -251,8 +251,8 @@ export function SearchCommandDialog({
             value="log out sign out exit account"
             onSelect={() =>
               handleSelect(async () => {
-                await signOut()
-                router.replace("/login")
+                await signOut();
+                router.replace("/login");
               })
             }
           >
@@ -262,5 +262,5 @@ export function SearchCommandDialog({
         </CommandGroup>
       </CommandList>
     </CommandDialog>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   AlertDialog,
@@ -10,27 +10,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@openbots/ui/components/alert-dialog"
-import { Avatar, AvatarFallback } from "@openbots/ui/components/avatar"
-import { Badge } from "@openbots/ui/components/badge"
-import { Button } from "@openbots/ui/components/button"
-import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field"
-import { Input } from "@openbots/ui/components/input"
+} from "@openbots/ui/components/alert-dialog";
+import { Avatar, AvatarFallback } from "@openbots/ui/components/avatar";
+import { Badge } from "@openbots/ui/components/badge";
+import { Button } from "@openbots/ui/components/button";
+import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field";
+import { Input } from "@openbots/ui/components/input";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@openbots/ui/components/sheet"
-import { Spinner } from "@openbots/ui/components/spinner"
-import { Switch } from "@openbots/ui/components/switch"
+} from "@openbots/ui/components/sheet";
+import { Spinner } from "@openbots/ui/components/spinner";
+import { Switch } from "@openbots/ui/components/switch";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@openbots/ui/components/tabs"
+} from "@openbots/ui/components/tabs";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTheme } from "next-themes";
+import * as React from "react";
 import {
   Check as IconCheck,
   Devices as IconDeviceLaptop,
@@ -48,23 +51,26 @@ import {
   Sun as IconSun,
   Trash as IconTrash,
   User as IconUser,
-} from "reicon-react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTheme } from "next-themes"
-import * as React from "react"
-import { authClient, signOut, useSession } from "@/lib/auth-client"
-import { cn } from "@/lib/utils"
+} from "reicon-react";
+import { authClient, signOut, useSession } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
 export type SupportedLlmProvider =
-  "openai" | "anthropic" | "openrouter" | "google" | "groq" | "xai" | "deepseek"
+  | "openai"
+  | "anthropic"
+  | "openrouter"
+  | "google"
+  | "groq"
+  | "xai"
+  | "deepseek";
 
 export interface ProviderKeyMeta {
-  provider: SupportedLlmProvider
-  name: string
-  description: string
-  docsUrl: string
-  placeholder: string
-  envFallbackName: string
+  provider: SupportedLlmProvider;
+  name: string;
+  description: string;
+  docsUrl: string;
+  placeholder: string;
+  envFallbackName: string;
 }
 
 export const LLM_PROVIDERS: ProviderKeyMeta[] = [
@@ -125,88 +131,88 @@ export const LLM_PROVIDERS: ProviderKeyMeta[] = [
     placeholder: "sk-...",
     envFallbackName: "DEEPSEEK_API_KEY",
   },
-]
+];
 
 interface ConfiguredKeyInfo {
-  provider: SupportedLlmProvider
-  keyHint?: string
-  updatedAt?: string | Date
+  provider: SupportedLlmProvider;
+  keyHint?: string;
+  updatedAt?: string | Date;
 }
 
 interface ActiveSessionItem {
-  id: string
-  token?: string
-  createdAt: string | Date
-  expiresAt: string | Date
-  userAgent?: string | null
-  ipAddress?: string | null
+  id: string;
+  token?: string;
+  createdAt: string | Date;
+  expiresAt: string | Date;
+  userAgent?: string | null;
+  ipAddress?: string | null;
 }
 
-type SettingsTab = "general" | "account" | "keys" | "security" | "sessions"
+type SettingsTab = "general" | "account" | "keys" | "security" | "sessions";
 
 interface SettingsSheetProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-type Feedback = { type: "success" | "error"; message: string }
+type Feedback = { type: "success" | "error"; message: string };
 
-const NO_KEYS: Record<string, ConfiguredKeyInfo> = {}
-const NO_SESSIONS: ActiveSessionItem[] = []
+const NO_KEYS: Record<string, ConfiguredKeyInfo> = {};
+const NO_SESSIONS: ActiveSessionItem[] = [];
 
 const NAV_ITEMS: Array<{
-  id: SettingsTab
-  label: string
-  icon: React.ComponentType<{ className?: string }>
+  id: SettingsTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
 }> = [
   { id: "general", label: "General", icon: IconSettings },
   { id: "account", label: "Account", icon: IconUser },
   { id: "keys", label: "API keys", icon: IconKey },
   { id: "security", label: "Security", icon: IconShield },
   { id: "sessions", label: "Sessions", icon: IconDevices },
-]
+];
 
 const SCROLL_CLASS =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
   "[scrollbar-gutter:stable] [scrollbar-width:thin] " +
-  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]"
+  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]";
 
 const DESTRUCTIVE_ACTION_CLASS =
-  "text-destructive-foreground bg-destructive hover:bg-destructive/90"
+  "text-destructive-foreground bg-destructive hover:bg-destructive/90";
 
 function useStoredBoolean(key: string, initial: boolean) {
-  const [value, setValue] = React.useState(initial)
+  const [value, setValue] = React.useState(initial);
 
   React.useEffect(() => {
     try {
-      const stored = localStorage.getItem(key)
-      if (stored !== null) setValue(stored === "true")
+      const stored = localStorage.getItem(key);
+      if (stored !== null) setValue(stored === "true");
     } catch {}
-  }, [key])
+  }, [key]);
 
   const update = React.useCallback(
     (next: boolean) => {
-      setValue(next)
+      setValue(next);
       try {
-        localStorage.setItem(key, String(next))
+        localStorage.setItem(key, String(next));
       } catch {}
     },
-    [key]
-  )
+    [key],
+  );
 
-  return [value, update] as const
+  return [value, update] as const;
 }
 
 function useAutoClear(value: Feedback | null, clear: () => void, delay = 3000) {
   React.useEffect(() => {
-    if (!value) return
-    const id = setTimeout(clear, delay)
-    return () => clearTimeout(id)
-  }, [value, clear, delay])
+    if (!value) return;
+    const id = setTimeout(clear, delay);
+    return () => clearTimeout(id);
+  }, [value, clear, delay]);
 }
 
 function describeDevice(ua?: string | null) {
-  if (!ua) return { label: "Web session", mobile: false }
+  if (!ua) return { label: "Web session", mobile: false };
   const browser = /Edg\//.test(ua)
     ? "Edge"
     : /Firefox\//.test(ua)
@@ -215,7 +221,7 @@ function describeDevice(ua?: string | null) {
         ? "Chrome"
         : /Safari\//.test(ua)
           ? "Safari"
-          : "Browser"
+          : "Browser";
   const os = /iPhone|iPad|iOS/.test(ua)
     ? "iOS"
     : /Android/.test(ua)
@@ -226,11 +232,11 @@ function describeDevice(ua?: string | null) {
           ? "Windows"
           : /Linux/.test(ua)
             ? "Linux"
-            : null
+            : null;
   return {
     label: os ? `${browser} on ${os}` : browser,
     mobile: /iPhone|Android|Mobile/.test(ua),
-  }
+  };
 }
 
 function getInitials(name?: string | null) {
@@ -241,15 +247,15 @@ function getInitials(name?: string | null) {
       .join("")
       .toUpperCase()
       .slice(0, 2) || "U"
-  )
+  );
 }
 
 function SectionHeader({
   title,
   description,
 }: {
-  title: string
-  description?: string
+  title: string;
+  description?: string;
 }) {
   return (
     <div className="space-y-1">
@@ -258,45 +264,45 @@ function SectionHeader({
         <p className="text-sm text-muted-foreground">{description}</p>
       )}
     </div>
-  )
+  );
 }
 
 function GroupLabel({
   children,
   className,
 }: {
-  children: React.ReactNode
-  className?: string
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <h3
       className={cn(
         "mb-2 text-xs font-medium text-muted-foreground",
-        className
+        className,
       )}
     >
       {children}
     </h3>
-  )
+  );
 }
 
 function Panel({
   children,
   className,
 }: {
-  children: React.ReactNode
-  className?: string
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <div
       className={cn(
         "divide-y divide-border overflow-hidden rounded-xl border border-border",
-        className
+        className,
       )}
     >
       {children}
     </div>
-  )
+  );
 }
 
 function SettingRow({
@@ -304,9 +310,9 @@ function SettingRow({
   description,
   children,
 }: {
-  title: string
-  description?: string
-  children: React.ReactNode
+  title: string;
+  description?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-3.5">
@@ -320,15 +326,15 @@ function SettingRow({
       </div>
       <div className="shrink-0">{children}</div>
     </div>
-  )
+  );
 }
 
 function StatusMessage({
   type,
   children,
 }: {
-  type: "success" | "error"
-  children: React.ReactNode
+  type: "success" | "error";
+  children: React.ReactNode;
 }) {
   return (
     <div
@@ -336,30 +342,30 @@ function StatusMessage({
         "rounded-lg border px-3 py-2 text-xs",
         type === "success"
           ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          : "border-destructive/20 bg-destructive/5 text-destructive"
+          : "border-destructive/20 bg-destructive/5 text-destructive",
       )}
     >
       {children}
     </div>
-  )
+  );
 }
 
 const THEME_OPTIONS = [
   { id: "light", label: "Light", icon: IconSun },
   { id: "dark", label: "Dark", icon: IconMoon },
   { id: "system", label: "System", icon: IconDeviceLaptop },
-] as const
+] as const;
 
 function GeneralSection() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme();
   const [autoScroll, setAutoScroll] = useStoredBoolean(
     "openbots:auto-scroll",
-    true
-  )
+    true,
+  );
   const [audioCues, setAudioCues] = useStoredBoolean(
     "openbots:audio-cues",
-    true
-  )
+    true,
+  );
 
   return (
     <>
@@ -381,7 +387,7 @@ function GeneralSection() {
                 "flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 theme === id
                   ? "border-foreground/80 bg-muted text-foreground"
-                  : "border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground",
               )}
             >
               <Icon className="size-5" />
@@ -409,71 +415,71 @@ function GeneralSection() {
         </Panel>
       </div>
     </>
-  )
+  );
 }
 
 function AccountSection({ onClose }: { onClose: () => void }) {
-  const { data: session, refetch } = useSession()
-  const [name, setName] = React.useState(session?.user?.name ?? "")
-  const [saving, setSaving] = React.useState(false)
-  const [feedback, setFeedback] = React.useState<Feedback | null>(null)
-  const [confirmText, setConfirmText] = React.useState("")
-  const [deleting, setDeleting] = React.useState(false)
+  const { data: session, refetch } = useSession();
+  const [name, setName] = React.useState(session?.user?.name ?? "");
+  const [saving, setSaving] = React.useState(false);
+  const [feedback, setFeedback] = React.useState<Feedback | null>(null);
+  const [confirmText, setConfirmText] = React.useState("");
+  const [deleting, setDeleting] = React.useState(false);
 
   React.useEffect(() => {
-    setName(session?.user?.name ?? "")
-  }, [session?.user?.name])
+    setName(session?.user?.name ?? "");
+  }, [session?.user?.name]);
 
-  const clearFeedback = React.useCallback(() => setFeedback(null), [])
-  useAutoClear(feedback, clearFeedback, 2500)
+  const clearFeedback = React.useCallback(() => setFeedback(null), []);
+  useAutoClear(feedback, clearFeedback, 2500);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    setSaving(true)
-    setFeedback(null)
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setFeedback(null);
     try {
-      const res = await authClient.updateUser({ name: name.trim() })
+      const res = await authClient.updateUser({ name: name.trim() });
       if (res?.error) {
         setFeedback({
           type: "error",
           message: res.error.message || "Failed to update profile.",
-        })
+        });
       } else {
-        setFeedback({ type: "success", message: "Profile updated." })
-        await refetch()
+        setFeedback({ type: "success", message: "Profile updated." });
+        await refetch();
       }
     } catch (err: unknown) {
       setFeedback({
         type: "error",
         message: (err as Error)?.message || "Failed to update profile.",
-      })
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleSignOut = async () => {
-    onClose()
-    await signOut()
-    window.location.href = "/login"
-  }
+    onClose();
+    await signOut();
+    window.location.href = "/login";
+  };
 
   const handleDeleteAccount = async () => {
-    setDeleting(true)
+    setDeleting(true);
     try {
-      await authClient.deleteUser()
-      onClose()
-      await signOut()
-      window.location.href = "/login"
+      await authClient.deleteUser();
+      onClose();
+      await signOut();
+      window.location.href = "/login";
     } catch (err) {
-      console.error("Failed to delete account:", err)
+      console.error("Failed to delete account:", err);
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
 
-  const unchanged = name.trim() === (session?.user?.name ?? "")
+  const unchanged = name.trim() === (session?.user?.name ?? "");
 
   return (
     <>
@@ -607,7 +613,7 @@ function AccountSection({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </>
-  )
+  );
 }
 
 function ProviderKeyRow({
@@ -615,74 +621,74 @@ function ProviderKeyRow({
   configured,
   onChanged,
 }: {
-  meta: ProviderKeyMeta
-  configured?: ConfiguredKeyInfo
-  onChanged: () => void
+  meta: ProviderKeyMeta;
+  configured?: ConfiguredKeyInfo;
+  onChanged: () => void;
 }) {
-  const [value, setValue] = React.useState("")
-  const [revealed, setRevealed] = React.useState(false)
-  const [saving, setSaving] = React.useState(false)
-  const [deleting, setDeleting] = React.useState(false)
-  const [feedback, setFeedback] = React.useState<Feedback | null>(null)
+  const [value, setValue] = React.useState("");
+  const [revealed, setRevealed] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [feedback, setFeedback] = React.useState<Feedback | null>(null);
 
-  const clearFeedback = React.useCallback(() => setFeedback(null), [])
-  useAutoClear(feedback, clearFeedback)
+  const clearFeedback = React.useCallback(() => setFeedback(null), []);
+  useAutoClear(feedback, clearFeedback);
 
   const handleSave = async () => {
-    const apiKey = value.trim()
-    if (!apiKey) return
-    setSaving(true)
-    setFeedback(null)
+    const apiKey = value.trim();
+    if (!apiKey) return;
+    setSaving(true);
+    setFeedback(null);
     try {
       const res = await fetch("/api/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ provider: meta.provider, apiKey }),
-      })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
         setFeedback({
           type: "error",
           message: data.error || "Failed to save API key.",
-        })
+        });
       } else {
-        setFeedback({ type: "success", message: "Key encrypted and saved." })
-        setValue("")
-        onChanged()
+        setFeedback({ type: "success", message: "Key encrypted and saved." });
+        setValue("");
+        onChanged();
       }
     } catch (err) {
       setFeedback({
         type: "error",
         message: (err as Error)?.message || "Error saving API key.",
-      })
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    setDeleting(true)
+    setDeleting(true);
     try {
       const res = await fetch(`/api/api-keys/${meta.provider}`, {
         method: "DELETE",
         credentials: "include",
-      })
+      });
       if (res.ok) {
-        setFeedback({ type: "success", message: "Key removed." })
-        onChanged()
+        setFeedback({ type: "success", message: "Key removed." });
+        onChanged();
       } else {
-        setFeedback({ type: "error", message: "Failed to remove key." })
+        setFeedback({ type: "error", message: "Failed to remove key." });
       }
     } catch (err) {
       setFeedback({
         type: "error",
         message: (err as Error)?.message || "Failed to remove key.",
-      })
+      });
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-3 px-4 py-4">
@@ -800,30 +806,30 @@ function ProviderKeyRow({
         <StatusMessage type={feedback.type}>{feedback.message}</StatusMessage>
       )}
     </div>
-  )
+  );
 }
 
 function ApiKeysSection() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["api-keys"],
     queryFn: async () => {
-      const res = await fetch("/api/api-keys", { credentials: "include" })
-      if (!res.ok) return NO_KEYS
-      const json = (await res.json()) as { keys?: ConfiguredKeyInfo[] }
-      const map: Record<string, ConfiguredKeyInfo> = {}
-      for (const key of json.keys ?? []) map[key.provider] = key
-      return map
+      const res = await fetch("/api/api-keys", { credentials: "include" });
+      if (!res.ok) return NO_KEYS;
+      const json = (await res.json()) as { keys?: ConfiguredKeyInfo[] };
+      const map: Record<string, ConfiguredKeyInfo> = {};
+      for (const key of json.keys ?? []) map[key.provider] = key;
+      return map;
     },
-  })
+  });
 
-  const configuredKeys = data ?? NO_KEYS
+  const configuredKeys = data ?? NO_KEYS;
 
   const refresh = React.useCallback(
     () => queryClient.invalidateQueries({ queryKey: ["api-keys"] }),
-    [queryClient]
-  )
+    [queryClient],
+  );
 
   return (
     <>
@@ -849,62 +855,62 @@ function ApiKeysSection() {
         </Panel>
       )}
     </>
-  )
+  );
 }
 
 function SecuritySection() {
-  const [currentPassword, setCurrentPassword] = React.useState("")
-  const [newPassword, setNewPassword] = React.useState("")
-  const [confirmPassword, setConfirmPassword] = React.useState("")
-  const [revokeOthers, setRevokeOthers] = React.useState(true)
-  const [saving, setSaving] = React.useState(false)
-  const [feedback, setFeedback] = React.useState<Feedback | null>(null)
+  const [currentPassword, setCurrentPassword] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [revokeOthers, setRevokeOthers] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [feedback, setFeedback] = React.useState<Feedback | null>(null);
 
-  const clearFeedback = React.useCallback(() => setFeedback(null), [])
-  useAutoClear(feedback, clearFeedback)
+  const clearFeedback = React.useCallback(() => setFeedback(null), []);
+  useAutoClear(feedback, clearFeedback);
 
   const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!newPassword || newPassword !== confirmPassword) {
-      setFeedback({ type: "error", message: "New passwords do not match." })
-      return
+      setFeedback({ type: "error", message: "New passwords do not match." });
+      return;
     }
     if (newPassword.length < 8) {
       setFeedback({
         type: "error",
         message: "Password must be at least 8 characters long.",
-      })
-      return
+      });
+      return;
     }
 
-    setSaving(true)
-    setFeedback(null)
+    setSaving(true);
+    setFeedback(null);
     try {
       const res = await authClient.changePassword({
         currentPassword,
         newPassword,
         revokeOtherSessions: revokeOthers,
-      })
+      });
       if (res?.error) {
         setFeedback({
           type: "error",
           message: res.error.message || "Failed to change password.",
-        })
+        });
       } else {
-        setFeedback({ type: "success", message: "Password changed." })
-        setCurrentPassword("")
-        setNewPassword("")
-        setConfirmPassword("")
+        setFeedback({ type: "success", message: "Password changed." });
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       }
     } catch (err: unknown) {
       setFeedback({
         type: "error",
         message: (err as Error)?.message || "Failed to change password.",
-      })
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <>
@@ -978,42 +984,42 @@ function SecuritySection() {
         </Button>
       </form>
     </>
-  )
+  );
 }
 
 function SessionsSection() {
-  const queryClient = useQueryClient()
-  const { data: session } = useSession()
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   const { data, isLoading } = useQuery({
     queryKey: ["auth-sessions"],
     queryFn: async () => {
-      const res = await authClient.listSessions()
+      const res = await authClient.listSessions();
       return Array.isArray(res?.data)
         ? (res.data as ActiveSessionItem[])
-        : NO_SESSIONS
+        : NO_SESSIONS;
     },
-  })
+  });
 
-  const sessions = data ?? NO_SESSIONS
+  const sessions = data ?? NO_SESSIONS;
   const currentId = (session as { session?: { id?: string } } | null)?.session
-    ?.id
+    ?.id;
 
   const revokeMutation = useMutation({
     mutationFn: async (token: string) => {
-      await authClient.revokeSession({ token })
+      await authClient.revokeSession({ token });
     },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["auth-sessions"] }),
-  })
+  });
 
   const revokeOthersMutation = useMutation({
     mutationFn: async () => {
-      await authClient.revokeOtherSessions()
+      await authClient.revokeOtherSessions();
     },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["auth-sessions"] }),
-  })
+  });
 
   return (
     <>
@@ -1050,14 +1056,15 @@ function SessionsSection() {
       ) : (
         <Panel>
           {sessions.map((s, idx) => {
-            const isCurrent = currentId ? currentId === s.id : idx === 0
-            const device = describeDevice(s.userAgent)
+            const isCurrent = currentId ? currentId === s.id : idx === 0;
+            const device = describeDevice(s.userAgent);
             const DeviceIcon = device.mobile
               ? IconDeviceMobile
-              : IconDeviceLaptop
-            const revokeKey = s.token ?? s.id
+              : IconDeviceLaptop;
+            const revokeKey = s.token ?? s.id;
             const revoking =
-              revokeMutation.isPending && revokeMutation.variables === revokeKey
+              revokeMutation.isPending &&
+              revokeMutation.variables === revokeKey;
 
             return (
               <div key={s.id} className="flex items-center gap-3 px-4 py-3.5">
@@ -1098,19 +1105,19 @@ function SessionsSection() {
                   </Button>
                 )}
               </div>
-            )
+            );
           })}
         </Panel>
       )}
     </>
-  )
+  );
 }
 
-const CONTENT_CLASS = "w-full space-y-8 p-6 outline-none"
+const CONTENT_CLASS = "w-full space-y-8 p-6 outline-none";
 
 export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
-  const [activeTab, setActiveTab] = React.useState<SettingsTab>("general")
-  const close = React.useCallback(() => onOpenChange(false), [onOpenChange])
+  const [activeTab, setActiveTab] = React.useState<SettingsTab>("general");
+  const close = React.useCallback(() => onOpenChange(false), [onOpenChange]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1158,5 +1165,5 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
         </Tabs>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

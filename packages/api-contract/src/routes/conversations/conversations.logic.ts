@@ -173,12 +173,7 @@ export async function toggleMessageReaction(
     })
     .from(messages)
     .innerJoin(conversations, eq(messages.conversationId, conversations.id))
-    .where(
-      and(
-        eq(messages.id, messageId),
-        eq(conversations.userId, userId),
-      ),
-    );
+    .where(and(eq(messages.id, messageId), eq(conversations.userId, userId)));
 
   if (!msg) {
     return { error: "Message not found", status: 404 as const };
@@ -223,4 +218,3 @@ export async function toggleMessageReaction(
     status: 200 as const,
   };
 }
-

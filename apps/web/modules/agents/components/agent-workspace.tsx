@@ -1,93 +1,93 @@
-"use client"
+"use client";
 
-import { SidebarInset } from "@openbots/ui/components/sidebar"
-import { useQueryClient } from "@tanstack/react-query"
-import { IconPlus } from "@tabler/icons-react"
-import dynamic from "next/dynamic"
-import { useRouter } from "next/navigation"
-import * as React from "react"
-import { EmptyState } from "@/components/shared/empty-state"
-import { LoadingState } from "@/components/shared/loading-state"
-import { AgentHeader } from "@/modules/agents/components/agent-header"
-import { useAgentExecution } from "@/modules/agents/hooks/use-agent-execution"
-import { useAgentsQuery } from "@/modules/agents/queries"
-import type { ParsedArtifact } from "@/modules/artifacts/parser"
-import { ConversationTimeline } from "@/modules/conversations/components/conversation-timeline"
-import { InputComposer } from "@/modules/conversations/components/input-composer"
-import { useReconciledMessages } from "@/modules/conversations/hooks/use-reconciled-messages"
+import { SidebarInset } from "@openbots/ui/components/sidebar";
+import { useHotkey } from "@openbots/ui/hooks/use-hotkey";
+import { IconPlus } from "@tabler/icons-react";
+import { useQueryClient } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { EmptyState } from "@/components/shared/empty-state";
+import { LoadingState } from "@/components/shared/loading-state";
+import { AgentHeader } from "@/modules/agents/components/agent-header";
+import { useAgentExecution } from "@/modules/agents/hooks/use-agent-execution";
+import { useAgentsQuery } from "@/modules/agents/queries";
+import type { ParsedArtifact } from "@/modules/artifacts/parser";
+import { ConversationTimeline } from "@/modules/conversations/components/conversation-timeline";
+import { InputComposer } from "@/modules/conversations/components/input-composer";
+import { useReconciledMessages } from "@/modules/conversations/hooks/use-reconciled-messages";
 import {
   useConversationsQuery,
   useInfiniteConversationDetailQuery,
   useToggleMessageReactionMutation,
-} from "@/modules/conversations/queries"
-import type { ReplyTarget } from "@/modules/conversations/types"
-import { useHotkey } from "@openbots/ui/hooks/use-hotkey"
+} from "@/modules/conversations/queries";
+import type { ReplyTarget } from "@/modules/conversations/types";
 
 const ConfigureAgentSheet = dynamic(
   () =>
     import("@/modules/agents/components/configure-agent-sheet").then(
-      (m) => m.ConfigureAgentSheet
+      (m) => m.ConfigureAgentSheet,
     ),
-  { ssr: false }
-)
+  { ssr: false },
+);
 const CreateAgentDialog = dynamic(
   () =>
     import("@/modules/agents/components/create-agent-dialog").then(
-      (m) => m.CreateAgentDialog
+      (m) => m.CreateAgentDialog,
     ),
-  { ssr: false }
-)
+  { ssr: false },
+);
 const ArtifactSheet = dynamic(
   () =>
     import("@/modules/artifacts/artifact-sheet").then((m) => m.ArtifactSheet),
-  { ssr: false }
-)
+  { ssr: false },
+);
 const ConnectionsSheet = dynamic(
   () =>
     import("@/modules/connections/components/connections-sheet").then(
-      (m) => m.ConnectionsSheet
+      (m) => m.ConnectionsSheet,
     ),
-  { ssr: false }
-)
+  { ssr: false },
+);
 const RunHistorySheet = dynamic(
   () =>
     import("@/modules/runs/components/run-history-sheet").then(
-      (m) => m.RunHistorySheet
+      (m) => m.RunHistorySheet,
     ),
-  { ssr: false }
-)
+  { ssr: false },
+);
 
 function useIdleReady() {
-  const [ready, setReady] = React.useState(false)
+  const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof window.requestIdleCallback === "function") {
       const id = window.requestIdleCallback(() => setReady(true), {
         timeout: 2000,
-      })
-      return () => window.cancelIdleCallback(id)
+      });
+      return () => window.cancelIdleCallback(id);
     }
-    const id = window.setTimeout(() => setReady(true), 200)
-    return () => window.clearTimeout(id)
-  }, [])
+    const id = window.setTimeout(() => setReady(true), 200);
+    return () => window.clearTimeout(id);
+  }, []);
 
-  return ready
+  return ready;
 }
 
 function useMountedOnce(open: boolean) {
-  const mounted = React.useRef(false)
-  if (open) mounted.current = true
-  return mounted.current
+  const mounted = React.useRef(false);
+  if (open) mounted.current = true;
+  return mounted.current;
 }
 
-const MemoHeader = React.memo(AgentHeader)
-const MemoTimeline = React.memo(ConversationTimeline)
-const MemoComposer = React.memo(InputComposer)
+const MemoHeader = React.memo(AgentHeader);
+const MemoTimeline = React.memo(ConversationTimeline);
+const MemoComposer = React.memo(InputComposer);
 
 interface ChatPaneProps {
-  agentId: string
-  agentName: string
-  onOpenArtifact: (artifact: ParsedArtifact) => void
+  agentId: string;
+  agentName: string;
+  onOpenArtifact: (artifact: ParsedArtifact) => void;
 }
 
 const ChatPane = React.memo(function ChatPane({
@@ -99,44 +99,46 @@ const ChatPane = React.memo(function ChatPane({
     string | null
   >(() => {
     if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search)
-      return urlParams.get("conversationId")
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get("conversationId");
     }
-    return null
-  })
+    return null;
+  });
 
   React.useEffect(() => {
     const handleNavigate = (event: Event) => {
       const customEvent = event as CustomEvent<{
-        agentId: string
-        conversationId?: string
-        messageId?: string
-      }>
+        agentId: string;
+        conversationId?: string;
+        messageId?: string;
+      }>;
       if (
         customEvent.detail?.agentId === agentId &&
         customEvent.detail?.conversationId
       ) {
-        setSelectedConversationId(customEvent.detail.conversationId)
+        setSelectedConversationId(customEvent.detail.conversationId);
       }
-    }
+    };
 
-    window.addEventListener("openbots:navigate-message", handleNavigate)
+    window.addEventListener("openbots:navigate-message", handleNavigate);
     return () => {
-      window.removeEventListener("openbots:navigate-message", handleNavigate)
-    }
-  }, [agentId])
+      window.removeEventListener("openbots:navigate-message", handleNavigate);
+    };
+  }, [agentId]);
 
-  const [replyTarget, setReplyTarget] = React.useState<ReplyTarget | null>(null)
+  const [replyTarget, setReplyTarget] = React.useState<ReplyTarget | null>(
+    null,
+  );
 
   const { data: conversationsData, isLoading: isLoadingConversations } =
-    useConversationsQuery(agentId)
+    useConversationsQuery(agentId);
   const conversations = React.useMemo(
     () => conversationsData ?? [],
-    [conversationsData]
-  )
+    [conversationsData],
+  );
 
   const activeConversationId =
-    selectedConversationId ?? conversations[0]?.id ?? null
+    selectedConversationId ?? conversations[0]?.id ?? null;
 
   const {
     activeRun,
@@ -155,12 +157,12 @@ const ChatPane = React.memo(function ChatPane({
     agentId,
     activeConversationId,
     onConversationCreated: setSelectedConversationId,
-  })
+  });
 
   const isPolling =
     isOptimisticRunning ||
     activeRun?.status === "running" ||
-    activeRun?.status === "queued"
+    activeRun?.status === "queued";
 
   const {
     data: conversationInfiniteData,
@@ -170,22 +172,22 @@ const ChatPane = React.memo(function ChatPane({
     fetchNextPage,
   } = useInfiniteConversationDetailQuery(activeConversationId, {
     refetchInterval: isPolling ? 800 : false,
-  })
+  });
 
   // Combine pages: older pages are fetched later and prepend to the timeline
   const serverMessages = React.useMemo(() => {
-    if (!conversationInfiniteData?.pages) return []
+    if (!conversationInfiniteData?.pages) return [];
     // Pages are in order [page0, page1, ...], where page0 is newest, page1 is older.
     // Each page's messages are already chronological (oldest to newest).
     // So to display oldest -> newest overall: [...pageN.messages, ..., page0.messages]
-    const pages = [...conversationInfiniteData.pages].reverse()
-    return pages.flatMap((p) => p.messages ?? [])
-  }, [conversationInfiniteData?.pages])
+    const pages = [...conversationInfiniteData.pages].reverse();
+    return pages.flatMap((p) => p.messages ?? []);
+  }, [conversationInfiniteData?.pages]);
 
   const clearOptimistic = React.useCallback(
     () => setOptimisticMessages([]),
-    [setOptimisticMessages]
-  )
+    [setOptimisticMessages],
+  );
 
   const messages = useReconciledMessages({
     serverMessages,
@@ -193,10 +195,11 @@ const ChatPane = React.memo(function ChatPane({
     activeRun,
     activeConversationId,
     onClearOptimistic: clearOptimistic,
-  })
+  });
 
-  const queryClient = useQueryClient()
-  const toggleReactionMutation = useToggleMessageReactionMutation(activeConversationId)
+  const queryClient = useQueryClient();
+  const toggleReactionMutation =
+    useToggleMessageReactionMutation(activeConversationId);
 
   const handleToggleReaction = React.useCallback(
     (messageId: string, emoji: string) => {
@@ -207,22 +210,22 @@ const ChatPane = React.memo(function ChatPane({
             if (activeConversationId) {
               queryClient.invalidateQueries({
                 queryKey: ["conversation", activeConversationId],
-              })
+              });
             }
           },
-        }
-      )
+        },
+      );
     },
-    [activeConversationId, toggleReactionMutation, queryClient]
-  )
+    [activeConversationId, toggleReactionMutation, queryClient],
+  );
 
   const isChatLoading =
     !isOptimisticRunning &&
     optimisticMessages.length === 0 &&
     (isLoadingConversations ||
-      (activeConversationId !== null && isLoadingMessages))
+      (activeConversationId !== null && isLoadingMessages));
 
-  const placeholder = `Message ${agentName}...`
+  const placeholder = `Message ${agentName}...`;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -240,7 +243,7 @@ const ChatPane = React.memo(function ChatPane({
         isLoadingOlder={isLoadingOlder}
         onLoadOlderMessages={() => {
           if (hasOlderMessages && !isLoadingOlder) {
-            fetchNextPage()
+            fetchNextPage();
           }
         }}
         executionError={executionError}
@@ -260,73 +263,77 @@ const ChatPane = React.memo(function ChatPane({
         onClearReply={() => setReplyTarget(null)}
       />
     </div>
-  )
-})
+  );
+});
 
 interface AgentWorkspaceProps {
-  initialAgentId?: string
+  initialAgentId?: string;
 }
 
 export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
-  const router = useRouter()
+  const router = useRouter();
 
-  const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
-  const [configureSheetOpen, setConfigureSheetOpen] = React.useState(false)
-  const [historySheetOpen, setHistorySheetOpen] = React.useState(false)
-  const [connectionsSheetOpen, setConnectionsSheetOpen] = React.useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [configureSheetOpen, setConfigureSheetOpen] = React.useState(false);
+  const [historySheetOpen, setHistorySheetOpen] = React.useState(false);
+  const [connectionsSheetOpen, setConnectionsSheetOpen] = React.useState(false);
   const [inspectedRunId, setInspectedRunId] = React.useState<string | null>(
-    null
-  )
+    null,
+  );
   const [selectedArtifact, setSelectedArtifact] =
-    React.useState<ParsedArtifact | null>(null)
+    React.useState<ParsedArtifact | null>(null);
 
-  const lastArtifact = React.useRef<ParsedArtifact | null>(null)
-  if (selectedArtifact) lastArtifact.current = selectedArtifact
+  const lastArtifact = React.useRef<ParsedArtifact | null>(null);
+  if (selectedArtifact) lastArtifact.current = selectedArtifact;
 
-  const { data: agentsData, isLoading: isLoadingAgents } = useAgentsQuery()
-  const agents = React.useMemo(() => agentsData ?? [], [agentsData])
+  const { data: agentsData, isLoading: isLoadingAgents } = useAgentsQuery();
+  const agents = React.useMemo(() => agentsData ?? [], [agentsData]);
 
-  const selectedAgentId = initialAgentId ?? agents[0]?.id ?? null
+  const selectedAgentId = initialAgentId ?? agents[0]?.id ?? null;
   const selectedAgent = React.useMemo(
     () => agents.find((ag) => ag.id === selectedAgentId) ?? null,
-    [agents, selectedAgentId]
-  )
+    [agents, selectedAgentId],
+  );
 
   React.useEffect(() => {
     if (!initialAgentId && agents[0]?.id) {
-      router.replace(`/agent/${agents[0].id}`)
+      router.replace(`/agent/${agents[0].id}`);
     }
-  }, [initialAgentId, agents, router])
+  }, [initialAgentId, agents, router]);
 
-  const openConfigure = React.useCallback(() => setConfigureSheetOpen(true), [])
+  const openConfigure = React.useCallback(
+    () => setConfigureSheetOpen(true),
+    [],
+  );
   const openHistory = React.useCallback(() => {
-    setInspectedRunId(null)
-    setHistorySheetOpen(true)
-  }, [])
+    setInspectedRunId(null);
+    setHistorySheetOpen(true);
+  }, []);
   const openConnections = React.useCallback(
     () => setConnectionsSheetOpen(true),
-    []
-  )
-  const openCreate = React.useCallback(() => setCreateDialogOpen(true), [])
-  useHotkey("mod+shift+a", openCreate)
+    [],
+  );
+  const openCreate = React.useCallback(() => setCreateDialogOpen(true), []);
+  useHotkey("mod+shift+a", openCreate);
   const openArtifact = React.useCallback(
     (artifact: ParsedArtifact) => setSelectedArtifact(artifact),
-    []
-  )
+    [],
+  );
   const handleArtifactOpenChange = React.useCallback((open: boolean) => {
-    if (!open) setSelectedArtifact(null)
-  }, [])
+    if (!open) setSelectedArtifact(null);
+  }, []);
   const handleAgentCreated = React.useCallback(
     (newId: string) => router.push(`/agent/${newId}`),
-    [router]
-  )
+    [router],
+  );
 
-  const idleReady = useIdleReady()
-  const createMounted = useMountedOnce(createDialogOpen) || idleReady
-  const configureMounted = useMountedOnce(configureSheetOpen) || idleReady
-  const historyMounted = useMountedOnce(historySheetOpen) || idleReady
-  const connectionsMounted = useMountedOnce(connectionsSheetOpen) || idleReady
-  const artifactMounted = useMountedOnce(Boolean(selectedArtifact)) || idleReady
+  const idleReady = useIdleReady();
+  const createMounted = useMountedOnce(createDialogOpen) || idleReady;
+  const configureMounted = useMountedOnce(configureSheetOpen) || idleReady;
+  const historyMounted = useMountedOnce(historySheetOpen) || idleReady;
+  const connectionsMounted = useMountedOnce(connectionsSheetOpen) || idleReady;
+  const artifactMounted =
+    useMountedOnce(Boolean(selectedArtifact)) || idleReady;
 
   return (
     <>
@@ -402,5 +409,5 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
         />
       )}
     </>
-  )
+  );
 }

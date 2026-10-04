@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { Button } from "@openbots/ui/components/button"
-import { Spinner } from "@openbots/ui/components/spinner"
-import { Textarea } from "@openbots/ui/components/textarea"
-import * as React from "react"
-import type { ReplyTarget } from "../types"
-import { ArrowToDownLeft, ArrowUp, Stop3, X } from "reicon-react"
+import { Button } from "@openbots/ui/components/button";
+import { Spinner } from "@openbots/ui/components/spinner";
+import { Textarea } from "@openbots/ui/components/textarea";
+import * as React from "react";
+import { ArrowToDownLeft, ArrowUp, Stop3, X } from "reicon-react";
+import type { ReplyTarget } from "../types";
 
 interface InputComposerProps {
-  onSend: (prompt: string) => void
-  isSubmitting?: boolean
-  isActiveRun?: boolean
-  onCancelRun?: () => void
-  isCancelling?: boolean
-  placeholder?: string
-  disabled?: boolean
-  replyTarget?: ReplyTarget | null
-  onClearReply?: () => void
+  onSend: (prompt: string) => void;
+  isSubmitting?: boolean;
+  isActiveRun?: boolean;
+  onCancelRun?: () => void;
+  isCancelling?: boolean;
+  placeholder?: string;
+  disabled?: boolean;
+  replyTarget?: ReplyTarget | null;
+  onClearReply?: () => void;
 }
 
 export function InputComposer({
@@ -30,30 +30,30 @@ export function InputComposer({
   replyTarget,
   onClearReply,
 }: InputComposerProps) {
-  const [text, setText] = React.useState("")
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const [text, setText] = React.useState("");
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const isDisabled = disabled || isSubmitting
-  const canSubmit = text.trim().length > 0 && !isDisabled && !isActiveRun
+  const isDisabled = disabled || isSubmitting;
+  const canSubmit = text.trim().length > 0 && !isDisabled && !isActiveRun;
 
   // Auto-resize textarea
   React.useLayoutEffect(() => {
-    const textarea = textareaRef.current
-    if (!textarea) return
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-    textarea.style.height = "auto"
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`
-  }, [text])
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`;
+  }, [text]);
 
   // Press "/" anywhere on the page to focus the composer
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "/") return
-      if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (event.isComposing) return
+      if (event.key !== "/") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.isComposing) return;
 
       // Don't hijack "/" while the user is already typing somewhere
-      const target = event.target as HTMLElement | null
+      const target = event.target as HTMLElement | null;
       if (
         target &&
         (target.tagName === "INPUT" ||
@@ -61,75 +61,75 @@ export function InputComposer({
           target.tagName === "SELECT" ||
           target.isContentEditable)
       ) {
-        return
+        return;
       }
 
-      const textarea = textareaRef.current
-      if (!textarea || textarea.disabled) return
+      const textarea = textareaRef.current;
+      if (!textarea || textarea.disabled) return;
 
-      event.preventDefault() // stops "/" from being typed into the textarea
-      textarea.focus()
-    }
+      event.preventDefault(); // stops "/" from being typed into the textarea
+      textarea.focus();
+    };
 
-    document.addEventListener("keydown", onKeyDown)
-    return () => document.removeEventListener("keydown", onKeyDown)
-  }, [])
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // Focus textarea when a reply is initiated
   React.useEffect(() => {
     if (replyTarget) {
-      textareaRef.current?.focus()
+      textareaRef.current?.focus();
     }
-  }, [replyTarget])
+  }, [replyTarget]);
 
   const handleSubmit = React.useCallback(() => {
-    const rawText = text.trim()
-    if (!rawText || !canSubmit) return
+    const rawText = text.trim();
+    if (!rawText || !canSubmit) return;
 
-    let finalPrompt = rawText
+    let finalPrompt = rawText;
     if (replyTarget) {
       const quoted = replyTarget.text
         .split("\n")
         .map((l) => `> ${l}`)
-        .join("\n")
-      finalPrompt = `${quoted}\n\n${rawText}`
+        .join("\n");
+      finalPrompt = `${quoted}\n\n${rawText}`;
     }
 
-    onSend(finalPrompt)
-    setText("")
-    onClearReply?.()
+    onSend(finalPrompt);
+    setText("");
+    onClearReply?.();
 
     requestAnimationFrame(() => {
-      textareaRef.current?.focus()
-    })
-  }, [text, canSubmit, replyTarget, onSend, onClearReply])
+      textareaRef.current?.focus();
+    });
+  }, [text, canSubmit, replyTarget, onSend, onClearReply]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.nativeEvent.isComposing) return
+    if (event.nativeEvent.isComposing) return;
 
     if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault()
-      handleSubmit()
+      event.preventDefault();
+      handleSubmit();
     } else if (event.key === "Escape" && replyTarget && !text) {
-      event.preventDefault()
-      onClearReply?.()
+      event.preventDefault();
+      onClearReply?.();
     }
-  }
+  };
 
   const handleContainerClick = (event: React.MouseEvent<HTMLDivElement>) => {
     // Don't steal focus from interactive children (send / stop / clear buttons)
-    if ((event.target as HTMLElement).closest("button")) return
+    if ((event.target as HTMLElement).closest("button")) return;
 
-    textareaRef.current?.focus()
-  }
+    textareaRef.current?.focus();
+  };
 
   return (
     <div className="w-full px-3 pb-4">
       <div className="mx-auto max-w-4xl">
         <form
           onSubmit={(event) => {
-            event.preventDefault()
-            handleSubmit()
+            event.preventDefault();
+            handleSubmit();
           }}
         >
           <div
@@ -153,8 +153,8 @@ export function InputComposer({
                     variant="ghost"
                     size="icon-xs"
                     onClick={(e) => {
-                      e.stopPropagation()
-                      onClearReply()
+                      e.stopPropagation();
+                      onClearReply();
                     }}
                     className="size-5 shrink-0 text-muted-foreground hover:text-foreground"
                     title="Cancel reply"
@@ -216,5 +216,5 @@ export function InputComposer({
         </form>
       </div>
     </div>
-  )
+  );
 }

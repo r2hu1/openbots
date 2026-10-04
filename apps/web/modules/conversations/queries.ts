@@ -138,7 +138,9 @@ export function useTimelineSearchQuery(query: string, enabled: boolean = true) {
   });
 }
 
-export function useToggleMessageReactionMutation(conversationId?: string | null) {
+export function useToggleMessageReactionMutation(
+  conversationId?: string | null,
+) {
   return useMutation({
     mutationFn: async ({
       messageId,

@@ -1868,9 +1868,7 @@ export interface ResolvedTools {
   cleanup: () => Promise<void>;
 }
 
-export function createReactToMessageTool(
-  conversationId?: string | null,
-) {
+export function createReactToMessageTool(conversationId?: string | null) {
   return tool({
     description:
       "React with an emoji (e.g. 👍, ❤️, 🎉, 🔥, 👀, 🚀, 💡, 👏, 🤖) to a user's message in the current conversation. ONLY use this when naturally appropriate (e.g. when acknowledging a great prompt, celebrating a milestone, or appreciating positive feedback). Do NOT overuse.",

@@ -1,19 +1,19 @@
-import { authClient } from "@/lib/auth-client"
-import Dither from "@openbots/ui/components/ui/Dither"
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
+import Dither from "@openbots/ui/components/ui/Dither";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 export default async function AuthLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   const data = await authClient.getSession({
     fetchOptions: {
       headers: await headers(),
     },
-  })
-  if (data.data?.session) return redirect("/")
+  });
+  if (data.data?.session) return redirect("/");
   return (
     <div className="relative flex min-h-svh w-full items-center justify-center p-4">
       {children}
@@ -31,5 +31,5 @@ export default async function AuthLayout({
         />
       </div>
     </div>
-  )
+  );
 }

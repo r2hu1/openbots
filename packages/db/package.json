@@ -13,6 +13,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@supabase/storage-js": "^2.117.2",
+    "@supabase/supabase-js": "^2.117.2",
     "@upstash/redis": "^1.39.0",
     "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.5"
@@ -26,6 +28,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./schemas": "./src/schemas/index.ts",
-    "./redis": "./src/redis/index.ts"
+    "./redis": "./src/redis/index.ts",
+    "./storage": "./src/storage/index.ts"
   }
 }

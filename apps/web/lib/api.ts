@@ -8,6 +8,18 @@ export function getClient() {
       init: {
         credentials: "include",
       },
+      headers: () => {
+        const headers: Record<string, string> = {};
+        if (typeof window !== "undefined") {
+          const token =
+            localStorage.getItem("bearer_token") ||
+            localStorage.getItem("better-auth_token");
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
+        }
+        return headers;
+      },
     });
   }
   return clientInstance;

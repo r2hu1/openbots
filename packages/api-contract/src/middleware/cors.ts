@@ -42,7 +42,7 @@ export const corsMiddleware = cors({
   },
   allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowHeaders: ["Content-Type", "Authorization", "Cookie", "x-user-id"],
-  exposeHeaders: ["Content-Length", "Set-Cookie"],
+  exposeHeaders: ["Content-Length", "Set-Cookie", "set-auth-token", "Set-Auth-Token"],
   credentials: true,
   maxAge: 86400,
 });

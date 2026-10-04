@@ -4,10 +4,7 @@ import { hc } from "hono/client"
 export type { AppType } from "@openbots/api-contract"
 
 function getApiBaseUrl(): string {
-  if (typeof window !== "undefined") {
-    return window.location.origin
-  }
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 }
 
 export function createClient(

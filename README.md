@@ -13,6 +13,9 @@ OpenBots provides a complete infrastructure stack for deploying autonomous agent
 ### Core Capabilities
 
 - **Autonomous Agent Runtime**: Multi-step reasoning loops governed by the Vercel AI SDK (`ToolLoopAgent`) with bounded execution, structured tool calls, and error boundaries.
+- **Multimodal Image Support**: Users can send up to 10 images (up to 5MB each) standalone or paired with text prompts, rendered with interactive preview thumbnails and passed as native vision inputs to models.
+- **Supabase Object Storage**: Secure cloud storage integration with helper utilities for upload, update, download, delete, and public/signed URL generation.
+- **Interactive Reactions & Emoji Confetti**: Expressive emoji reaction picker and context-menu support for agent messages with canvas-confetti particle bursts and automated agent reactions.
 - **Durable Scheduling and Background Execution**: Delayed tasks, future timestamp execution, and recurring cron schedules powered by Trigger.dev and PostgreSQL persistence.
 - **Extensible Tool Registry**: 17+ zero-dependency internal tools spanning network research, compute sandboxes, math, live weather, encyclopedic data, currency conversions, and DNS diagnostics.
 - **SaaS Ecosystem via Composio and MCP**: Verified OAuth-managed access to Gmail, Google Sheets, Google Docs, Google Calendar, Google Drive, Outlook, Twitter (X), Slack, GitHub, Notion, Discord, Jira, Linear, Firecrawl, Hacker News, LinkedIn, ElevenLabs, Google Maps, PostHog, Stripe, and custom Model Context Protocol (MCP) servers.
@@ -62,13 +65,14 @@ OpenBots provides a complete infrastructure stack for deploying autonomous agent
 | Domain                            | Technology                                                      |
 | --------------------------------- | --------------------------------------------------------------- |
 | **Frontend Framework**            | Next.js (App Router), React 19, TypeScript                      |
-| **Styling & Components**          | Tailwind CSS v4, Radix/Base UI primitives, `@openbots/ui`       |
+| **Styling & Components**          | Tailwind CSS v4, Base UI / Radix primitives, `@openbots/ui`     |
 | **Server & Routing**              | Hono, `@hono/zod-validator`, Bun HTTP server                    |
-| **Agent Reasoning Engine**        | Vercel AI SDK (`ai`), `@ai-sdk/google` (Gemini 2.5 Flash / Pro) |
+| **Agent Reasoning Engine**        | Vercel AI SDK (`ai`), Multimodal Image Vision, Google Gemini    |
 | **Background & Scheduling**       | Trigger.dev v4 (durable tasks, delayed schedules, cron jobs)    |
-| **Database & Persistence**        | PostgreSQL, Drizzle ORM (`@openbots/db`), Drizzle Kit           |
+| **Database & Object Storage**      | PostgreSQL, Supabase Storage, Drizzle ORM, Drizzle Kit          |
 | **Cache & State Synchronization** | Upstash Redis / IORedis                                         |
 | **Authentication**                | Better Auth (session cookies, email/password, RBAC)             |
+| **Interactive UI & Effects**      | Base UI Toasts, canvas-confetti, dynamic visual artifacts       |
 | **Integrations**                  | Composio Platform SDK, Model Context Protocol (MCP)             |
 | **Monorepo Tooling**              | Turborepo, Bun workspaces, Biome (linting & formatting)         |
 
@@ -163,6 +167,11 @@ Create the root configuration `.env` file (or copy from `.env.example`):
 ```bash
 # PostgreSQL Connection String
 DATABASE_URL="postgresql://user:password@localhost:5432/openbots"
+
+# Supabase Storage & Services (Required for file & image uploads)
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOi..."
+SUPABASE_ANON_KEY="eyJhbGciOi..."
 
 # LLM Providers
 GEMINI_API_KEY="AIzaSy..."

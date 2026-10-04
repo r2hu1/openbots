@@ -327,7 +327,7 @@ export function InputComposer({
         >
           <div
             onClick={handleContainerClick}
-            className="relative cursor-text overflow-hidden rounded-3xl border border-border bg-background transition focus-within:border-primary/40 focus-within:ring-3 focus-within:ring-border"
+            className="relative cursor-text overflow-hidden rounded-3xl border border-border bg-sidebar transition focus-within:border-primary/40 focus-within:ring-3 focus-within:ring-border"
           >
             {/* Hidden file input */}
             <input
@@ -455,7 +455,7 @@ export function InputComposer({
                 }
                 disabled={disabled}
                 rows={1}
-                className="max-h-48 min-h-12 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-2 py-3.5 pr-14 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="max-h-48 min-h-12 flex-1 resize-none overflow-y-auto border-0 bg-transparent! px-2 py-3.5 pr-14 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
               />
 
               <div className="p-2">

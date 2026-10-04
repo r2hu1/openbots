@@ -19,6 +19,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@openbots/ui/components/sidebar"
+import { Kbd } from "@openbots/ui/components/kbd"
 import { Skeleton } from "@openbots/ui/components/skeleton"
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 import { cn } from "@openbots/ui/lib/utils"
@@ -35,6 +36,8 @@ interface WorkspaceSidebarProps {
   agents: Agent[]
   onOpenCreate: () => void
   onOpenConnections?: () => void
+  onOpenSettings?: () => void
+  onOpenSearch?: () => void
   agentsPending: boolean
 }
 
@@ -45,6 +48,8 @@ export function WorkspaceSidebar({
   agents,
   onOpenCreate,
   onOpenConnections,
+  onOpenSettings,
+  onOpenSearch,
   agentsPending,
 }: WorkspaceSidebarProps) {
   const pathname = usePathname()
@@ -83,16 +88,30 @@ export function WorkspaceSidebar({
       <SidebarHeader className="px-3 group-data-[collapsible=icon]:px-2">
         <BrandRow onOpenCreate={onOpenCreate} rowClass={rowClass} />
 
-        <InputGroup className="mt-1 h-8 border border-border bg-background shadow-none group-data-[collapsible=icon]:hidden">
-          <InputGroupAddon>
-            <IconSearch />
-          </InputGroupAddon>
-          <InputGroupInput
-            placeholder="Search agents"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </InputGroup>
+        {onOpenSearch ? (
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="mt-1 flex h-8 w-full items-center justify-between rounded-lg border border-border bg-background px-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground group-data-[collapsible=icon]:hidden"
+          >
+            <span className="flex items-center gap-2">
+              <IconSearch className="size-3.5 opacity-70" />
+              <span>Search & jump to...</span>
+            </span>
+            <Kbd className="h-4.5 text-[10px]">⌘K</Kbd>
+          </button>
+        ) : (
+          <InputGroup className="mt-1 h-8 border border-border bg-background shadow-none group-data-[collapsible=icon]:hidden">
+            <InputGroupAddon>
+              <IconSearch />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder="Search agents"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </InputGroup>
+        )}
       </SidebarHeader>
 
       <SidebarContent className="px-1 group-data-[collapsible=icon]:px-0">
@@ -188,6 +207,7 @@ export function WorkspaceSidebar({
           email={session?.user?.email}
           initials={userInitials}
           onConnections={onOpenConnections}
+          onSettings={onOpenSettings}
           onSignOut={handleSignOut}
         />
       </SidebarFooter>

@@ -15,9 +15,10 @@ import { ConversationTimeline } from "@/modules/conversations/components/convers
 import { InputComposer } from "@/modules/conversations/components/input-composer"
 import { useReconciledMessages } from "@/modules/conversations/hooks/use-reconciled-messages"
 import {
-  useConversationDetailQuery,
   useConversationsQuery,
+  useInfiniteConversationDetailQuery,
 } from "@/modules/conversations/queries"
+import type { ReplyTarget } from "@/modules/conversations/types"
 import { useHotkey } from "@openbots/ui/hooks/use-hotkey"
 
 const ConfigureAgentSheet = dynamic(
@@ -96,6 +97,8 @@ const ChatPane = React.memo(function ChatPane({
     string | null
   >(null)
 
+  const [replyTarget, setReplyTarget] = React.useState<ReplyTarget | null>(null)
+
   const { data: conversationsData, isLoading: isLoadingConversations } =
     useConversationsQuery(agentId)
   const conversations = React.useMemo(
@@ -117,6 +120,8 @@ const ChatPane = React.memo(function ChatPane({
     cancelActiveRun,
     isSubmitting,
     isCancelling,
+    executionError,
+    clearExecutionError,
   } = useAgentExecution({
     agentId,
     activeConversationId,
@@ -128,15 +133,25 @@ const ChatPane = React.memo(function ChatPane({
     activeRun?.status === "running" ||
     activeRun?.status === "queued"
 
-  const { data: conversationDetail, isLoading: isLoadingMessages } =
-    useConversationDetailQuery(activeConversationId, {
-      refetchInterval: isPolling ? 1500 : false,
-    })
+  const {
+    data: conversationInfiniteData,
+    isLoading: isLoadingMessages,
+    isFetchingNextPage: isLoadingOlder,
+    hasNextPage: hasOlderMessages,
+    fetchNextPage,
+  } = useInfiniteConversationDetailQuery(activeConversationId, {
+    refetchInterval: isPolling ? 800 : false,
+  })
 
-  const serverMessages = React.useMemo(
-    () => conversationDetail?.messages ?? [],
-    [conversationDetail?.messages]
-  )
+  // Combine pages: older pages are fetched later and prepend to the timeline
+  const serverMessages = React.useMemo(() => {
+    if (!conversationInfiniteData?.pages) return []
+    // Pages are in order [page0, page1, ...], where page0 is newest, page1 is older.
+    // Each page's messages are already chronological (oldest to newest).
+    // So to display oldest -> newest overall: [...pageN.messages, ..., page0.messages]
+    const pages = [...conversationInfiniteData.pages].reverse()
+    return pages.flatMap((p) => p.messages ?? [])
+  }, [conversationInfiniteData?.pages])
 
   const clearOptimistic = React.useCallback(
     () => setOptimisticMessages([]),
@@ -171,6 +186,16 @@ const ChatPane = React.memo(function ChatPane({
         isOptimisticRunning={isOptimisticRunning}
         isLoading={isChatLoading}
         onOpenArtifact={onOpenArtifact}
+        hasOlderMessages={!!hasOlderMessages}
+        isLoadingOlder={isLoadingOlder}
+        onLoadOlderMessages={() => {
+          if (hasOlderMessages && !isLoadingOlder) {
+            fetchNextPage()
+          }
+        }}
+        executionError={executionError}
+        onDismissError={clearExecutionError}
+        onReply={setReplyTarget}
       />
 
       <MemoComposer
@@ -180,6 +205,8 @@ const ChatPane = React.memo(function ChatPane({
         onCancelRun={cancelActiveRun}
         isCancelling={isCancelling}
         placeholder={placeholder}
+        replyTarget={replyTarget}
+        onClearReply={() => setReplyTarget(null)}
       />
     </div>
   )

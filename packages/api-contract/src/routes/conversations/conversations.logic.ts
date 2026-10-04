@@ -1,5 +1,5 @@
 import { conversations, db, messages } from "@openbots/db";
-import { and, asc, desc, eq, lt } from "drizzle-orm";
+import { and, asc, desc, eq, lt, sql } from "drizzle-orm";
 
 export async function listConversations(userId: string, agentId?: string) {
   const result = await db
@@ -105,5 +105,55 @@ export async function getConversation(
       hasMore,
       limit,
     },
+  };
+}
+
+export async function searchTimelineMessages(
+  userId: string,
+  query: string,
+  limit: number = 20,
+) {
+  const sanitized = query.trim();
+  if (!sanitized) return { results: [] };
+
+  // Search user/assistant text in messages and include conversation & agent information
+  const found = await db
+    .select({
+      messageId: messages.id,
+      conversationId: messages.conversationId,
+      role: messages.role,
+      content: messages.content,
+      createdAt: messages.createdAt,
+      agentId: conversations.agentId,
+      conversationTitle: conversations.title,
+    })
+    .from(messages)
+    .innerJoin(conversations, eq(messages.conversationId, conversations.id))
+    .where(
+      and(
+        eq(conversations.userId, userId),
+        sql`(${messages.content}->>'text' ILIKE ${`%${sanitized}%`} OR ${messages.content}->>'prompt' ILIKE ${`%${sanitized}%`})`,
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 30));
+
+  return {
+    results: found.map((row) => {
+      const rawContent = row.content as any;
+      const text =
+        typeof rawContent === "string"
+          ? rawContent
+          : rawContent?.text || rawContent?.prompt || "";
+      return {
+        messageId: row.messageId,
+        conversationId: row.conversationId,
+        role: row.role,
+        text: typeof text === "string" ? text.slice(0, 200) : "",
+        createdAt: row.createdAt,
+        agentId: row.agentId,
+        conversationTitle: row.conversationTitle,
+      };
+    }),
   };
 }

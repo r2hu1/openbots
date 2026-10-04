@@ -108,3 +108,32 @@ export function useInfiniteConversationDetailQuery(
     refetchInterval: options?.refetchInterval ?? false,
   });
 }
+
+export type TimelineSearchResult = {
+  messageId: string;
+  conversationId: string;
+  role: string;
+  text: string;
+  createdAt: string;
+  agentId: string;
+  conversationTitle?: string | null;
+};
+
+export function useTimelineSearchQuery(query: string, enabled: boolean = true) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ["timeline-search", trimmed],
+    queryFn: async () => {
+      if (!trimmed || trimmed.length < 2) return [];
+      const client = getClient();
+      const res = await (client.api.conversations as any).search.$get({
+        query: { q: trimmed, limit: "15" },
+      });
+      if (!res.ok) return [];
+      const data = (await res.json()) as { results: TimelineSearchResult[] };
+      return data.results || [];
+    },
+    enabled: enabled && trimmed.length >= 2,
+    staleTime: 30_000,
+  });
+}

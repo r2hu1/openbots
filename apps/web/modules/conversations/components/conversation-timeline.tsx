@@ -65,6 +65,55 @@ export function ConversationTimeline({
 
   const topSentinelRef = React.useRef<HTMLDivElement>(null)
   const viewportRef = React.useRef<HTMLDivElement>(null)
+  const isFetchingOlderRef = React.useRef(false)
+  const prevScrollHeightRef = React.useRef<number | null>(null)
+  const prevScrollTopRef = React.useRef<number | null>(null)
+
+  // Track fetching state
+  React.useEffect(() => {
+    isFetchingOlderRef.current = isLoadingOlder
+  }, [isLoadingOlder])
+
+  // Trigger loading older messages safely
+  const triggerLoadOlder = React.useCallback(() => {
+    if (!hasOlderMessages || isLoadingOlder || isFetchingOlderRef.current || !onLoadOlderMessages) {
+      return
+    }
+
+    const viewport =
+      viewportRef.current ||
+      topSentinelRef.current?.closest<HTMLElement>(
+        "[data-slot='message-scroller-viewport']"
+      )
+
+    if (viewport) {
+      prevScrollHeightRef.current = viewport.scrollHeight
+      prevScrollTopRef.current = viewport.scrollTop
+    }
+
+    isFetchingOlderRef.current = true
+    onLoadOlderMessages()
+  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages])
+
+  // Preserve scroll position when messages prepend
+  React.useLayoutEffect(() => {
+    if (prevScrollHeightRef.current !== null) {
+      const viewport =
+        viewportRef.current ||
+        topSentinelRef.current?.closest<HTMLElement>(
+          "[data-slot='message-scroller-viewport']"
+        )
+
+      if (viewport) {
+        const heightDiff = viewport.scrollHeight - prevScrollHeightRef.current
+        if (heightDiff > 0 && prevScrollTopRef.current !== null) {
+          viewport.scrollTop = prevScrollTopRef.current + heightDiff
+        }
+      }
+      prevScrollHeightRef.current = null
+      prevScrollTopRef.current = null
+    }
+  }, [messages.length])
 
   // IntersectionObserver to auto-fetch when scrolling near the top
   React.useEffect(() => {
@@ -73,52 +122,74 @@ export function ConversationTimeline({
     const sentinel = topSentinelRef.current
     if (!sentinel) return
 
-    // Find the closest scrollable container (the viewport)
     const scrollContainer =
       sentinel.closest<HTMLElement>(
         "[data-slot='message-scroller-viewport']"
       ) || sentinel.parentElement
 
+    if (!scrollContainer) return
+
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
-          onLoadOlderMessages()
+        const entry = entries[0]
+        // Only trigger if sentinel is intersecting AND the user has scrolled (scrollTop is not 0 due to empty list)
+        if (entry?.isIntersecting && scrollContainer.scrollTop <= 80 && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+          triggerLoadOlder()
         }
       },
       {
         root: scrollContainer,
-        rootMargin: "200px 0px 0px 0px",
-        threshold: 0,
+        rootMargin: "100px 0px 0px 0px",
+        threshold: 0.1,
       }
     )
 
     observer.observe(sentinel)
 
-    // Also attach native scroll listener directly to the scroll container
-    const handleScrollEvent = () => {
-      if (scrollContainer && scrollContainer.scrollTop <= 150) {
-        onLoadOlderMessages()
-      }
-    }
-
-    scrollContainer?.addEventListener("scroll", handleScrollEvent, {
-      passive: true,
-    })
-
     return () => {
       observer.disconnect()
-      scrollContainer?.removeEventListener("scroll", handleScrollEvent)
     }
-  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages])
+  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages, triggerLoadOlder])
 
   // Also attach onScroll on viewport as a resilient fallback
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (!hasOlderMessages || isLoadingOlder || !onLoadOlderMessages) return
     const target = e.currentTarget
-    if (target.scrollTop <= 120) {
-      onLoadOlderMessages()
+    if (
+      hasOlderMessages &&
+      !isLoadingOlder &&
+      !isFetchingOlderRef.current &&
+      target.scrollTop <= 60 &&
+      target.scrollHeight > target.clientHeight
+    ) {
+      triggerLoadOlder()
     }
   }
+
+  // Scroll to targeted message if URL hash is present (e.g., #message-123)
+  React.useEffect(() => {
+    if (isLoading) return
+    const checkAndScroll = () => {
+      if (typeof window === "undefined") return
+      const hash = window.location.hash
+      if (!hash || !hash.startsWith("#message-")) return
+      const messageId = hash.slice(1) // message-<id>
+      const el = document.getElementById(messageId)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        el.classList.add("ring-2", "ring-primary/50", "rounded-xl", "transition-all")
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary/50")
+        }, 2500)
+      }
+    }
+
+    const timer = setTimeout(checkAndScroll, 200)
+    window.addEventListener("hashchange", checkAndScroll)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener("hashchange", checkAndScroll)
+    }
+  }, [isLoading, messages.length])
 
   return (
     <MessageScrollerProvider defaultScrollPosition="end" autoScroll>
@@ -189,7 +260,12 @@ export function ConversationTimeline({
 
             {!isLoading &&
               messages.map((msg) => (
-                <MessageScrollerItem key={msg.id} messageId={msg.id}>
+                <MessageScrollerItem
+                  key={msg.id}
+                  id={`message-${msg.id}`}
+                  data-message-id={msg.id}
+                  messageId={msg.id}
+                >
                   <ConversationMessageItem
                     message={msg}
                     agentName={agentName}

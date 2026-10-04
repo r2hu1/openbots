@@ -1,7 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { authMiddleware } from "../../middleware/auth.js";
-import { getConversation, listConversations } from "./conversations.logic.js";
+import {
+  getConversation,
+  listConversations,
+  searchTimelineMessages,
+} from "./conversations.logic.js";
 import { getConversationQuerySchema } from "./conversations.schema.js";
 
 type Env = {
@@ -13,6 +17,13 @@ type Env = {
 export const conversationsRoute = new Hono<Env>()
   .use("*", authMiddleware)
 
+  .get("/search", async (c) => {
+    const user = c.get("user");
+    const q = c.req.query("q") || "";
+    const limit = Number(c.req.query("limit")) || 20;
+    const result = await searchTimelineMessages(user.id, q, limit);
+    return c.json(result);
+  })
   .get("/", async (c) => {
     const user = c.get("user");
     const agentId = c.req.query("agentId");

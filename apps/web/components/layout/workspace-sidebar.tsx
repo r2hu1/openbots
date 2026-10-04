@@ -28,7 +28,6 @@ import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
 import { signOut, useSession } from "@/lib/auth-client"
 import type { Agent } from "@/modules/agents/types"
-import { ConnectionsSheet } from "@/modules/connections/components/connections-sheet"
 import { BrandRow } from "./brand-row"
 import { UserMenu } from "./user-menu"
 
@@ -52,8 +51,6 @@ export function WorkspaceSidebar({
   const router = useRouter()
   const { data: session } = useSession()
   const [search, setSearch] = React.useState("")
-  const [internalConnectionsOpen, setInternalConnectionsOpen] =
-    React.useState(false)
 
   const filteredAgents = React.useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -71,14 +68,6 @@ export function WorkspaceSidebar({
     router.replace("/login")
   }
 
-  const handleOpenConnections = () => {
-    if (onOpenConnections) {
-      onOpenConnections()
-    } else {
-      setInternalConnectionsOpen(true)
-    }
-  }
-
   const userInitials = React.useMemo(() => {
     const name = session?.user?.name || session?.user?.email || "U"
     return name
@@ -90,7 +79,6 @@ export function WorkspaceSidebar({
   }, [session])
 
   return (
-    <>
       <Sidebar collapsible="icon">
         <SidebarHeader className="px-3 group-data-[collapsible=icon]:px-2">
           <BrandRow onOpenCreate={onOpenCreate} rowClass={rowClass} />
@@ -188,7 +176,7 @@ export function WorkspaceSidebar({
               name={session?.user?.name || "User"}
               email={session?.user?.email}
               initials={userInitials}
-              onConnections={handleOpenConnections}
+              onConnections={onOpenConnections}
               onSignOut={handleSignOut}
             />
 
@@ -196,11 +184,5 @@ export function WorkspaceSidebar({
           </div>
         </SidebarFooter>
       </Sidebar>
-
-      <ConnectionsSheet
-        open={internalConnectionsOpen}
-        onOpenChange={setInternalConnectionsOpen}
-      />
-    </>
   )
 }

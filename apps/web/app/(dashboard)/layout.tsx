@@ -1,15 +1,19 @@
+import { cookies } from "next/headers"
 import { DashboardShell } from "@/components/layout/dashboard-shell"
 import { QueryProvider } from "@/providers/query-provider"
-import { ThemeProvider } from "@/providers/theme-provider"
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const cookieStore = await cookies()
+  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false"
+
   return (
     <QueryProvider>
-      <DashboardShell>{children}</DashboardShell>
+      <DashboardShell defaultOpen={defaultOpen}>{children}</DashboardShell>
     </QueryProvider>
   )
 }
+

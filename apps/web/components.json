@@ -20,5 +20,7 @@
   "rtl": false,
   "menuColor": "inverted",
   "menuAccent": "subtle",
-  "registries": {}
+  "registries": {
+    "@react-bits": "https://reactbits.dev/r/{name}.json"
+  }
 }

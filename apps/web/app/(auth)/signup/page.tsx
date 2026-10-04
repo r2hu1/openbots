@@ -55,8 +55,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center">
             <Blobatar
@@ -132,6 +131,5 @@ export default function SignupPage() {
           </CardFooter>
         </form>
       </Card>
-    </div>
   )
 }

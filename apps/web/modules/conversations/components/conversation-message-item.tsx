@@ -3,30 +3,51 @@
 import { Bubble, BubbleContent } from "@openbots/ui/components/bubble"
 import { Button } from "@openbots/ui/components/button"
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@openbots/ui/components/context-menu"
+import {
   Message,
   MessageContent,
   MessageFooter,
   MessageGroup,
 } from "@openbots/ui/components/message"
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
-import { IconCheck, IconCopy, IconShare } from "@tabler/icons-react"
+import {
+  Check as IconCheck,
+  Copy as IconCopy,
+  Download as IconDownload,
+  CodeFile as IconFileCode,
+  FilePdf as IconFileTypePdf,
+  FileText as IconFileTypeTxt,
+  Reply as IconMessageReply,
+  Share as IconShare,
+} from "reicon-react"
 import * as React from "react"
 import { Markdown } from "@/components/shared/markdown"
 import { ArtifactCard } from "@/modules/artifacts/artifact-card"
 import { type ParsedArtifact, parseArtifacts } from "@/modules/artifacts/parser"
-import type { MessageItem } from "../types"
+import type { MessageItem, ReplyTarget } from "../types"
 import { formatMsgTime, getMessageText } from "../utils"
 
 interface ConversationMessageItemProps {
   message: MessageItem
   agentName: string
   onOpenArtifact?: (artifact: ParsedArtifact) => void
+  onReply?: (target: ReplyTarget) => void
 }
 
 export function ConversationMessageItem({
   message,
   agentName,
   onOpenArtifact,
+  onReply,
 }: ConversationMessageItemProps) {
   const isUser = message.role === "user"
   const text = getMessageText(message.content)
@@ -74,138 +95,252 @@ export function ConversationMessageItem({
     }
   }, [text, isUser, agentName])
 
+  const handleReply = React.useCallback(() => {
+    if (!text) return
+    const sender = isUser ? "You" : agentName
+    if (onReply) {
+      onReply({
+        id: message.id,
+        sender,
+        text,
+      })
+      return
+    }
+
+    const textarea = document.querySelector(
+      "textarea"
+    ) as HTMLTextAreaElement | null
+    if (textarea) {
+      const quoted = text
+        .split("\n")
+        .map((line) => `> ${line}`)
+        .join("\n")
+      const current = textarea.value
+      const separator = current
+        ? current.endsWith("\n\n")
+          ? ""
+          : current.endsWith("\n")
+            ? "\n"
+            : "\n\n"
+        : ""
+      textarea.value = `${current}${separator}${quoted}\n\n`
+      textarea.dispatchEvent(new Event("input", { bubbles: true }))
+      textarea.focus()
+    }
+  }, [text, isUser, agentName, message.id, onReply])
+
+  const handleDownload = React.useCallback(
+    (format: "txt" | "md" | "json") => {
+      if (!text) return
+
+      let content = text
+      let mimeType = "text/plain"
+      let extension = format
+
+      if (format === "json") {
+        content = JSON.stringify(
+          {
+            id: message.id,
+            role: message.role,
+            author: isUser ? "User" : agentName,
+            createdAt: message.createdAt,
+            content: text,
+          },
+          null,
+          2
+        )
+        mimeType = "application/json"
+      } else if (format === "md") {
+        mimeType = "text/markdown"
+      }
+
+      const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `message-${message.id}.${extension}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    },
+    [text, message.id, message.role, message.createdAt, isUser, agentName]
+  )
+
   return (
-    <MessageGroup className="group">
-      <Message align={isUser ? "end" : "start"} className="gap-2">
-        <MessageContent>
-          {isUser ? (
-            <Bubble variant="default" align="end">
-              <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
-                {text}
-              </BubbleContent>
-            </Bubble>
-          ) : (
-            <div className="flex w-full flex-col gap-2">
-              {segments.map((seg) => {
-                if (seg.type === "artifact" && seg.artifact) {
-                  const artifact = seg.artifact
-                  return (
-                    <div key={seg.id} className="w-full max-w-2xl">
-                      <ArtifactCard
-                        artifact={artifact}
-                        onClick={() => onOpenArtifact?.(artifact)}
-                      />
+    <ContextMenu>
+      <ContextMenuTrigger className="block w-full">
+        <MessageGroup className="group">
+          <Message align={isUser ? "end" : "start"} className="gap-2">
+            <MessageContent>
+              {isUser ? (
+                <Bubble variant="default" align="end">
+                  <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
+                    {text}
+                  </BubbleContent>
+                </Bubble>
+              ) : (
+                <div className="flex w-full flex-col gap-2">
+                  {segments.map((seg) => {
+                    if (seg.type === "artifact" && seg.artifact) {
+                      const artifact = seg.artifact
+                      return (
+                        <div key={seg.id} className="w-full max-w-2xl">
+                          <ArtifactCard
+                            artifact={artifact}
+                            onClick={() => onOpenArtifact?.(artifact)}
+                          />
+                        </div>
+                      )
+                    }
+                    if (seg.text) {
+                      return (
+                        <Bubble key={seg.id} variant="secondary" align="start">
+                          <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
+                            <Markdown>{seg.text}</Markdown>
+                          </BubbleContent>
+                        </Bubble>
+                      )
+                    }
+                    return null
+                  })}
+                </div>
+              )}
+
+              <MessageFooter
+                className={
+                  isUser
+                    ? "-mt-1 items-center gap-1.5 px-0"
+                    : "items-center gap-2 px-0"
+                }
+              >
+                {isUser ? (
+                  <>
+                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={handleCopy}
+                        className="size-6 text-muted-foreground hover:text-foreground"
+                        title={copied ? "Copied!" : "Copy message"}
+                        aria-label={copied ? "Copied!" : "Copy message"}
+                      >
+                        {copied ? (
+                          <IconCheck className="size-3" />
+                        ) : (
+                          <IconCopy className="size-3" />
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={handleShare}
+                        className="size-6 text-muted-foreground hover:text-foreground"
+                        title={shared ? "Shared!" : "Share message"}
+                        aria-label={shared ? "Shared!" : "Share message"}
+                      >
+                        {shared ? (
+                          <IconCheck className="size-3" />
+                        ) : (
+                          <IconShare className="size-3" />
+                        )}
+                      </Button>
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatMsgTime(message.createdAt)}
+                      </span>
                     </div>
-                  )
-                }
-                if (seg.text) {
-                  return (
-                    <Bubble key={seg.id} variant="secondary" align="start">
-                      <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
-                        <Markdown>{seg.text}</Markdown>
-                      </BubbleContent>
-                    </Bubble>
-                  )
-                }
-                return null
-              })}
-            </div>
-          )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1">
+                      <Blobatar name={agentName} className="size-6 shrink-0" />
+                      <span className="text-xs font-medium text-foreground">
+                        {agentName}
+                      </span>
+                      <span className="ml-1 text-[10px] text-muted-foreground">
+                        {formatMsgTime(message.createdAt)}
+                      </span>
+                    </div>
 
-          <MessageFooter
-            className={
-              isUser
-                ? "-mt-1 items-center gap-1.5 px-0"
-                : "items-center gap-2 px-0"
-            }
-          >
-            {isUser ? (
-              <>
-                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={handleCopy}
-                    className="size-6 text-muted-foreground hover:text-foreground"
-                    title={copied ? "Copied!" : "Copy message"}
-                    aria-label={copied ? "Copied!" : "Copy message"}
-                  >
-                    {copied ? (
-                      <IconCheck className="size-3" />
-                    ) : (
-                      <IconCopy className="size-3" />
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={handleShare}
-                    className="size-6 text-muted-foreground hover:text-foreground"
-                    title={shared ? "Shared!" : "Share message"}
-                    aria-label={shared ? "Shared!" : "Share message"}
-                  >
-                    {shared ? (
-                      <IconCheck className="size-3" />
-                    ) : (
-                      <IconShare className="size-3" />
-                    )}
-                  </Button>
-                  <span className="text-[10px] text-muted-foreground">
-                    {formatMsgTime(message.createdAt)}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-1">
-                  <Blobatar name={agentName} className="size-6 shrink-0" />
-                  <span className="text-xs font-medium text-foreground">
-                    {agentName}
-                  </span>
-                  <span className="ml-1 text-[10px] text-muted-foreground">
-                    {formatMsgTime(message.createdAt)}
-                  </span>
-                </div>
+                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={handleCopy}
+                        className="size-6 text-muted-foreground hover:text-foreground"
+                        title={copied ? "Copied!" : "Copy message"}
+                        aria-label={copied ? "Copied!" : "Copy message"}
+                      >
+                        {copied ? (
+                          <IconCheck className="size-3" />
+                        ) : (
+                          <IconCopy className="size-3" />
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={handleShare}
+                        className="size-6 text-muted-foreground hover:text-foreground"
+                        title={shared ? "Shared!" : "Share message"}
+                        aria-label={shared ? "Shared!" : "Share message"}
+                      >
+                        {shared ? (
+                          <IconCheck className="size-3" />
+                        ) : (
+                          <IconShare className="size-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </MessageFooter>
+            </MessageContent>
+          </Message>
+        </MessageGroup>
+      </ContextMenuTrigger>
 
-                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={handleCopy}
-                    className="size-6 text-muted-foreground hover:text-foreground"
-                    title={copied ? "Copied!" : "Copy message"}
-                    aria-label={copied ? "Copied!" : "Copy message"}
-                  >
-                    {copied ? (
-                      <IconCheck className="size-3" />
-                    ) : (
-                      <IconCopy className="size-3" />
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={handleShare}
-                    className="size-6 text-muted-foreground hover:text-foreground"
-                    title={shared ? "Shared!" : "Share message"}
-                    aria-label={shared ? "Shared!" : "Share message"}
-                  >
-                    {shared ? (
-                      <IconCheck className="size-3" />
-                    ) : (
-                      <IconShare className="size-3" />
-                    )}
-                  </Button>
-                </div>
-              </>
-            )}
-          </MessageFooter>
-        </MessageContent>
-      </Message>
-    </MessageGroup>
+      <ContextMenuContent className="w-48">
+        <ContextMenuItem onClick={handleCopy}>
+          <IconCopy />
+          <span>Copy</span>
+        </ContextMenuItem>
+        <ContextMenuItem onClick={handleReply}>
+          <IconMessageReply />
+          <span>Reply</span>
+        </ContextMenuItem>
+        <ContextMenuItem onClick={handleShare}>
+          <IconShare />
+          <span>Share</span>
+        </ContextMenuItem>
+
+        <ContextMenuSeparator />
+
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <IconDownload className="mr-2" />
+            <span>Download</span>
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-40">
+            <ContextMenuItem onClick={() => handleDownload("txt")}>
+              <IconFileTypeTxt />
+              <span>Plain Text (.txt)</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => handleDownload("md")}>
+              <IconFileCode />
+              <span>Markdown (.md)</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => handleDownload("json")}>
+              <IconFileCode />
+              <span>JSON (.json)</span>
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }

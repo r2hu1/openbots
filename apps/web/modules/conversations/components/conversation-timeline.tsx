@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
+import { Button } from "@openbots/ui/components/button"
 import {
   Marker,
   MarkerContent,
   MarkerIcon,
-} from "@openbots/ui/components/marker";
+} from "@openbots/ui/components/marker"
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -13,32 +13,34 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
-} from "@openbots/ui/components/message-scroller";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
-import { IconAlertCircle, IconChevronUp, IconX } from "@tabler/icons-react";
-import * as React from "react";
-import type { ParsedArtifact } from "@/modules/artifacts/parser";
-import type { RunRecord, StepItem } from "@/modules/runs/types";
-import type { MessageItem } from "../types";
-import { ConversationLiveStatus } from "./conversation-live-status";
-import { ConversationMessageItem } from "./conversation-message-item";
+} from "@openbots/ui/components/message-scroller"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
+import { IconAlertCircle, IconChevronUp, IconX } from "@tabler/icons-react"
+import * as React from "react"
+import type { ParsedArtifact } from "@/modules/artifacts/parser"
+import type { RunRecord, StepItem } from "@/modules/runs/types"
+import type { MessageItem, ReplyTarget } from "../types"
+import { ConversationLiveStatus } from "./conversation-live-status"
+import { ConversationMessageItem } from "./conversation-message-item"
+import { ChevronDown } from "reicon-react"
 
 interface ConversationTimelineProps {
-  messages: MessageItem[];
-  activeRun: RunRecord | null;
-  activeRunSteps: StepItem[];
-  onCancelRun?: () => void;
-  isCancelling?: boolean;
-  agentName: string;
-  isOptimisticRunning?: boolean;
-  isLoading?: boolean;
-  onOpenArtifact?: (artifact: ParsedArtifact) => void;
-  hasOlderMessages?: boolean;
-  isLoadingOlder?: boolean;
-  onLoadOlderMessages?: () => void;
-  executionError?: string | null;
-  onDismissError?: () => void;
+  messages: MessageItem[]
+  activeRun: RunRecord | null
+  activeRunSteps: StepItem[]
+  onCancelRun?: () => void
+  isCancelling?: boolean
+  agentName: string
+  isOptimisticRunning?: boolean
+  isLoading?: boolean
+  onOpenArtifact?: (artifact: ParsedArtifact) => void
+  hasOlderMessages?: boolean
+  isLoadingOlder?: boolean
+  onLoadOlderMessages?: () => void
+  executionError?: string | null
+  onDismissError?: () => void
+  onReply?: (target: ReplyTarget) => void
 }
 
 export function ConversationTimeline({
@@ -54,68 +56,69 @@ export function ConversationTimeline({
   onLoadOlderMessages,
   executionError,
   onDismissError,
+  onReply,
 }: ConversationTimelineProps) {
   const isActiveRunOngoing =
     isOptimisticRunning ||
     activeRun?.status === "queued" ||
-    activeRun?.status === "running";
+    activeRun?.status === "running"
 
-  const topSentinelRef = React.useRef<HTMLDivElement>(null);
-  const viewportRef = React.useRef<HTMLDivElement>(null);
+  const topSentinelRef = React.useRef<HTMLDivElement>(null)
+  const viewportRef = React.useRef<HTMLDivElement>(null)
 
   // IntersectionObserver to auto-fetch when scrolling near the top
   React.useEffect(() => {
-    if (!hasOlderMessages || isLoadingOlder || !onLoadOlderMessages) return;
+    if (!hasOlderMessages || isLoadingOlder || !onLoadOlderMessages) return
 
-    const sentinel = topSentinelRef.current;
-    if (!sentinel) return;
+    const sentinel = topSentinelRef.current
+    if (!sentinel) return
 
     // Find the closest scrollable container (the viewport)
     const scrollContainer =
       sentinel.closest<HTMLElement>(
-        "[data-slot='message-scroller-viewport']",
-      ) || sentinel.parentElement;
+        "[data-slot='message-scroller-viewport']"
+      ) || sentinel.parentElement
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          onLoadOlderMessages();
+          onLoadOlderMessages()
         }
       },
       {
         root: scrollContainer,
         rootMargin: "200px 0px 0px 0px",
         threshold: 0,
-      },
-    );
+      }
+    )
 
-    observer.observe(sentinel);
+    observer.observe(sentinel)
 
     // Also attach native scroll listener directly to the scroll container
     const handleScrollEvent = () => {
       if (scrollContainer && scrollContainer.scrollTop <= 150) {
-        onLoadOlderMessages();
+        onLoadOlderMessages()
       }
-    };
+    }
 
     scrollContainer?.addEventListener("scroll", handleScrollEvent, {
       passive: true,
-    });
+    })
 
     return () => {
-      observer.disconnect();
-      scrollContainer?.removeEventListener("scroll", handleScrollEvent);
-    };
-  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages]);
+      observer.disconnect()
+      scrollContainer?.removeEventListener("scroll", handleScrollEvent)
+    }
+  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages])
 
   // Also attach onScroll on viewport as a resilient fallback
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (!hasOlderMessages || isLoadingOlder || !onLoadOlderMessages) return;
-    const target = e.currentTarget;
+    if (!hasOlderMessages || isLoadingOlder || !onLoadOlderMessages) return
+    const target = e.currentTarget
     if (target.scrollTop <= 120) {
-      onLoadOlderMessages();
+      onLoadOlderMessages()
     }
-  };
+  }
 
   return (
     <MessageScrollerProvider defaultScrollPosition="end" autoScroll>
@@ -191,6 +194,7 @@ export function ConversationTimeline({
                     message={msg}
                     agentName={agentName}
                     onOpenArtifact={onOpenArtifact}
+                    onReply={onReply}
                   />
                 </MessageScrollerItem>
               ))}
@@ -240,8 +244,11 @@ export function ConversationTimeline({
             )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton />
+        <MessageScrollerButton size="sm" className="font-normal">
+          Lastest
+          <ChevronDown />
+        </MessageScrollerButton>
       </MessageScroller>
     </MessageScrollerProvider>
-  );
+  )
 }

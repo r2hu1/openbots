@@ -1,5 +1,11 @@
 export type MessageRole = "system" | "user" | "assistant" | "tool";
 
+export type ReplyTarget = {
+  id: string;
+  sender: string;
+  text: string;
+};
+
 export type MessageItem = {
   id: string;
   conversationId: string;

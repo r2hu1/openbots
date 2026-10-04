@@ -19,6 +19,7 @@ import {
   useConversationsQuery,
   useInfiniteConversationDetailQuery,
 } from "@/modules/conversations/queries"
+import type { ReplyTarget } from "@/modules/conversations/types"
 
 const ConfigureAgentSheet = dynamic(
   () =>
@@ -95,6 +96,7 @@ const ChatPane = React.memo(function ChatPane({
   const [selectedConversationId, setSelectedConversationId] = React.useState<
     string | null
   >(null)
+  const [replyTarget, setReplyTarget] = React.useState<ReplyTarget | null>(null)
 
   const { data: conversationsData, isLoading: isLoadingConversations } =
     useConversationsQuery(agentId)
@@ -192,6 +194,7 @@ const ChatPane = React.memo(function ChatPane({
         }}
         executionError={executionError}
         onDismissError={clearExecutionError}
+        onReply={setReplyTarget}
       />
 
       <MemoComposer
@@ -201,6 +204,8 @@ const ChatPane = React.memo(function ChatPane({
         onCancelRun={cancelActiveRun}
         isCancelling={isCancelling}
         placeholder={placeholder}
+        replyTarget={replyTarget}
+        onClearReply={() => setReplyTarget(null)}
       />
     </div>
   )

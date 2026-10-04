@@ -241,10 +241,14 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   )
 
   React.useEffect(() => {
+    if (isLoadingAgents) return
+
     if (!initialAgentId && agents[0]?.id) {
       router.replace(`/agent/${agents[0].id}`)
+    } else if (initialAgentId && !agents.some((ag) => ag.id === initialAgentId)) {
+      router.replace("/")
     }
-  }, [initialAgentId, agents, router])
+  }, [initialAgentId, agents, isLoadingAgents, router])
 
   const openConfigure = React.useCallback(() => setConfigureSheetOpen(true), [])
   const openHistory = React.useCallback(() => {

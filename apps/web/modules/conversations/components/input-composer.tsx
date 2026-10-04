@@ -3,9 +3,9 @@
 import { Button } from "@openbots/ui/components/button"
 import { Spinner } from "@openbots/ui/components/spinner"
 import { Textarea } from "@openbots/ui/components/textarea"
-import { IconArrowUp, IconCornerDownRight, IconPlayerStop, IconX } from "@tabler/icons-react"
 import * as React from "react"
 import type { ReplyTarget } from "../types"
+import { ArrowToDownLeft, ArrowUp, Stop3, X } from "reicon-react"
 
 interface InputComposerProps {
   onSend: (prompt: string) => void
@@ -139,7 +139,7 @@ export function InputComposer({
             {replyTarget && (
               <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-4 py-2 text-xs">
                 <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                  <IconCornerDownRight className="size-3.5 shrink-0 text-primary" />
+                  <ArrowToDownLeft className="size-3.5 shrink-0 text-primary" />
                   <span className="shrink-0 font-medium text-foreground">
                     Replying to {replyTarget.sender}
                   </span>
@@ -160,7 +160,7 @@ export function InputComposer({
                     title="Cancel reply"
                     aria-label="Cancel reply"
                   >
-                    <IconX className="size-3.5" />
+                    <X className="size-3.5" />
                   </Button>
                 )}
               </div>
@@ -171,7 +171,9 @@ export function InputComposer({
               value={text}
               onChange={(event) => setText(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={replyTarget ? `Reply to ${replyTarget.sender}...` : placeholder}
+              placeholder={
+                replyTarget ? `Reply to ${replyTarget.sender}...` : placeholder
+              }
               disabled={disabled}
               rows={1}
               className="max-h-48 min-h-12 resize-none overflow-y-auto border-0 bg-transparent px-4 py-3.5 pr-14 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -191,7 +193,7 @@ export function InputComposer({
                   {isCancelling ? (
                     <Spinner className="size-4" />
                   ) : (
-                    <IconPlayerStop className="size-4" />
+                    <Stop3 className="size-4" />
                   )}
                 </Button>
               ) : (
@@ -205,7 +207,7 @@ export function InputComposer({
                   {isSubmitting ? (
                     <Spinner className="size-4" />
                   ) : (
-                    <IconArrowUp className="size-4" />
+                    <ArrowUp className="size-4" />
                   )}
                 </Button>
               )}

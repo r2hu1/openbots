@@ -11,6 +11,7 @@ export type MessageItem = {
   conversationId: string;
   role: MessageRole;
   content: unknown;
+  metadata?: Record<string, any> | null;
   createdAt: string | Date;
 };
 

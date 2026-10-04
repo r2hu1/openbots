@@ -152,6 +152,7 @@ export const ALL_INTERNAL_TOOLS = [
   "wikipedia_search",
   "currency_converter",
   "dns_lookup",
+  "react_to_message",
 ] as const;
 
 export async function getAgentTools(agentId: string, userId: string) {

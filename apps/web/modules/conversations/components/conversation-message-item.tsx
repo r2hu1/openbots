@@ -1,6 +1,10 @@
 "use client"
 
-import { Bubble, BubbleContent } from "@openbots/ui/components/bubble"
+import {
+  Bubble,
+  BubbleContent,
+  BubbleReactions,
+} from "@openbots/ui/components/bubble"
 import { Button } from "@openbots/ui/components/button"
 import {
   ContextMenu,
@@ -29,12 +33,32 @@ import {
   Reply as IconMessageReply,
   Share as IconShare,
 } from "reicon-react"
+import confetti from "canvas-confetti"
 import * as React from "react"
 import { Markdown } from "@/components/shared/markdown"
 import { ArtifactCard } from "@/modules/artifacts/artifact-card"
 import { type ParsedArtifact, parseArtifacts } from "@/modules/artifacts/parser"
 import type { MessageItem, ReplyTarget } from "../types"
 import { formatMsgTime, getMessageText, splitIntoMessageParts } from "../utils"
+
+function fireEmojiConfetti(emoji: string, origin?: { x: number; y: number }) {
+  try {
+    const shape = confetti.shapeFromText({ text: emoji, scalar: 2.2 })
+    confetti({
+      shapes: [shape],
+      scalar: 2.2,
+      particleCount: 24,
+      spread: 60,
+      startVelocity: 25,
+      decay: 0.9,
+      origin: origin ?? { x: 0.85, y: 0.7 },
+      ticks: 150,
+      disableForReducedMotion: true,
+    })
+  } catch (err) {
+    console.warn("Failed to trigger emoji confetti:", err)
+  }
+}
 
 interface ConversationMessageItemProps {
   message: MessageItem
@@ -54,13 +78,36 @@ export function ConversationMessageItem({
   const isUser = message.role === "user"
   const text = getMessageText(message.content)
 
+  const reactions = React.useMemo(() => {
+    const meta = (message.metadata as Record<string, any>) || {}
+    if (Array.isArray(meta.reactions)) {
+      return meta.reactions as string[]
+    }
+    return []
+  }, [message.metadata])
+
+  // Track previously seen reactions for this message to fire confetti once when a new reaction appears
+  const prevReactionsRef = React.useRef<string[]>(reactions)
+  React.useEffect(() => {
+    const prev = prevReactionsRef.current
+    if (reactions.length > prev.length) {
+      const newlyAdded = reactions.filter((r) => !prev.includes(r))
+      for (const emoji of newlyAdded) {
+        fireEmojiConfetti(emoji)
+      }
+    }
+    prevReactionsRef.current = reactions
+  }, [reactions])
+
   const { messageParts } = React.useMemo(() => {
     if (isUser) {
       return {
         messageParts: [
           {
             partId: `usr-${message.id}`,
-            segments: [{ id: `usr-${message.id}`, type: "text" as const, text }],
+            segments: [
+              { id: `usr-${message.id}`, type: "text" as const, text },
+            ],
           },
         ],
       }
@@ -332,10 +379,42 @@ export function ConversationMessageItem({
                 )}
 
                 {isUser ? (
-                  <Bubble variant="default" align="end">
+                  <Bubble variant="default" align="end" className="relative">
                     <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
                       {text}
                     </BubbleContent>
+                    {reactions.length > 0 && (
+                      <BubbleReactions
+                        side="bottom"
+                        align="end"
+                        className="border-none! bg-secondary ring-0! outline-none!"
+                      >
+                        {reactions.map((emoji, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const rect =
+                                e.currentTarget.getBoundingClientRect()
+                              fireEmojiConfetti(emoji, {
+                                x:
+                                  (rect.left + rect.width / 2) /
+                                  window.innerWidth,
+                                y:
+                                  (rect.top + rect.height / 2) /
+                                  window.innerHeight,
+                              })
+                            }}
+                            title={`Reacted by ${agentName} (click for confetti)`}
+                            aria-label={`Reaction ${emoji}`}
+                            className="cursor-pointer px-1 py-px transition-transform hover:scale-125 active:scale-95"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </BubbleReactions>
+                    )}
                   </Bubble>
                 ) : (
                   messageParts.map((part, partIndex) => {
@@ -356,14 +435,19 @@ export function ConversationMessageItem({
                           }
                           if (seg.text) {
                             const isVeryLastSegment =
-                              isLastPart && segIndex === part.segments.length - 1
+                              isLastPart &&
+                              segIndex === part.segments.length - 1
                             return (
-                              <Bubble key={seg.id} variant="secondary" align="start">
+                              <Bubble
+                                key={seg.id}
+                                variant="secondary"
+                                align="start"
+                              >
                                 <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
                                   <Markdown>{seg.text}</Markdown>
                                   {isStreaming && isVeryLastSegment && (
                                     <span
-                                      className="inline-block ml-1 h-3.5 w-1.5 translate-y-0.5 rounded-xs bg-foreground animate-pulse"
+                                      className="ml-1 inline-block h-3.5 w-1.5 translate-y-0.5 animate-pulse rounded-xs bg-foreground"
                                       aria-hidden="true"
                                     />
                                   )}

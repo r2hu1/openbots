@@ -19,10 +19,17 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: [
-    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000",
     "http://localhost:3000",
     "http://localhost:3001",
-    process.env.APP_URL!,
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    ...(process.env.APP_URL ? [process.env.APP_URL.replace(/\/$/, "")] : []),
+    ...(process.env.NEXT_PUBLIC_APP_URL
+      ? [process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")]
+      : []),
+    ...(process.env.NEXT_PUBLIC_API_URL
+      ? [process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")]
+      : []),
   ],
 })
 

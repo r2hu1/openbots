@@ -34,13 +34,14 @@ import { Markdown } from "@/components/shared/markdown"
 import { ArtifactCard } from "@/modules/artifacts/artifact-card"
 import { type ParsedArtifact, parseArtifacts } from "@/modules/artifacts/parser"
 import type { MessageItem, ReplyTarget } from "../types"
-import { formatMsgTime, getMessageText } from "../utils"
+import { formatMsgTime, getMessageText, splitIntoMessageParts } from "../utils"
 
 interface ConversationMessageItemProps {
   message: MessageItem
   agentName: string
   onOpenArtifact?: (artifact: ParsedArtifact) => void
   onReply?: (target: ReplyTarget) => void
+  isStreaming?: boolean
 }
 
 export function ConversationMessageItem({
@@ -48,17 +49,34 @@ export function ConversationMessageItem({
   agentName,
   onOpenArtifact,
   onReply,
+  isStreaming = false,
 }: ConversationMessageItemProps) {
   const isUser = message.role === "user"
   const text = getMessageText(message.content)
 
-  const { segments } = React.useMemo(() => {
+  const { messageParts } = React.useMemo(() => {
     if (isUser) {
       return {
-        segments: [{ id: `usr-${message.id}`, type: "text" as const, text }],
+        messageParts: [
+          {
+            partId: `usr-${message.id}`,
+            segments: [{ id: `usr-${message.id}`, type: "text" as const, text }],
+          },
+        ],
       }
     }
-    return parseArtifacts(text)
+
+    // Split text into natural conversational parts when text is large
+    const parts = splitIntoMessageParts(text)
+    const formattedParts = parts.map((partText, idx) => {
+      const { segments } = parseArtifacts(partText)
+      return {
+        partId: `asst-${message.id}-p${idx}`,
+        segments,
+      }
+    })
+
+    return { messageParts: formattedParts }
   }, [isUser, message.id, text])
 
   const [copied, setCopied] = React.useState(false)
@@ -320,28 +338,43 @@ export function ConversationMessageItem({
                     </BubbleContent>
                   </Bubble>
                 ) : (
-                  segments.map((seg) => {
-                    if (seg.type === "artifact" && seg.artifact) {
-                      const artifact = seg.artifact
-                      return (
-                        <div key={seg.id} className="w-full max-w-2xl">
-                          <ArtifactCard
-                            artifact={artifact}
-                            onClick={() => onOpenArtifact?.(artifact)}
-                          />
-                        </div>
-                      )
-                    }
-                    if (seg.text) {
-                      return (
-                        <Bubble key={seg.id} variant="secondary" align="start">
-                          <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
-                            <Markdown>{seg.text}</Markdown>
-                          </BubbleContent>
-                        </Bubble>
-                      )
-                    }
-                    return null
+                  messageParts.map((part, partIndex) => {
+                    const isLastPart = partIndex === messageParts.length - 1
+                    return (
+                      <React.Fragment key={part.partId}>
+                        {part.segments.map((seg, segIndex) => {
+                          if (seg.type === "artifact" && seg.artifact) {
+                            const artifact = seg.artifact
+                            return (
+                              <div key={seg.id} className="w-full max-w-2xl">
+                                <ArtifactCard
+                                  artifact={artifact}
+                                  onClick={() => onOpenArtifact?.(artifact)}
+                                />
+                              </div>
+                            )
+                          }
+                          if (seg.text) {
+                            const isVeryLastSegment =
+                              isLastPart && segIndex === part.segments.length - 1
+                            return (
+                              <Bubble key={seg.id} variant="secondary" align="start">
+                                <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
+                                  <Markdown>{seg.text}</Markdown>
+                                  {isStreaming && isVeryLastSegment && (
+                                    <span
+                                      className="inline-block ml-1 h-3.5 w-1.5 translate-y-0.5 rounded-xs bg-foreground animate-pulse"
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                </BubbleContent>
+                              </Bubble>
+                            )
+                          }
+                          return null
+                        })}
+                      </React.Fragment>
+                    )
                   })
                 )}
               </div>

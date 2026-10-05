@@ -1,9 +1,9 @@
-import { Composio } from "@composio/core";
-import { VercelProvider } from "@composio/vercel";
+import { Composio } from "@composio/core"
+import { VercelProvider } from "@composio/vercel"
 import {
   Client,
   StreamableHTTPClientTransport,
-} from "@modelcontextprotocol/client";
+} from "@modelcontextprotocol/client"
 import {
   agentTools,
   connections,
@@ -11,106 +11,109 @@ import {
   messages,
   runs,
   schedules,
-} from "@openbots/db";
-import { tasks, runs as triggerRuns } from "@trigger.dev/sdk";
-import { jsonSchema, tool } from "ai";
-import { and, desc, eq, inArray, or } from "drizzle-orm";
-import { z } from "zod";
+} from "@openbots/db"
+import {
+  runs as triggerRuns,
+  schedules as triggerSchedules,
+  tasks,
+} from "@trigger.dev/sdk"
+import { ARTIFACT_PROMPT } from "./artifacts/prompt.js"
+import { jsonSchema, tool } from "ai"
+import { and, desc, eq, inArray, or } from "drizzle-orm"
+import { z } from "zod"
 
 function parseArithmetic(expr: string): number {
-  let pos = 0;
+  let pos = 0
 
   function peek(): string {
-    while (pos < expr.length && expr[pos] === " ") pos++;
-    return expr[pos] ?? "";
+    while (pos < expr.length && expr[pos] === " ") pos++
+    return expr[pos] ?? ""
   }
 
   function get(): string {
-    while (pos < expr.length && expr[pos] === " ") pos++;
-    return expr[pos++] ?? "";
+    while (pos < expr.length && expr[pos] === " ") pos++
+    return expr[pos++] ?? ""
   }
 
   function parsePrimary(): number {
-    const ch = peek();
+    const ch = peek()
     if (ch === "+") {
-      get();
-      return parsePrimary();
+      get()
+      return parsePrimary()
     }
     if (ch === "-") {
-      get();
-      return -parsePrimary();
+      get()
+      return -parsePrimary()
     }
     if (ch === "(") {
-      get();
-      const val = parseExpr();
+      get()
+      const val = parseExpr()
       if (peek() === ")") {
-        get();
+        get()
       } else {
-        throw new Error("Mismatched parentheses: expected ')'");
+        throw new Error("Mismatched parentheses: expected ')'")
       }
-      return val;
+      return val
     }
-    let numStr = "";
+    let numStr = ""
     while (peek() && /[0-9.]/.test(peek())) {
-      numStr += get();
+      numStr += get()
     }
     if (!numStr) {
-      throw new Error(`Unexpected character in expression: '${peek()}'`);
+      throw new Error(`Unexpected character in expression: '${peek()}'`)
     }
-    const n = Number(numStr);
+    const n = Number(numStr)
     if (Number.isNaN(n)) {
-      throw new Error(`Invalid number: '${numStr}'`);
+      throw new Error(`Invalid number: '${numStr}'`)
     }
-    return n;
+    return n
   }
 
   function parsePower(): number {
-    let left = parsePrimary();
+    let left = parsePrimary()
     while (peek() === "^") {
-      get();
-      const right = parsePower();
-      left = left ** right;
+      get()
+      const right = parsePower()
+      left = left ** right
     }
-    return left;
+    return left
   }
 
   function parseTerm(): number {
-    let left = parsePower();
+    let left = parsePower()
     while (peek() === "*" || peek() === "/" || peek() === "%") {
-      const op = get();
-      const right = parsePower();
+      const op = get()
+      const right = parsePower()
       if (op === "*") {
-        left *= right;
+        left *= right
       } else if (op === "/") {
-        if (right === 0) throw new Error("Division by zero");
-        left /= right;
+        if (right === 0) throw new Error("Division by zero")
+        left /= right
       } else if (op === "%") {
-        if (right === 0) throw new Error("Modulo by zero");
-        left %= right;
+        if (right === 0) throw new Error("Modulo by zero")
+        left %= right
       }
     }
-    return left;
+    return left
   }
 
   function parseExpr(): number {
-    let left = parseTerm();
+    let left = parseTerm()
     while (peek() === "+" || peek() === "-") {
-      const op = get();
-      const right = parseTerm();
-      if (op === "+") left += right;
-      else if (op === "-") left -= right;
+      const op = get()
+      const right = parseTerm()
+      if (op === "+") left += right
+      else if (op === "-") left -= right
     }
-    return left;
+    return left
   }
 
-  const result = parseExpr();
-  while (pos < expr.length && expr[pos] === " ") pos++;
+  const result = parseExpr()
+  while (pos < expr.length && expr[pos] === " ") pos++
   if (pos < expr.length) {
-    throw new Error(
-      `Unexpected token at position ${pos}: '${expr.slice(pos)}'`,
-    );
+    throw new Error(`Unexpected token at position ${pos}: '${expr.slice(pos)}'`)
   }
-  return result;
+  return result
 }
 
 export const getCurrentTime = tool({
@@ -121,12 +124,12 @@ export const getCurrentTime = tool({
       .string()
       .optional()
       .describe(
-        "Optional IANA timezone name (e.g. 'UTC', 'America/New_York', 'Asia/Tokyo'). Defaults to UTC.",
+        "Optional IANA timezone name (e.g. 'UTC', 'America/New_York', 'Asia/Tokyo'). Defaults to UTC."
       ),
   }),
   execute: async ({ timezone }) => {
-    const now = new Date();
-    const tz = timezone ?? "UTC";
+    const now = new Date()
+    const tz = timezone ?? "UTC"
     return {
       iso: now.toISOString(),
       timestamp: now.getTime(),
@@ -138,9 +141,9 @@ export const getCurrentTime = tool({
       hours: now.getUTCHours(),
       minutes: now.getUTCMinutes(),
       seconds: now.getUTCSeconds(),
-    };
+    }
   },
-});
+})
 
 export const calculate = tool({
   description:
@@ -149,24 +152,24 @@ export const calculate = tool({
     expression: z
       .string()
       .describe(
-        "Mathematical arithmetic expression to evaluate, e.g. '15 * 3 + 2' or '(100 - 25) / 5'",
+        "Mathematical arithmetic expression to evaluate, e.g. '15 * 3 + 2' or '(100 - 25) / 5'"
       ),
   }),
   execute: async ({ expression }) => {
     try {
-      const result = parseArithmetic(expression);
+      const result = parseArithmetic(expression)
       return {
         expression,
         result,
-      };
+      }
     } catch (err) {
       return {
         expression,
         error: err instanceof Error ? err.message : "Calculation failed",
-      };
+      }
     }
   },
-});
+})
 
 export const webSearch = tool({
   description:
@@ -186,59 +189,59 @@ export const webSearch = tool({
   }),
   execute: async ({ query, maxResults }) => {
     try {
-      const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`
       const response = await fetch(url, {
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         },
-      });
+      })
 
       if (!response.ok) {
         return {
           error: `Search request failed with status ${response.status}`,
-        };
+        }
       }
 
-      const html = await response.text();
+      const html = await response.text()
       const results: Array<{ title: string; snippet: string; link: string }> =
-        [];
+        []
 
       // Extract result elements
-      const resultBlocks = html.split(/class="[^"]*result__body[^"]*"/);
+      const resultBlocks = html.split(/class="[^"]*result__body[^"]*"/)
       for (
         let i = 1;
         i < resultBlocks.length && results.length < maxResults;
         i++
       ) {
-        const block = resultBlocks[i];
-        if (!block) continue;
+        const block = resultBlocks[i]
+        if (!block) continue
 
         // Extract title and URL
         const titleMatch = block.match(
-          /class="result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/,
-        );
+          /class="result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/
+        )
         const snippetMatch = block.match(
-          /class="result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|td)>/,
-        );
-        const linkMatch = block.match(/href="([^"]*uddg=([^"&]*)[^"]*)"/);
+          /class="result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|td)>/
+        )
+        const linkMatch = block.match(/href="([^"]*uddg=([^"&]*)[^"]*)"/)
 
-        const rawUrl = linkMatch?.[2] ? decodeURIComponent(linkMatch[2]) : "";
+        const rawUrl = linkMatch?.[2] ? decodeURIComponent(linkMatch[2]) : ""
         const cleanTitle = (
           block.match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/)?.[1] ?? ""
         )
           .replace(/<[^>]*>/g, "")
-          .trim();
+          .trim()
         const cleanSnippet = (snippetMatch?.[1] ?? titleMatch?.[1] ?? "")
           .replace(/<[^>]*>/g, "")
-          .trim();
+          .trim()
 
         if (cleanTitle && rawUrl) {
           results.push({
             title: cleanTitle,
             snippet: cleanSnippet,
             link: rawUrl,
-          });
+          })
         }
       }
 
@@ -255,15 +258,15 @@ export const webSearch = tool({
                   link: "",
                 },
               ],
-      };
+      }
     } catch (err) {
       return {
         query,
         error: err instanceof Error ? err.message : "Search failed",
-      };
+      }
     }
   },
-});
+})
 
 export const fetchWebPage = tool({
   description:
@@ -277,7 +280,7 @@ export const fetchWebPage = tool({
       .max(20000)
       .default(5000)
       .describe(
-        "Maximum characters of clean text to return (defaults to 5000)",
+        "Maximum characters of clean text to return (defaults to 5000)"
       ),
   }),
   execute: async ({ url, maxLength }) => {
@@ -288,33 +291,33 @@ export const fetchWebPage = tool({
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
           Accept: "text/html,application/xhtml+xml,application/json,text/plain",
         },
-      });
+      })
 
       if (!response.ok) {
         return {
           error: `Failed to fetch URL: HTTP ${response.status} ${response.statusText}`,
-        };
+        }
       }
 
-      const contentType = response.headers.get("content-type") || "";
+      const contentType = response.headers.get("content-type") || ""
       if (contentType.includes("application/json")) {
-        const json = await response.json();
-        const stringified = JSON.stringify(json, null, 2);
+        const json = await response.json()
+        const stringified = JSON.stringify(json, null, 2)
         return {
           url,
           contentType: "json",
           content: stringified.slice(0, maxLength),
-        };
+        }
       }
 
-      const raw = await response.text();
+      const raw = await response.text()
       // Basic HTML to markdown/text conversion
       const clean = raw
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
         .replace(
           /<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi,
-          "",
+          ""
         )
         .replace(/<[^>]*>/g, " ")
         .replace(/&nbsp;/g, " ")
@@ -323,22 +326,22 @@ export const fetchWebPage = tool({
         .replace(/&gt;/g, ">")
         .replace(/&quot;/g, '"')
         .replace(/\s+/g, " ")
-        .trim();
+        .trim()
 
       return {
         url,
         contentType,
         length: clean.length,
         content: clean.slice(0, maxLength),
-      };
+      }
     } catch (err) {
       return {
         url,
         error: err instanceof Error ? err.message : "Failed to fetch webpage",
-      };
+      }
     }
   },
-});
+})
 
 export const httpRequest = tool({
   description:
@@ -353,13 +356,13 @@ export const httpRequest = tool({
       .record(z.string(), z.string())
       .optional()
       .describe(
-        "Optional HTTP headers to include (e.g. Authorization, Content-Type)",
+        "Optional HTTP headers to include (e.g. Authorization, Content-Type)"
       ),
     body: z
       .string()
       .optional()
       .describe(
-        "Optional stringified request body (e.g. JSON string) for POST/PUT/PATCH",
+        "Optional stringified request body (e.g. JSON string) for POST/PUT/PATCH"
       ),
   }),
   execute: async ({ url, method, headers, body }) => {
@@ -368,21 +371,21 @@ export const httpRequest = tool({
         method,
         headers: headers ?? {},
         body: ["POST", "PUT", "PATCH"].includes(method) ? body : undefined,
-      });
+      })
 
-      const responseContentType = response.headers.get("content-type") || "";
-      let responseBody: any = null;
+      const responseContentType = response.headers.get("content-type") || ""
+      let responseBody: any = null
 
       if (responseContentType.includes("application/json")) {
         try {
-          responseBody = await response.json();
+          responseBody = await response.json()
         } catch {
-          responseBody = await response.text();
+          responseBody = await response.text()
         }
       } else {
-        responseBody = await response.text();
+        responseBody = await response.text()
         if (typeof responseBody === "string" && responseBody.length > 5000) {
-          responseBody = `${responseBody.slice(0, 5000)}... [truncated]`;
+          responseBody = `${responseBody.slice(0, 5000)}... [truncated]`
         }
       }
 
@@ -391,14 +394,14 @@ export const httpRequest = tool({
         statusText: response.statusText,
         ok: response.ok,
         data: responseBody,
-      };
+      }
     } catch (err) {
       return {
         error: err instanceof Error ? err.message : "HTTP request failed",
-      };
+      }
     }
   },
-});
+})
 
 export const jsonParser = tool({
   description:
@@ -409,38 +412,38 @@ export const jsonParser = tool({
       .string()
       .optional()
       .describe(
-        "Optional dot-notation property path to extract from the parsed object (e.g. 'data.user.email' or 'items[0]')",
+        "Optional dot-notation property path to extract from the parsed object (e.g. 'data.user.email' or 'items[0]')"
       ),
   }),
   execute: async ({ jsonString, path }) => {
     try {
-      const parsed = JSON.parse(jsonString);
+      const parsed = JSON.parse(jsonString)
       if (!path) {
-        return { success: true, result: parsed };
+        return { success: true, result: parsed }
       }
 
       // Safe path extraction
       const parts = path
         .replace(/\[(\w+)\]/g, ".$1")
         .replace(/^\./, "")
-        .split(".");
-      let current: any = parsed;
+        .split(".")
+      let current: any = parsed
       for (const part of parts) {
         if (current === null || current === undefined) {
-          return { success: true, path, result: null };
+          return { success: true, path, result: null }
         }
-        current = current[part];
+        current = current[part]
       }
 
-      return { success: true, path, result: current };
+      return { success: true, path, result: current }
     } catch (err) {
       return {
         success: false,
         error: err instanceof Error ? err.message : "Invalid JSON",
-      };
+      }
     }
   },
-});
+})
 
 export const textAnalyzer = tool({
   description:
@@ -449,15 +452,14 @@ export const textAnalyzer = tool({
     text: z.string().describe("The text string to analyze"),
   }),
   execute: async ({ text }) => {
-    const chars = text.length;
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    const lines = text.split(/\r\n|\r|\n/).length;
+    const chars = text.length
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0
+    const lines = text.split(/\r\n|\r|\n/).length
     const sentences =
-      (text.match(/[^.!?]+[.!?]+(\s|$)/g) || []).length ||
-      (text.trim() ? 1 : 0);
+      (text.match(/[^.!?]+[.!?]+(\s|$)/g) || []).length || (text.trim() ? 1 : 0)
 
     // Extract word frequencies for top keywords
-    const wordList = text.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
+    const wordList = text.toLowerCase().match(/\b[a-z]{3,}\b/g) || []
     const stopWords = new Set([
       "the",
       "and",
@@ -468,18 +470,18 @@ export const textAnalyzer = tool({
       "from",
       "are",
       "was",
-    ]);
-    const frequency: Record<string, number> = {};
+    ])
+    const frequency: Record<string, number> = {}
     for (const w of wordList) {
       if (!stopWords.has(w)) {
-        frequency[w] = (frequency[w] || 0) + 1;
+        frequency[w] = (frequency[w] || 0) + 1
       }
     }
 
     const topKeywords = Object.entries(frequency)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
-      .map(([word, count]) => ({ word, count }));
+      .map(([word, count]) => ({ word, count }))
 
     return {
       characters: chars,
@@ -488,9 +490,9 @@ export const textAnalyzer = tool({
       lines,
       averageWordLength: words > 0 ? Number((chars / words).toFixed(1)) : 0,
       topKeywords,
-    };
+    }
   },
-});
+})
 
 export const executeCode = tool({
   description:
@@ -500,7 +502,7 @@ export const executeCode = tool({
       .string()
       .min(1)
       .describe(
-        "JavaScript snippet or expression to evaluate. Can return a value (e.g. 'data.filter(x => x > 2)' or '(function() { ... })()')",
+        "JavaScript snippet or expression to evaluate. Can return a value (e.g. 'data.filter(x => x > 2)' or '(function() { ... })()')"
       ),
   }),
   execute: async ({ code }) => {
@@ -512,9 +514,9 @@ export const executeCode = tool({
         const process = undefined;
         const window = undefined;
         const global = undefined;
-        return (${code});`,
-      );
-      const result = fn();
+        return (${code});`
+      )
+      const result = fn()
       return {
         success: true,
         result:
@@ -523,15 +525,15 @@ export const executeCode = tool({
               ? JSON.parse(JSON.stringify(result))
               : result
             : "undefined",
-      };
+      }
     } catch (err) {
       return {
         success: false,
         error: err instanceof Error ? err.message : "Code evaluation failed",
-      };
+      }
     }
   },
-});
+})
 
 export const generateUuid = tool({
   description:
@@ -548,7 +550,7 @@ export const generateUuid = tool({
       .enum(["uuid", "token", "numeric"])
       .default("uuid")
       .describe(
-        "Format of identifier: standard 'uuid', hex 'token', or 'numeric' PIN/ID",
+        "Format of identifier: standard 'uuid', hex 'token', or 'numeric' PIN/ID"
       ),
     length: z
       .number()
@@ -559,25 +561,25 @@ export const generateUuid = tool({
       .describe("Length for 'token' or 'numeric' types (default 16)"),
   }),
   execute: async ({ count, type, length = 16 }) => {
-    const items: string[] = [];
+    const items: string[] = []
     for (let i = 0; i < count; i++) {
       if (type === "uuid") {
-        items.push(crypto.randomUUID());
+        items.push(crypto.randomUUID())
       } else if (type === "numeric") {
-        let pin = "";
+        let pin = ""
         for (let j = 0; j < length; j++) {
-          pin += Math.floor(Math.random() * 10);
+          pin += Math.floor(Math.random() * 10)
         }
-        items.push(pin);
+        items.push(pin)
       } else {
-        const bytes = new Uint8Array(Math.ceil(length / 2));
-        crypto.getRandomValues(bytes);
+        const bytes = new Uint8Array(Math.ceil(length / 2))
+        crypto.getRandomValues(bytes)
         items.push(
           Array.from(bytes)
             .map((b) => b.toString(16).padStart(2, "0"))
             .join("")
-            .slice(0, length),
-        );
+            .slice(0, length)
+        )
       }
     }
 
@@ -585,9 +587,9 @@ export const generateUuid = tool({
       type,
       count,
       items: count === 1 ? items[0] : items,
-    };
+    }
   },
-});
+})
 
 export const transformText = tool({
   description:
@@ -615,24 +617,24 @@ export const transformText = tool({
     try {
       switch (operation) {
         case "uppercase":
-          return { operation, result: text.toUpperCase() };
+          return { operation, result: text.toUpperCase() }
         case "lowercase":
-          return { operation, result: text.toLowerCase() };
+          return { operation, result: text.toLowerCase() }
         case "titlecase":
           return {
             operation,
             result: text.replace(
               /\w\S*/g,
-              (w) => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase(),
+              (w) => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase()
             ),
-          };
+          }
         case "camelcase":
           return {
             operation,
             result: text
               .toLowerCase()
               .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase()),
-          };
+          }
         case "snakecase":
           return {
             operation,
@@ -641,7 +643,7 @@ export const transformText = tool({
               .split(/ |\B(?=[A-Z])/)
               .map((word) => word.toLowerCase())
               .join("_"),
-          };
+          }
         case "kebabcase":
         case "slugify":
           return {
@@ -652,31 +654,31 @@ export const transformText = tool({
               .replace(/[^\w\s-]/g, "")
               .replace(/[\s_-]+/g, "-")
               .replace(/^-+|-+$/g, ""),
-          };
+          }
         case "base64_encode":
-          return { operation, result: Buffer.from(text).toString("base64") };
+          return { operation, result: Buffer.from(text).toString("base64") }
         case "base64_decode":
           return {
             operation,
             result: Buffer.from(text, "base64").toString("utf-8"),
-          };
+          }
         case "url_encode":
-          return { operation, result: encodeURIComponent(text) };
+          return { operation, result: encodeURIComponent(text) }
         case "url_decode":
-          return { operation, result: decodeURIComponent(text) };
+          return { operation, result: decodeURIComponent(text) }
         case "reverse":
-          return { operation, result: text.split("").reverse().join("") };
+          return { operation, result: text.split("").reverse().join("") }
         default:
-          return { operation, result: text };
+          return { operation, result: text }
       }
     } catch (err) {
       return {
         operation,
         error: err instanceof Error ? err.message : "Transformation failed",
-      };
+      }
     }
   },
-});
+})
 
 export const unitConverter = tool({
   description:
@@ -686,34 +688,34 @@ export const unitConverter = tool({
     from: z
       .string()
       .describe(
-        "Source unit symbol or name (e.g. 'km', 'mi', 'c', 'f', 'kg', 'lb', 'mb', 'gb')",
+        "Source unit symbol or name (e.g. 'km', 'mi', 'c', 'f', 'kg', 'lb', 'mb', 'gb')"
       ),
     to: z
       .string()
       .describe(
-        "Target unit symbol or name (e.g. 'mi', 'km', 'f', 'c', 'lb', 'kg', 'gb', 'mb')",
+        "Target unit symbol or name (e.g. 'mi', 'km', 'f', 'c', 'lb', 'kg', 'gb', 'mb')"
       ),
   }),
   execute: async ({ value, from, to }) => {
-    const f = from.trim().toLowerCase();
-    const t = to.trim().toLowerCase();
+    const f = from.trim().toLowerCase()
+    const t = to.trim().toLowerCase()
 
     // Temperatures
     if (["c", "celsius", "f", "fahrenheit", "k", "kelvin"].includes(f)) {
-      let celsius = value;
-      if (f.startsWith("f")) celsius = ((value - 32) * 5) / 9;
-      if (f.startsWith("k")) celsius = value - 273.15;
+      let celsius = value
+      if (f.startsWith("f")) celsius = ((value - 32) * 5) / 9
+      if (f.startsWith("k")) celsius = value - 273.15
 
-      let target = celsius;
-      if (t.startsWith("f")) target = (celsius * 9) / 5 + 32;
-      if (t.startsWith("k")) target = celsius + 273.15;
+      let target = celsius
+      if (t.startsWith("f")) target = (celsius * 9) / 5 + 32
+      if (t.startsWith("k")) target = celsius + 273.15
 
       return {
         value,
         from,
         to,
         result: Number(target.toFixed(2)),
-      };
+      }
     }
 
     // Length conversion ratios to meters
@@ -738,12 +740,12 @@ export const unitConverter = tool({
       in: 0.0254,
       inch: 0.0254,
       inches: 0.0254,
-    };
+    }
 
     if (lengthToMeters[f] && lengthToMeters[t]) {
-      const meters = value * lengthToMeters[f];
-      const result = meters / lengthToMeters[t];
-      return { value, from, to, result: Number(result.toFixed(4)) };
+      const meters = value * lengthToMeters[f]
+      const result = meters / lengthToMeters[t]
+      return { value, from, to, result: Number(result.toFixed(4)) }
     }
 
     // Weight conversion ratios to grams
@@ -760,12 +762,12 @@ export const unitConverter = tool({
       oz: 28.3495,
       ounce: 28.3495,
       ton: 1000000,
-    };
+    }
 
     if (weightToGrams[f] && weightToGrams[t]) {
-      const grams = value * weightToGrams[f];
-      const result = grams / weightToGrams[t];
-      return { value, from, to, result: Number(result.toFixed(4)) };
+      const grams = value * weightToGrams[f]
+      const result = grams / weightToGrams[t]
+      return { value, from, to, result: Number(result.toFixed(4)) }
     }
 
     // Data sizes to bytes
@@ -777,19 +779,19 @@ export const unitConverter = tool({
       mb: 1024 ** 2,
       gb: 1024 ** 3,
       tb: 1024 ** 4,
-    };
+    }
 
     if (dataToBytes[f] && dataToBytes[t]) {
-      const bytes = value * dataToBytes[f];
-      const result = bytes / dataToBytes[t];
-      return { value, from, to, result: Number(result.toFixed(4)) };
+      const bytes = value * dataToBytes[f]
+      const result = bytes / dataToBytes[t]
+      return { value, from, to, result: Number(result.toFixed(4)) }
     }
 
     return {
       error: `Unsupported unit conversion between '${from}' and '${to}'`,
-    };
+    }
   },
-});
+})
 
 export const randomGenerator = tool({
   description:
@@ -823,41 +825,41 @@ export const randomGenerator = tool({
   }) => {
     switch (type) {
       case "number": {
-        const val = Math.floor(Math.random() * (max - min + 1)) + min;
-        return { type, min, max, result: val };
+        const val = Math.floor(Math.random() * (max - min + 1)) + min
+        return { type, min, max, result: val }
       }
       case "coin": {
-        const flip = Math.random() < 0.5 ? "heads" : "tails";
-        return { type, result: flip };
+        const flip = Math.random() < 0.5 ? "heads" : "tails"
+        return { type, result: flip }
       }
       case "dice": {
         const rolls = Array.from(
           { length: diceCount },
-          () => Math.floor(Math.random() * diceSides) + 1,
-        );
-        const total = rolls.reduce((a, b) => a + b, 0);
-        return { type, diceCount, diceSides, rolls, total };
+          () => Math.floor(Math.random() * diceSides) + 1
+        )
+        const total = rolls.reduce((a, b) => a + b, 0)
+        return { type, diceCount, diceSides, rolls, total }
       }
       case "choice": {
         if (!options.length) {
-          return { error: "Please provide 'options' array for random choice." };
+          return { error: "Please provide 'options' array for random choice." }
         }
-        const picked = options[Math.floor(Math.random() * options.length)];
-        return { type, picked, from: options };
+        const picked = options[Math.floor(Math.random() * options.length)]
+        return { type, picked, from: options }
       }
       case "shuffle": {
-        const arr = [...options];
+        const arr = [...options]
         for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          const temp = arr[i]!;
-          arr[i] = arr[j]!;
-          arr[j] = temp;
+          const j = Math.floor(Math.random() * (i + 1))
+          const temp = arr[i]!
+          arr[i] = arr[j]!
+          arr[j] = temp
         }
-        return { type, shuffled: arr };
+        return { type, shuffled: arr }
       }
     }
   },
-});
+})
 
 const WEATHER_CODE_MAP: Record<number, string> = {
   0: "Clear sky",
@@ -881,7 +883,7 @@ const WEATHER_CODE_MAP: Record<number, string> = {
   95: "Thunderstorm",
   96: "Thunderstorm with slight hail",
   99: "Thunderstorm with heavy hail",
-};
+}
 
 export const getWeather = tool({
   description:
@@ -891,7 +893,7 @@ export const getWeather = tool({
       .string()
       .min(1)
       .describe(
-        "City or place name, e.g. 'Mumbai', 'New York', 'London', 'Tokyo'",
+        "City or place name, e.g. 'Mumbai', 'New York', 'London', 'Tokyo'"
       ),
     temperatureUnit: z
       .enum(["celsius", "fahrenheit"])
@@ -902,45 +904,45 @@ export const getWeather = tool({
     try {
       // 1. Geocode location
       const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-        location,
-      )}&count=1&language=en&format=json`;
-      const geoRes = await fetch(geoUrl);
+        location
+      )}&count=1&language=en&format=json`
+      const geoRes = await fetch(geoUrl)
       if (!geoRes.ok) {
-        return { error: `Failed to find location: ${location}` };
+        return { error: `Failed to find location: ${location}` }
       }
       const geoData = (await geoRes.json()) as {
         results?: Array<{
-          name: string;
-          country?: string;
-          admin1?: string;
-          latitude: number;
-          longitude: number;
-          timezone?: string;
-        }>;
-      };
+          name: string
+          country?: string
+          admin1?: string
+          latitude: number
+          longitude: number
+          timezone?: string
+        }>
+      }
 
-      const match = geoData.results?.[0];
+      const match = geoData.results?.[0]
       if (!match) {
         return {
           error: `Location '${location}' not found. Please try specifying a nearby major city.`,
-        };
+        }
       }
 
       // 2. Fetch current weather and forecast
       const tempParam =
-        temperatureUnit === "fahrenheit" ? "&temperature_unit=fahrenheit" : "";
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${match.latitude}&longitude=${match.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto${tempParam}`;
-      const weatherRes = await fetch(weatherUrl);
+        temperatureUnit === "fahrenheit" ? "&temperature_unit=fahrenheit" : ""
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${match.latitude}&longitude=${match.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto${tempParam}`
+      const weatherRes = await fetch(weatherUrl)
       if (!weatherRes.ok) {
-        return { error: `Could not retrieve weather data for ${match.name}` };
+        return { error: `Could not retrieve weather data for ${match.name}` }
       }
 
-      const weatherData = (await weatherRes.json()) as any;
-      const current = weatherData.current;
-      const daily = weatherData.daily;
+      const weatherData = (await weatherRes.json()) as any
+      const current = weatherData.current
+      const daily = weatherData.daily
       const condition =
         WEATHER_CODE_MAP[current?.weather_code] ??
-        `Code ${current?.weather_code}`;
+        `Code ${current?.weather_code}`
 
       return {
         location: match.name,
@@ -962,14 +964,14 @@ export const getWeather = tool({
             maxTemp: `${daily.temperature_2m_max[i]}°`,
             minTemp: `${daily.temperature_2m_min[i]}°`,
           })),
-      };
+      }
     } catch (err) {
       return {
         error: err instanceof Error ? err.message : "Weather retrieval failed",
-      };
+      }
     }
   },
-});
+})
 
 export const wikipediaSearch = tool({
   description:
@@ -981,35 +983,35 @@ export const wikipediaSearch = tool({
     try {
       // Search for best matching title
       const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
-        query,
-      )}&limit=3&namespace=0&format=json`;
+        query
+      )}&limit=3&namespace=0&format=json`
       const res = await fetch(searchUrl, {
         headers: { "User-Agent": "OpenBots/1.0" },
-      });
+      })
       if (!res.ok) {
-        return { error: "Failed to connect to Wikipedia" };
+        return { error: "Failed to connect to Wikipedia" }
       }
-      const data = (await res.json()) as [string, string[], string[], string[]];
-      const titles = data[1] ?? [];
-      const descriptions = data[2] ?? [];
-      const urls = data[3] ?? [];
+      const data = (await res.json()) as [string, string[], string[], string[]]
+      const titles = data[1] ?? []
+      const descriptions = data[2] ?? []
+      const urls = data[3] ?? []
 
       if (!titles.length || !titles[0]) {
-        return { query, result: "No matching Wikipedia articles found." };
+        return { query, result: "No matching Wikipedia articles found." }
       }
 
       // Fetch summary of top match
       const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
-        titles[0],
-      )}`;
+        titles[0]
+      )}`
       const summaryRes = await fetch(summaryUrl, {
         headers: { "User-Agent": "OpenBots/1.0" },
-      });
+      })
 
-      let fullExtract = "";
+      let fullExtract = ""
       if (summaryRes.ok) {
-        const summaryData = (await summaryRes.json()) as any;
-        fullExtract = summaryData.extract || "";
+        const summaryData = (await summaryRes.json()) as any
+        fullExtract = summaryData.extract || ""
       }
 
       return {
@@ -1020,14 +1022,14 @@ export const wikipediaSearch = tool({
           title: t,
           url: urls[idx + 1],
         })),
-      };
+      }
     } catch (err) {
       return {
         error: err instanceof Error ? err.message : "Wikipedia lookup failed",
-      };
+      }
     }
   },
-});
+})
 
 export const currencyConverter = tool({
   description:
@@ -1045,32 +1047,32 @@ export const currencyConverter = tool({
   }),
   execute: async ({ amount, from, to }) => {
     try {
-      const base = from.toUpperCase();
-      const target = to.toUpperCase();
-      const res = await fetch(`https://open.er-api.com/v6/latest/${base}`);
+      const base = from.toUpperCase()
+      const target = to.toUpperCase()
+      const res = await fetch(`https://open.er-api.com/v6/latest/${base}`)
       if (!res.ok) {
-        return { error: `Failed to fetch exchange rates for ${base}` };
+        return { error: `Failed to fetch exchange rates for ${base}` }
       }
       const data = (await res.json()) as {
-        result: string;
-        rates?: Record<string, number>;
-        time_last_update_utc?: string;
-      };
+        result: string
+        rates?: Record<string, number>
+        time_last_update_utc?: string
+      }
 
       if (data.result !== "success" || !data.rates) {
         return {
           error: `Currency code '${base}' not supported or rate unavailable.`,
-        };
+        }
       }
 
-      const rate = data.rates[target];
+      const rate = data.rates[target]
       if (rate === undefined) {
         return {
           error: `Target currency '${target}' not found in exchange rates.`,
-        };
+        }
       }
 
-      const converted = Number((amount * rate).toFixed(4));
+      const converted = Number((amount * rate).toFixed(4))
       return {
         amount,
         from: base,
@@ -1078,15 +1080,15 @@ export const currencyConverter = tool({
         rate,
         converted,
         lastUpdated: data.time_last_update_utc,
-      };
+      }
     } catch (err) {
       return {
         error:
           err instanceof Error ? err.message : "Currency conversion failed",
-      };
+      }
     }
   },
-});
+})
 
 export const dnsLookup = tool({
   description:
@@ -1096,7 +1098,7 @@ export const dnsLookup = tool({
       .string()
       .min(1)
       .describe(
-        "The domain name to resolve, e.g. 'google.com' or 'github.com'",
+        "The domain name to resolve, e.g. 'google.com' or 'github.com'"
       ),
     type: z
       .enum(["A", "AAAA", "MX", "TXT", "CNAME", "NS"])
@@ -1108,23 +1110,23 @@ export const dnsLookup = tool({
       const cleanDomain = domain
         .trim()
         .replace(/^https?:\/\//, "")
-        .replace(/\/.*$/, "");
+        .replace(/\/.*$/, "")
       const res = await fetch(
-        `https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=${type}`,
-      );
+        `https://dns.google/resolve?name=${encodeURIComponent(cleanDomain)}&type=${type}`
+      )
       if (!res.ok) {
-        return { error: `DNS lookup request failed with status ${res.status}` };
+        return { error: `DNS lookup request failed with status ${res.status}` }
       }
       const data = (await res.json()) as {
-        Status: number;
+        Status: number
         Answer?: Array<{
-          name: string;
-          type: number;
-          TTL: number;
-          data: string;
-        }>;
-        Comment?: string;
-      };
+          name: string
+          type: number
+          TTL: number
+          data: string
+        }>
+        Comment?: string
+      }
 
       if (data.Status !== 0 || !data.Answer) {
         return {
@@ -1132,7 +1134,7 @@ export const dnsLookup = tool({
           type,
           found: false,
           message: data.Comment || "No records found or domain does not exist.",
-        };
+        }
       }
 
       return {
@@ -1140,19 +1142,19 @@ export const dnsLookup = tool({
         type,
         found: true,
         records: data.Answer.map((a) => a.data),
-      };
+      }
     } catch (err) {
       return {
         error: err instanceof Error ? err.message : "DNS lookup failed",
-      };
+      }
     }
   },
-});
+})
 
 export function createScheduleTool(
   userId: string,
   agentId: string,
-  conversationId?: string | null,
+  conversationId?: string | null
 ) {
   return tool({
     description:
@@ -1166,42 +1168,42 @@ export function createScheduleTool(
       name: z
         .string()
         .describe(
-          "A short descriptive title for the scheduled task or reminder",
+          "A short descriptive title for the scheduled task or reminder"
         ),
       prompt: z
         .string()
         .describe(
-          "The instruction, reminder message, or task to execute when the schedule triggers",
+          "The instruction, reminder message, or task to execute when the schedule triggers"
         ),
       type: z
         .enum(["delay", "recurring", "timestamp"])
         .default("delay")
         .describe(
-          "Schedule type: 'delay' for one-off tasks relative to now (e.g. in 1 min), 'timestamp' for specific date/time, 'recurring' for cron schedules",
+          "Schedule type: 'delay' for one-off tasks relative to now (e.g. in 1 min), 'timestamp' for specific date/time, 'recurring' for cron schedules"
         ),
       delaySeconds: z
         .number()
         .optional()
         .describe(
-          "Seconds to wait before executing (required for 'delay' type, e.g. 60 for 1 minute, 120 for 2 minutes, 3600 for 1 hour)",
+          "Seconds to wait before executing (required for 'delay' type, e.g. 60 for 1 minute, 120 for 2 minutes, 3600 for 1 hour)"
         ),
       runAt: z
         .string()
         .optional()
         .describe(
-          "ISO 8601 timestamp string for when to run (e.g. '2026-10-02T15:00:00Z')",
+          "ISO 8601 timestamp string for when to run (e.g. '2026-10-02T15:00:00Z')"
         ),
       cronExpression: z
         .string()
         .optional()
         .describe(
-          "A standard 5-field cron expression for recurring tasks (e.g. '0 9 * * *' for daily at 9am, '*/15 * * * *' for every 15 minutes)",
+          "A standard 5-field cron expression for recurring tasks (e.g. '0 9 * * *' for daily at 9am, '*/15 * * * *' for every 15 minutes)"
         ),
       timezone: z
         .string()
         .optional()
         .describe(
-          "IANA timezone (e.g. 'America/New_York', 'Asia/Kolkata', 'UTC'). Defaults to UTC.",
+          "IANA timezone (e.g. 'America/New_York', 'Asia/Kolkata', 'UTC'). Defaults to UTC."
         ),
     }),
     execute: async ({
@@ -1215,7 +1217,7 @@ export function createScheduleTool(
     }) => {
       // 1. Recurring Cron Schedule
       if (type === "recurring" || (cronExpression && !delaySeconds && !runAt)) {
-        const cron = cronExpression ?? "0 9 * * *";
+        const cron = cronExpression ?? "0 9 * * *"
         const inserted = await db
           .insert(schedules)
           .values({
@@ -1227,11 +1229,35 @@ export function createScheduleTool(
             timezone: timezone ?? "UTC",
             status: "active",
           })
-          .returning();
-        const schedule = inserted[0];
+          .returning()
+        const schedule = inserted[0]
 
         if (!schedule) {
-          throw new Error("Failed to create recurring schedule");
+          throw new Error("Failed to create recurring schedule")
+        }
+
+        // Register dynamic schedule with Trigger.dev
+        try {
+          const triggerSched = await triggerSchedules.create({
+            task: "scheduled-agent-task",
+            cron,
+            timezone: timezone ?? "UTC",
+            deduplicationKey: schedule.id,
+            externalId: schedule.id,
+          })
+
+          if (triggerSched?.id) {
+            await db
+              .update(schedules)
+              .set({ triggerScheduleId: triggerSched.id })
+              .where(eq(schedules.id, schedule.id))
+            schedule.triggerScheduleId = triggerSched.id
+          }
+        } catch (triggerErr) {
+          console.warn(
+            "Could not register recurring schedule with Trigger.dev:",
+            triggerErr
+          )
         }
 
         return {
@@ -1242,26 +1268,26 @@ export function createScheduleTool(
           timezone: schedule.timezone,
           status: schedule.status,
           message: `Recurring schedule '${name}' set. It will execute with cron '${cron}' in timezone ${schedule.timezone}.`,
-        };
+        }
       }
 
       // 2. One-off Specific Timestamp or Relative Delay
-      let computedDelaySeconds = delaySeconds;
+      let computedDelaySeconds = delaySeconds
 
       if (type === "timestamp" || runAt) {
         if (!runAt) {
           throw new Error(
-            "Missing 'runAt' ISO timestamp for timestamp schedule",
-          );
+            "Missing 'runAt' ISO timestamp for timestamp schedule"
+          )
         }
-        const targetTime = new Date(runAt).getTime();
-        const now = Date.now();
-        const diffMs = targetTime - now;
-        computedDelaySeconds = Math.max(1, Math.round(diffMs / 1000));
+        const targetTime = new Date(runAt).getTime()
+        const now = Date.now()
+        const diffMs = targetTime - now
+        computedDelaySeconds = Math.max(1, Math.round(diffMs / 1000))
       }
 
       if (!computedDelaySeconds || computedDelaySeconds <= 0) {
-        computedDelaySeconds = 60; // fallback to 1 minute if unspecified
+        computedDelaySeconds = 60 // fallback to 1 minute if unspecified
       }
 
       // Queue run in database
@@ -1277,14 +1303,14 @@ export function createScheduleTool(
             prompt,
             scheduledTaskName: name,
             scheduledFor: new Date(
-              Date.now() + computedDelaySeconds * 1000,
+              Date.now() + computedDelaySeconds * 1000
             ).toISOString(),
           },
         })
-        .returning();
+        .returning()
 
       if (!newRun) {
-        throw new Error("Failed to queue scheduled run");
+        throw new Error("Failed to queue scheduled run")
       }
 
       // Dispatch delayed task to Trigger.dev
@@ -1296,13 +1322,10 @@ export function createScheduleTool(
             delay: `${computedDelaySeconds}s`,
             idempotencyKey: newRun.id,
             tags: [newRun.id, userId],
-          },
-        );
+          }
+        )
       } catch (triggerErr) {
-        console.warn(
-          "Could not dispatch delayed Trigger.dev task:",
-          triggerErr,
-        );
+        console.warn("Could not dispatch delayed Trigger.dev task:", triggerErr)
       }
 
       const durationStr =
@@ -1310,7 +1333,7 @@ export function createScheduleTool(
           ? `${computedDelaySeconds} second${computedDelaySeconds === 1 ? "" : "s"}`
           : computedDelaySeconds < 3600
             ? `${Math.round(computedDelaySeconds / 60)} minute${Math.round(computedDelaySeconds / 60) === 1 ? "" : "s"}`
-            : `${(computedDelaySeconds / 3600).toFixed(1)} hours`;
+            : `${(computedDelaySeconds / 3600).toFixed(1)} hours`
 
       return {
         runId: newRun.id,
@@ -1318,18 +1341,18 @@ export function createScheduleTool(
         type: "delay",
         delaySeconds: computedDelaySeconds,
         executesAt: new Date(
-          Date.now() + computedDelaySeconds * 1000,
+          Date.now() + computedDelaySeconds * 1000
         ).toISOString(),
         message: `Scheduled reminder '${name}' successfully set for ${durationStr} from now. I will trigger and perform this task automatically.`,
-      };
+      }
     },
-  });
+  })
 }
 
 export function manageScheduleTool(
   userId: string,
   agentId: string,
-  conversationId?: string | null,
+  conversationId?: string | null
 ) {
   return tool({
     description:
@@ -1342,19 +1365,19 @@ export function manageScheduleTool(
       action: z
         .enum(["list", "cancel", "modify"])
         .describe(
-          "Action to perform: 'list' to see all scheduled/queued tasks, 'cancel' to stop/delete a scheduled task, or 'modify' to change its timing or prompt",
+          "Action to perform: 'list' to see all scheduled/queued tasks, 'cancel' to stop/delete a scheduled task, or 'modify' to change its timing or prompt"
         ),
       taskId: z
         .string()
         .optional()
         .describe(
-          "The ID of the queued run or recurring schedule (obtained from 'list' action or prior creation)",
+          "The ID of the queued run or recurring schedule (obtained from 'list' action or prior creation)"
         ),
       taskName: z
         .string()
         .optional()
         .describe(
-          "Fuzzy name or title of the task to find, cancel, or modify (e.g. 'tea reminder') if ID is unknown",
+          "Fuzzy name or title of the task to find, cancel, or modify (e.g. 'tea reminder') if ID is unknown"
         ),
       newName: z
         .string()
@@ -1364,25 +1387,25 @@ export function manageScheduleTool(
         .string()
         .optional()
         .describe(
-          "New prompt or instruction for the task when action is 'modify'",
+          "New prompt or instruction for the task when action is 'modify'"
         ),
       delaySeconds: z
         .number()
         .optional()
         .describe(
-          "New seconds from now to execute when modifying a one-off delay task (e.g. 600 for 10 minutes)",
+          "New seconds from now to execute when modifying a one-off delay task (e.g. 600 for 10 minutes)"
         ),
       runAt: z
         .string()
         .optional()
         .describe(
-          "New ISO 8601 timestamp string for when to run when modifying a timestamped task",
+          "New ISO 8601 timestamp string for when to run when modifying a timestamped task"
         ),
       cronExpression: z
         .string()
         .optional()
         .describe(
-          "New cron expression when modifying a recurring schedule (e.g. '0 10 * * *')",
+          "New cron expression when modifying a recurring schedule (e.g. '0 10 * * *')"
         ),
       timezone: z
         .string()
@@ -1417,10 +1440,10 @@ export function manageScheduleTool(
               eq(runs.userId, userId),
               eq(runs.agentId, agentId),
               eq(runs.status, "queued"),
-              eq(runs.triggerType, "schedule"),
-            ),
+              eq(runs.triggerType, "schedule")
+            )
           )
-          .orderBy(desc(runs.createdAt));
+          .orderBy(desc(runs.createdAt))
 
         const activeSchedules = await db
           .select()
@@ -1429,13 +1452,13 @@ export function manageScheduleTool(
             and(
               eq(schedules.userId, userId),
               eq(schedules.agentId, agentId),
-              eq(schedules.status, "active"),
-            ),
+              eq(schedules.status, "active")
+            )
           )
-          .orderBy(desc(schedules.createdAt));
+          .orderBy(desc(schedules.createdAt))
 
         const formattedQueued = queuedRuns.map((r) => {
-          const inp = (r.input as any) ?? {};
+          const inp = (r.input as any) ?? {}
           return {
             id: r.id,
             type: "delayed_reminder" as const,
@@ -1444,8 +1467,8 @@ export function manageScheduleTool(
             scheduledFor: inp.scheduledFor ?? null,
             status: r.status,
             createdAt: r.createdAt,
-          };
-        });
+          }
+        })
 
         const formattedRecurring = activeSchedules.map((s) => ({
           id: s.id,
@@ -1456,9 +1479,9 @@ export function manageScheduleTool(
           timezone: s.timezone,
           status: s.status,
           createdAt: s.createdAt,
-        }));
+        }))
 
-        const totalCount = formattedQueued.length + formattedRecurring.length;
+        const totalCount = formattedQueued.length + formattedRecurring.length
         return {
           totalCount,
           queuedReminders: formattedQueued,
@@ -1467,12 +1490,12 @@ export function manageScheduleTool(
             totalCount === 0
               ? "You have no active scheduled tasks or queued reminders."
               : `Found ${totalCount} active scheduled item(s): ${formattedQueued.length} queued reminder(s) and ${formattedRecurring.length} recurring schedule(s).`,
-        };
+        }
       }
 
       // Helper to find a task by ID or fuzzy taskName
-      const normalize = (s?: string | null) => (s ?? "").trim().toLowerCase();
-      const searchTarget = normalize(taskName);
+      const normalize = (s?: string | null) => (s ?? "").trim().toLowerCase()
+      const searchTarget = normalize(taskName)
 
       // 2. ACTION: CANCEL
       if (action === "cancel") {
@@ -1488,41 +1511,46 @@ export function manageScheduleTool(
               and(
                 eq(runs.id, taskId),
                 eq(runs.userId, userId),
-                eq(runs.status, "queued"),
-              ),
+                eq(runs.status, "queued")
+              )
             )
-            .returning();
+            .returning()
 
           if (cancelledRun) {
             try {
-              await triggerRuns.cancel(taskId);
+              await triggerRuns.cancel(taskId)
             } catch {
               // Ignore trigger cancel failure
             }
-            const inp = (cancelledRun.input as any) ?? {};
+            const inp = (cancelledRun.input as any) ?? {}
             return {
               success: true,
               type: "delayed_reminder",
               cancelledId: cancelledRun.id,
               name: inp.scheduledTaskName ?? "Reminder",
               message: `Queued reminder '${inp.scheduledTaskName ?? taskId}' has been successfully cancelled.`,
-            };
+            }
           }
 
           // Try recurring schedules by taskId
           const [deletedSchedule] = await db
             .delete(schedules)
             .where(and(eq(schedules.id, taskId), eq(schedules.userId, userId)))
-            .returning();
+            .returning()
 
           if (deletedSchedule) {
+            if (deletedSchedule.triggerScheduleId) {
+              triggerSchedules
+                .del(deletedSchedule.triggerScheduleId)
+                .catch(() => {})
+            }
             return {
               success: true,
               type: "recurring_schedule",
               cancelledId: deletedSchedule.id,
               name: deletedSchedule.name,
               message: `Recurring schedule '${deletedSchedule.name}' has been successfully deleted/cancelled.`,
-            };
+            }
           }
         }
 
@@ -1536,20 +1564,20 @@ export function manageScheduleTool(
                 eq(runs.userId, userId),
                 eq(runs.agentId, agentId),
                 eq(runs.status, "queued"),
-                eq(runs.triggerType, "schedule"),
-              ),
-            );
+                eq(runs.triggerType, "schedule")
+              )
+            )
 
           const matchedRun = queuedRuns.find((r) => {
-            const inp = (r.input as any) ?? {};
-            const name = normalize(inp.scheduledTaskName);
-            const prompt = normalize(inp.prompt);
+            const inp = (r.input as any) ?? {}
+            const name = normalize(inp.scheduledTaskName)
+            const prompt = normalize(inp.prompt)
             return (
               name.includes(searchTarget) ||
               searchTarget.includes(name) ||
               prompt.includes(searchTarget)
-            );
-          });
+            )
+          })
 
           if (matchedRun) {
             await db
@@ -1558,22 +1586,22 @@ export function manageScheduleTool(
                 status: "cancelled",
                 completedAt: new Date(),
               })
-              .where(eq(runs.id, matchedRun.id));
+              .where(eq(runs.id, matchedRun.id))
 
             try {
-              await triggerRuns.cancel(matchedRun.id);
+              await triggerRuns.cancel(matchedRun.id)
             } catch {
               // Ignore trigger cancel failure
             }
 
-            const inp = (matchedRun.input as any) ?? {};
+            const inp = (matchedRun.input as any) ?? {}
             return {
               success: true,
               type: "delayed_reminder",
               cancelledId: matchedRun.id,
               name: inp.scheduledTaskName ?? "Reminder",
               message: `Queued reminder '${inp.scheduledTaskName ?? searchTarget}' has been successfully cancelled.`,
-            };
+            }
           }
 
           // Search recurring schedules
@@ -1584,24 +1612,29 @@ export function manageScheduleTool(
               and(
                 eq(schedules.userId, userId),
                 eq(schedules.agentId, agentId),
-                eq(schedules.status, "active"),
-              ),
-            );
+                eq(schedules.status, "active")
+              )
+            )
 
           const matchedSchedule = activeSchedules.find((s) => {
-            const name = normalize(s.name);
-            const prompt = normalize(s.prompt);
+            const name = normalize(s.name)
+            const prompt = normalize(s.prompt)
             return (
               name.includes(searchTarget) ||
               searchTarget.includes(name) ||
               prompt.includes(searchTarget)
-            );
-          });
+            )
+          })
 
           if (matchedSchedule) {
+            if (matchedSchedule.triggerScheduleId) {
+              triggerSchedules
+                .del(matchedSchedule.triggerScheduleId)
+                .catch(() => {})
+            }
             await db
               .delete(schedules)
-              .where(eq(schedules.id, matchedSchedule.id));
+              .where(eq(schedules.id, matchedSchedule.id))
 
             return {
               success: true,
@@ -1609,21 +1642,21 @@ export function manageScheduleTool(
               cancelledId: matchedSchedule.id,
               name: matchedSchedule.name,
               message: `Recurring schedule '${matchedSchedule.name}' has been successfully cancelled.`,
-            };
+            }
           }
         }
 
         return {
           success: false,
           error: `Could not find any active reminder or schedule matching '${taskId ?? taskName}'. Call with action 'list' to see all active tasks.`,
-        };
+        }
       }
 
       // 3. ACTION: MODIFY
       if (action === "modify") {
         // Find existing target run or schedule
-        let targetRun: typeof runs.$inferSelect | undefined;
-        let targetSchedule: typeof schedules.$inferSelect | undefined;
+        let targetRun: typeof runs.$inferSelect | undefined
+        let targetSchedule: typeof schedules.$inferSelect | undefined
 
         if (taskId) {
           const [foundRun] = await db
@@ -1633,11 +1666,11 @@ export function manageScheduleTool(
               and(
                 eq(runs.id, taskId),
                 eq(runs.userId, userId),
-                eq(runs.status, "queued"),
-              ),
-            );
+                eq(runs.status, "queued")
+              )
+            )
           if (foundRun) {
-            targetRun = foundRun;
+            targetRun = foundRun
           } else {
             const [foundSchedule] = await db
               .select()
@@ -1646,11 +1679,11 @@ export function manageScheduleTool(
                 and(
                   eq(schedules.id, taskId),
                   eq(schedules.userId, userId),
-                  eq(schedules.status, "active"),
-                ),
-              );
+                  eq(schedules.status, "active")
+                )
+              )
             if (foundSchedule) {
-              targetSchedule = foundSchedule;
+              targetSchedule = foundSchedule
             }
           }
         }
@@ -1664,20 +1697,20 @@ export function manageScheduleTool(
                 eq(runs.userId, userId),
                 eq(runs.agentId, agentId),
                 eq(runs.status, "queued"),
-                eq(runs.triggerType, "schedule"),
-              ),
-            );
+                eq(runs.triggerType, "schedule")
+              )
+            )
 
           targetRun = queuedRuns.find((r) => {
-            const inp = (r.input as any) ?? {};
-            const name = normalize(inp.scheduledTaskName);
-            const prompt = normalize(inp.prompt);
+            const inp = (r.input as any) ?? {}
+            const name = normalize(inp.scheduledTaskName)
+            const prompt = normalize(inp.prompt)
             return (
               name.includes(searchTarget) ||
               searchTarget.includes(name) ||
               prompt.includes(searchTarget)
-            );
-          });
+            )
+          })
 
           if (!targetRun) {
             const activeSchedules = await db
@@ -1687,19 +1720,19 @@ export function manageScheduleTool(
                 and(
                   eq(schedules.userId, userId),
                   eq(schedules.agentId, agentId),
-                  eq(schedules.status, "active"),
-                ),
-              );
+                  eq(schedules.status, "active")
+                )
+              )
 
             targetSchedule = activeSchedules.find((s) => {
-              const name = normalize(s.name);
-              const prompt = normalize(s.prompt);
+              const name = normalize(s.name)
+              const prompt = normalize(s.prompt)
               return (
                 name.includes(searchTarget) ||
                 searchTarget.includes(name) ||
                 prompt.includes(searchTarget)
-              );
-            });
+              )
+            })
           }
         }
 
@@ -1707,41 +1740,41 @@ export function manageScheduleTool(
           return {
             success: false,
             error: `Could not find an active task matching '${taskId ?? taskName}' to modify. Call with action 'list' to view available tasks.`,
-          };
+          }
         }
 
         // Case A: Modifying a queued run (reminder)
         if (targetRun) {
-          const oldInput = (targetRun.input as any) ?? {};
-          let computedDelaySeconds = delaySeconds;
+          const oldInput = (targetRun.input as any) ?? {}
+          let computedDelaySeconds = delaySeconds
 
           if (runAt) {
-            const targetTime = new Date(runAt).getTime();
-            const now = Date.now();
+            const targetTime = new Date(runAt).getTime()
+            const now = Date.now()
             computedDelaySeconds = Math.max(
               1,
-              Math.round((targetTime - now) / 1000),
-            );
+              Math.round((targetTime - now) / 1000)
+            )
           }
 
           const updatedName =
-            newName ?? oldInput.scheduledTaskName ?? "Reminder";
-          const updatedPrompt = newPrompt ?? oldInput.prompt ?? "";
+            newName ?? oldInput.scheduledTaskName ?? "Reminder"
+          const updatedPrompt = newPrompt ?? oldInput.prompt ?? ""
           const updatedScheduledFor = computedDelaySeconds
             ? new Date(Date.now() + computedDelaySeconds * 1000).toISOString()
-            : (oldInput.scheduledFor ?? new Date().toISOString());
+            : (oldInput.scheduledFor ?? new Date().toISOString())
 
           const newInput = {
             ...oldInput,
             scheduledTaskName: updatedName,
             prompt: updatedPrompt,
             scheduledFor: updatedScheduledFor,
-          };
+          }
 
           // If timing changed, cancel old Trigger.dev delayed task and schedule a new one
           if (computedDelaySeconds && computedDelaySeconds > 0) {
             try {
-              await triggerRuns.cancel(targetRun.id);
+              await triggerRuns.cancel(targetRun.id)
             } catch {
               // Ignore trigger cancel error
             }
@@ -1754,13 +1787,13 @@ export function manageScheduleTool(
                   delay: `${computedDelaySeconds}s`,
                   idempotencyKey: `${targetRun.id}-${Date.now()}`,
                   tags: [targetRun.id, userId],
-                },
-              );
+                }
+              )
             } catch (triggerErr) {
               console.warn(
                 "Could not dispatch modified Trigger.dev task:",
-                triggerErr,
-              );
+                triggerErr
+              )
             }
           }
 
@@ -1770,7 +1803,7 @@ export function manageScheduleTool(
               input: newInput,
             })
             .where(eq(runs.id, targetRun.id))
-            .returning();
+            .returning()
 
           return {
             success: true,
@@ -1780,15 +1813,15 @@ export function manageScheduleTool(
             prompt: updatedPrompt,
             scheduledFor: updatedScheduledFor,
             message: `Reminder '${updatedName}' has been updated successfully.`,
-          };
+          }
         }
 
         // Case B: Modifying a recurring schedule
         if (targetSchedule) {
-          const updatedName = newName ?? targetSchedule.name;
-          const updatedPrompt = newPrompt ?? targetSchedule.prompt;
-          const updatedCron = cronExpression ?? targetSchedule.cronExpression;
-          const updatedTz = timezone ?? targetSchedule.timezone;
+          const updatedName = newName ?? targetSchedule.name
+          const updatedPrompt = newPrompt ?? targetSchedule.prompt
+          const updatedCron = cronExpression ?? targetSchedule.cronExpression
+          const updatedTz = timezone ?? targetSchedule.timezone
 
           const [updatedSchedule] = await db
             .update(schedules)
@@ -1800,7 +1833,20 @@ export function manageScheduleTool(
               updatedAt: new Date(),
             })
             .where(eq(schedules.id, targetSchedule.id))
-            .returning();
+            .returning()
+
+          if (
+            targetSchedule.triggerScheduleId &&
+            (cronExpression || timezone)
+          ) {
+            triggerSchedules
+              .update(targetSchedule.triggerScheduleId, {
+                task: "scheduled-agent-task",
+                cron: updatedCron,
+                timezone: updatedTz,
+              })
+              .catch(() => {})
+          }
 
           return {
             success: true,
@@ -1810,16 +1856,16 @@ export function manageScheduleTool(
             cronExpression: updatedCron,
             timezone: updatedTz,
             message: `Recurring schedule '${updatedName}' has been updated to cron '${updatedCron}' (${updatedTz}).`,
-          };
+          }
         }
       }
 
       return {
         success: false,
         error: `Unknown action: ${action}`,
-      };
+      }
     },
-  });
+  })
 }
 
 export const internalTools: Record<string, any> = {
@@ -1839,7 +1885,7 @@ export const internalTools: Record<string, any> = {
   wikipedia_search: wikipediaSearch,
   currency_converter: currencyConverter,
   dns_lookup: dnsLookup,
-};
+}
 
 /**
  * OpenBots Tool Execution & Idempotency Semantics:
@@ -1864,8 +1910,8 @@ export const internalTools: Record<string, any> = {
  *    - OpenBots explicitly does NOT claim exactly-once side-effect execution for non-idempotent third-party APIs.
  */
 export interface ResolvedTools {
-  tools: Record<string, any>;
-  cleanup: () => Promise<void>;
+  tools: Record<string, any>
+  cleanup: () => Promise<void>
 }
 
 export function createReactToMessageTool(conversationId?: string | null) {
@@ -1876,22 +1922,22 @@ export function createReactToMessageTool(conversationId?: string | null) {
       emoji: z
         .string()
         .describe(
-          "The emoji symbol to react with, e.g. 👍, ❤️, 🎉, 🔥, 👀, 🚀, 💡, 👏, 🤖",
+          "The emoji symbol to react with, e.g. 👍, ❤️, 🎉, 🔥, 👀, 🚀, 💡, 👏, 🤖"
         ),
       messageId: z
         .string()
         .optional()
         .describe(
-          "Optional specific user message ID to react to. If omitted, reacts to the latest user message in the conversation.",
+          "Optional specific user message ID to react to. If omitted, reacts to the latest user message in the conversation."
         ),
     }),
     execute: async ({ emoji, messageId }) => {
       if (!conversationId) {
-        return { success: false, error: "No active conversation" };
+        return { success: false, error: "No active conversation" }
       }
 
       // Find target message
-      let targetMessageId = messageId;
+      let targetMessageId = messageId
       if (!targetMessageId) {
         const [latestUserMsg] = await db
           .select()
@@ -1899,16 +1945,16 @@ export function createReactToMessageTool(conversationId?: string | null) {
           .where(
             and(
               eq(messages.conversationId, conversationId),
-              eq(messages.role, "user"),
-            ),
+              eq(messages.role, "user")
+            )
           )
           .orderBy(desc(messages.createdAt))
-          .limit(1);
+          .limit(1)
 
         if (!latestUserMsg) {
-          return { success: false, error: "No user message found to react to" };
+          return { success: false, error: "No user message found to react to" }
         }
-        targetMessageId = latestUserMsg.id;
+        targetMessageId = latestUserMsg.id
       }
 
       const [targetMsg] = await db
@@ -1917,72 +1963,72 @@ export function createReactToMessageTool(conversationId?: string | null) {
         .where(
           and(
             eq(messages.id, targetMessageId),
-            eq(messages.conversationId, conversationId),
-          ),
-        );
+            eq(messages.conversationId, conversationId)
+          )
+        )
 
       if (!targetMsg) {
-        return { success: false, error: "Message not found" };
+        return { success: false, error: "Message not found" }
       }
 
-      const meta = (targetMsg.metadata as Record<string, any>) || {};
+      const meta = (targetMsg.metadata as Record<string, any>) || {}
       const currentReactions: string[] = Array.isArray(meta.reactions)
         ? meta.reactions
-        : [];
+        : []
 
       // Avoid duplicate same emoji from agent
       if (!currentReactions.includes(emoji)) {
-        currentReactions.push(emoji);
+        currentReactions.push(emoji)
       }
 
       const updatedMeta = {
         ...meta,
         reactions: currentReactions,
-      };
+      }
 
       await db
         .update(messages)
         .set({
           metadata: updatedMeta,
         })
-        .where(eq(messages.id, targetMsg.id));
+        .where(eq(messages.id, targetMsg.id))
 
       return {
         success: true,
         emoji,
         messageId: targetMsg.id,
         reactions: currentReactions,
-      };
+      }
     },
-  });
+  })
 }
 
 export async function buildAgentTools(params: {
-  userId: string;
-  agentId: string;
-  conversationId?: string | null;
+  userId: string
+  agentId: string
+  conversationId?: string | null
 }): Promise<ResolvedTools> {
-  const { userId, agentId, conversationId } = params;
+  const { userId, agentId, conversationId } = params
   const configuredTools = await db
     .select()
     .from(agentTools)
-    .where(and(eq(agentTools.agentId, agentId), eq(agentTools.enabled, true)));
+    .where(and(eq(agentTools.agentId, agentId), eq(agentTools.enabled, true)))
 
   const activeTools: Record<string, any> = {
     create_schedule: createScheduleTool(userId, agentId, conversationId),
     manage_schedule: manageScheduleTool(userId, agentId, conversationId),
     react_to_message: createReactToMessageTool(conversationId),
-  };
-  const cleanupTasks: Array<() => Promise<void>> = [];
+  }
+  const cleanupTasks: Array<() => Promise<void>> = []
 
   // Auto-inject Composio session meta-tools when API key is available
-  const composioApiKey = process.env.COMPOSIO_API_KEY;
+  const composioApiKey = process.env.COMPOSIO_API_KEY
   if (composioApiKey) {
     try {
       const composio = new Composio({
         apiKey: composioApiKey,
         provider: new VercelProvider(),
-      });
+      })
 
       const [existingConn] = await db
         .select()
@@ -1991,16 +2037,16 @@ export async function buildAgentTools(params: {
           and(
             eq(connections.userId, userId),
             eq(connections.provider, "composio"),
-            eq(connections.status, "active"),
-          ),
-        );
+            eq(connections.status, "active")
+          )
+        )
 
-      let session: any = null;
+      let session: any = null
       if (existingConn?.externalAccountId) {
         try {
-          session = await composio.use(existingConn.externalAccountId);
+          session = await composio.use(existingConn.externalAccountId)
         } catch {
-          session = null;
+          session = null
         }
       }
 
@@ -2008,7 +2054,7 @@ export async function buildAgentTools(params: {
         session = await composio.create(userId, {
           sandbox: { enable: false },
           manageConnections: true,
-        });
+        })
 
         if (existingConn) {
           await db
@@ -2017,71 +2063,69 @@ export async function buildAgentTools(params: {
               externalAccountId: session.sessionId,
               updatedAt: new Date(),
             })
-            .where(eq(connections.id, existingConn.id));
+            .where(eq(connections.id, existingConn.id))
         } else {
           await db.insert(connections).values({
             userId,
             provider: "composio",
             externalAccountId: session.sessionId,
             status: "active",
-          });
+          })
         }
       }
 
-      const composioTools = await session.tools();
+      const composioTools = await session.tools()
       if (Array.isArray(composioTools)) {
         for (const t of composioTools) {
           if (t && typeof t === "object" && "name" in t) {
-            activeTools[t.name] = t;
+            activeTools[t.name] = t
           }
         }
       } else if (composioTools && typeof composioTools === "object") {
         for (const [key, value] of Object.entries(composioTools)) {
           if (value) {
-            activeTools[key] = value;
+            activeTools[key] = value
           }
         }
       }
     } catch (err) {
-      console.warn("Failed to initialize Composio session:", err);
+      console.warn("Failed to initialize Composio session:", err)
     }
   }
 
   for (const config of configuredTools) {
     if (config.provider === "internal") {
-      const found = internalTools[config.toolName];
+      const found = internalTools[config.toolName]
       if (found) {
-        activeTools[config.toolName] = found;
+        activeTools[config.toolName] = found
       }
     } else if (config.provider === "mcp") {
-      const mcpConfig = config.config as { url?: string } | null;
+      const mcpConfig = config.config as { url?: string } | null
       if (!mcpConfig?.url) {
         throw new Error(
-          `MCP tool '${config.toolName}' requires a server URL in configuration`,
-        );
+          `MCP tool '${config.toolName}' requires a server URL in configuration`
+        )
       }
 
       const client = new Client({
         name: "openbots-agent",
         version: "1.0.0",
-      });
+      })
 
       const transport = new StreamableHTTPClientTransport(
-        new URL(mcpConfig.url),
-      );
-      await client.connect(transport);
+        new URL(mcpConfig.url)
+      )
+      await client.connect(transport)
       cleanupTasks.push(async () => {
         try {
-          await client.close();
+          await client.close()
         } catch {
           // Ignore transport close errors
         }
-      });
+      })
 
-      const { tools: mcpToolsList } = await client.listTools();
-      const targetMcpTool = mcpToolsList.find(
-        (t) => t.name === config.toolName,
-      );
+      const { tools: mcpToolsList } = await client.listTools()
+      const targetMcpTool = mcpToolsList.find((t) => t.name === config.toolName)
 
       if (targetMcpTool) {
         activeTools[config.toolName] = tool({
@@ -2091,10 +2135,10 @@ export async function buildAgentTools(params: {
             const callRes = await client.callTool({
               name: targetMcpTool.name,
               arguments: args,
-            });
-            return callRes;
+            })
+            return callRes
           },
-        });
+        })
       }
     }
   }
@@ -2103,8 +2147,8 @@ export async function buildAgentTools(params: {
     tools: activeTools,
     cleanup: async () => {
       for (const cleanup of cleanupTasks) {
-        await cleanup();
+        await cleanup()
       }
     },
-  };
+  }
 }

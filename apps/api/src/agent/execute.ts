@@ -1,18 +1,12 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createOpenAI } from "@ai-sdk/openai";
-import { getApiKeyForModel, runEventHub } from "@openbots/api-contract";
-import {
-  agents,
-  connections,
-  db,
-  messages,
-  runSteps,
-  runs,
-} from "@openbots/db";
-import { stepCountIs, ToolLoopAgent } from "ai";
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
-import { buildAgentTools } from "./tools.js";
+import { createAnthropic } from "@ai-sdk/anthropic"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
+import { createOpenAI } from "@ai-sdk/openai"
+import { getApiKeyForModel, runEventHub } from "@openbots/api-contract"
+import { agents, connections, db, messages, runSteps, runs } from "@openbots/db"
+import { stepCountIs, ToolLoopAgent } from "ai"
+import { and, asc, eq, inArray, ne } from "drizzle-orm"
+import { buildAgentTools } from "./tools.js"
+import { ARTIFACT_PROMPT } from "./artifacts/prompt.js"
 
 /**
  * Pre-fetches an image URL using native fetch and returns an AI SDK image part
@@ -21,24 +15,24 @@ import { buildAgentTools } from "./tools.js";
  */
 async function fetchImagePart(imgUrl: string) {
   try {
-    const res = await fetch(imgUrl);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const buf = await res.arrayBuffer();
-    const mimeType = res.headers.get("content-type") || "image/png";
+    const res = await fetch(imgUrl)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const buf = await res.arrayBuffer()
+    const mimeType = res.headers.get("content-type") || "image/png"
     return {
       type: "image" as const,
       image: new Uint8Array(buf),
       mimeType,
-    };
+    }
   } catch {
     // Last resort: pass the URL and let AI SDK attempt its own download.
-    return { type: "image" as const, image: new URL(imgUrl) };
+    return { type: "image" as const, image: new URL(imgUrl) }
   }
 }
 
 async function resolveModel(userId: string, modelName: string) {
-  const apiKey = await getApiKeyForModel(userId, modelName);
-  const normalized = modelName.trim();
+  const apiKey = await getApiKeyForModel(userId, modelName)
+  const normalized = modelName.trim()
 
   // 1. Google Gemini
   if (
@@ -49,118 +43,118 @@ async function resolveModel(userId: string, modelName: string) {
     const key =
       apiKey ||
       process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY
     if (!key) {
       throw new Error(
-        "Google API Key is not configured. Please add your Gemini API key in Settings > API Keys.",
-      );
+        "Google API Key is not configured. Please add your Gemini API key in Settings > API Keys."
+      )
     }
-    const client = createGoogleGenerativeAI({ apiKey: key });
-    const cleanId = normalized.replace("google/", "");
-    return client(cleanId || "gemini-2.5-flash");
+    const client = createGoogleGenerativeAI({ apiKey: key })
+    const cleanId = normalized.replace("google/", "")
+    return client(cleanId || "gemini-2.5-flash")
   }
 
   // 2. OpenAI
   if (normalized.startsWith("openai/")) {
-    const key = apiKey || process.env.OPENAI_API_KEY;
+    const key = apiKey || process.env.OPENAI_API_KEY
     if (!key) {
       throw new Error(
-        "OpenAI API Key is not configured. Please add your OpenAI API key in Settings > API Keys.",
-      );
+        "OpenAI API Key is not configured. Please add your OpenAI API key in Settings > API Keys."
+      )
     }
-    const client = createOpenAI({ apiKey: key });
-    return client(normalized.replace("openai/", ""));
+    const client = createOpenAI({ apiKey: key })
+    return client(normalized.replace("openai/", ""))
   }
 
   // 3. Anthropic
   if (normalized.startsWith("anthropic/")) {
-    const key = apiKey || process.env.ANTHROPIC_API_KEY;
+    const key = apiKey || process.env.ANTHROPIC_API_KEY
     if (!key) {
       throw new Error(
-        "Anthropic API Key is not configured. Please add your Anthropic API key in Settings > API Keys.",
-      );
+        "Anthropic API Key is not configured. Please add your Anthropic API key in Settings > API Keys."
+      )
     }
-    const client = createAnthropic({ apiKey: key });
-    return client(normalized.replace("anthropic/", ""));
+    const client = createAnthropic({ apiKey: key })
+    return client(normalized.replace("anthropic/", ""))
   }
 
   // 4. DeepSeek (OpenAI-compatible)
   if (normalized.startsWith("deepseek/")) {
-    const key = apiKey || process.env.DEEPSEEK_API_KEY;
+    const key = apiKey || process.env.DEEPSEEK_API_KEY
     if (!key) {
       throw new Error(
-        "DeepSeek API Key is not configured. Please add your DeepSeek API key in Settings > API Keys.",
-      );
+        "DeepSeek API Key is not configured. Please add your DeepSeek API key in Settings > API Keys."
+      )
     }
     const client = createOpenAI({
       apiKey: key,
       baseURL: "https://api.deepseek.com/v1",
-    });
-    return client(normalized.replace("deepseek/", ""));
+    })
+    return client(normalized.replace("deepseek/", ""))
   }
 
   // 5. Groq (OpenAI-compatible)
   if (normalized.startsWith("groq/")) {
-    const key = apiKey || process.env.GROQ_API_KEY;
+    const key = apiKey || process.env.GROQ_API_KEY
     if (!key) {
       throw new Error(
-        "Groq API Key is not configured. Please add your Groq API key in Settings > API Keys.",
-      );
+        "Groq API Key is not configured. Please add your Groq API key in Settings > API Keys."
+      )
     }
     const client = createOpenAI({
       apiKey: key,
       baseURL: "https://api.groq.com/openai/v1",
-    });
-    return client(normalized.replace("groq/", ""));
+    })
+    return client(normalized.replace("groq/", ""))
   }
 
   // 6. xAI Grok (OpenAI-compatible)
   if (normalized.startsWith("xai/") || normalized.startsWith("grok/")) {
-    const key = apiKey || process.env.XAI_API_KEY;
+    const key = apiKey || process.env.XAI_API_KEY
     if (!key) {
       throw new Error(
-        "xAI API Key is not configured. Please add your xAI API key in Settings > API Keys.",
-      );
+        "xAI API Key is not configured. Please add your xAI API key in Settings > API Keys."
+      )
     }
     const client = createOpenAI({
       apiKey: key,
       baseURL: "https://api.x.ai/v1",
-    });
-    return client(normalized.replace("xai/", "").replace("grok/", ""));
+    })
+    return client(normalized.replace("xai/", "").replace("grok/", ""))
   }
 
   // 7. OpenRouter (OpenAI-compatible)
   if (normalized.startsWith("openrouter/")) {
-    const key = apiKey || process.env.OPENROUTER_API_KEY;
+    const key = apiKey || process.env.OPENROUTER_API_KEY
     if (!key) {
       throw new Error(
-        "OpenRouter API Key is not configured. Please add your OpenRouter API key in Settings > API Keys.",
-      );
+        "OpenRouter API Key is not configured. Please add your OpenRouter API key in Settings > API Keys."
+      )
     }
     const client = createOpenAI({
       apiKey: key,
       baseURL: "https://openrouter.ai/api/v1",
-    });
-    return client(normalized.replace("openrouter/", ""));
+    })
+    return client(normalized.replace("openrouter/", ""))
   }
 
   // Fallback to Google Gemini
   const key =
     apiKey ||
     process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY
   if (!key) {
     throw new Error(
-      "No API key configured for model. Please configure your API key in Settings > API Keys.",
-    );
+      "No API key configured for model. Please configure your API key in Settings > API Keys."
+    )
   }
-  const client = createGoogleGenerativeAI({ apiKey: key });
-  return client("gemini-2.5-flash");
+  const client = createGoogleGenerativeAI({ apiKey: key })
+  return client("gemini-2.5-flash")
 }
 
 export function sanitizeErrorMessage(error: unknown): string {
-  if (!error) return "Unknown error during execution";
-  const rawMessage = error instanceof Error ? error.message : String(error);
+  if (!error) return "Unknown error during execution"
+  const rawMessage = error instanceof Error ? error.message : String(error)
   // Redact potential API keys, connection strings, and secrets
   return rawMessage
     .replace(/AIzaSy[a-zA-Z0-9_-]{20,}/g, "[REDACTED_GEMINI_KEY]")
@@ -169,17 +163,17 @@ export function sanitizeErrorMessage(error: unknown): string {
     .replace(/Bearer\s+[a-zA-Z0-9_.-]+/gi, "Bearer [REDACTED_TOKEN]")
     .replace(
       /postgres(ql)?:\/\/[^:]+:([^@]+)@/gi,
-      "postgresql://[REDACTED_USER]:[REDACTED_PASSWORD]@",
+      "postgresql://[REDACTED_USER]:[REDACTED_PASSWORD]@"
     )
     .replace(
       /(api[_-]?key|token|secret|password)\s*[:=]\s*['"][^'"]+['"]/gi,
-      "$1=[REDACTED]",
-    );
+      "$1=[REDACTED]"
+    )
 }
 
 export async function executeAgentRun(
   runId: string,
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal }
 ) {
   // If already aborted before execution start, transition directly to cancelled
   if (options?.signal?.aborted) {
@@ -190,13 +184,13 @@ export async function executeAgentRun(
         completedAt: new Date(),
       })
       .where(
-        and(eq(runs.id, runId), inArray(runs.status, ["queued", "running"])),
+        and(eq(runs.id, runId), inArray(runs.status, ["queued", "running"]))
       )
-      .returning();
+      .returning()
 
-    if (cancelledRun) return cancelledRun;
-    const [existing] = await db.select().from(runs).where(eq(runs.id, runId));
-    return existing ?? { id: runId, status: "cancelled" };
+    if (cancelledRun) return cancelledRun
+    const [existing] = await db.select().from(runs).where(eq(runs.id, runId))
+    return existing ?? { id: runId, status: "cancelled" }
   }
 
   // 1. Concurrency-safe atomic claim from queued -> running
@@ -207,33 +201,30 @@ export async function executeAgentRun(
       startedAt: new Date(),
     })
     .where(and(eq(runs.id, runId), eq(runs.status, "queued")))
-    .returning();
+    .returning()
 
   if (!claimedRun) {
     // Run was already claimed, cancelled, or finished by another worker/request
-    const [existingRun] = await db
-      .select()
-      .from(runs)
-      .where(eq(runs.id, runId));
+    const [existingRun] = await db.select().from(runs).where(eq(runs.id, runId))
 
     if (!existingRun) {
-      throw new Error(`Run not found: ${runId}`);
+      throw new Error(`Run not found: ${runId}`)
     }
 
     // Terminal states (completed, failed, cancelled) or active running state:
     // Do NOT start another model/tool loop.
-    return existingRun;
+    return existingRun
   }
 
-  const runRecord = claimedRun;
+  const runRecord = claimedRun
 
   const [agentRecord] = await db
     .select()
     .from(agents)
-    .where(eq(agents.id, runRecord.agentId));
+    .where(eq(agents.id, runRecord.agentId))
 
   if (!agentRecord) {
-    const errorMsg = `Agent not found for run ${runId}`;
+    const errorMsg = `Agent not found for run ${runId}`
     await db
       .update(runs)
       .set({
@@ -241,13 +232,13 @@ export async function executeAgentRun(
         error: errorMsg,
         completedAt: new Date(),
       })
-      .where(and(eq(runs.id, runId), eq(runs.status, "running")));
-    throw new Error(errorMsg);
+      .where(and(eq(runs.id, runId), eq(runs.status, "running")))
+    throw new Error(errorMsg)
   }
 
   // Validate agent ownership
   if (agentRecord.userId !== runRecord.userId) {
-    const errorMsg = "Run owner does not match agent owner";
+    const errorMsg = "Run owner does not match agent owner"
     await db
       .update(runs)
       .set({
@@ -255,13 +246,13 @@ export async function executeAgentRun(
         error: errorMsg,
         completedAt: new Date(),
       })
-      .where(and(eq(runs.id, runId), eq(runs.status, "running")));
-    throw new Error(errorMsg);
+      .where(and(eq(runs.id, runId), eq(runs.status, "running")))
+    throw new Error(errorMsg)
   }
 
   // Validate autonomy: only manual is currently supported
   if (agentRecord.autonomy !== "manual") {
-    const errorMsg = `Unsupported autonomy mode '${agentRecord.autonomy}'. Currently only 'manual' is supported.`;
+    const errorMsg = `Unsupported autonomy mode '${agentRecord.autonomy}'. Currently only 'manual' is supported.`
     await db
       .update(runs)
       .set({
@@ -269,25 +260,25 @@ export async function executeAgentRun(
         error: errorMsg,
         completedAt: new Date(),
       })
-      .where(and(eq(runs.id, runId), eq(runs.status, "running")));
-    throw new Error(errorMsg);
+      .where(and(eq(runs.id, runId), eq(runs.status, "running")))
+    throw new Error(errorMsg)
   }
 
   // Set up cooperative AbortController
-  const abortController = new AbortController();
+  const abortController = new AbortController()
   if (options?.signal) {
     if (options.signal.aborted) {
-      abortController.abort(options.signal.reason);
+      abortController.abort(options.signal.reason)
     } else {
       options.signal.addEventListener(
         "abort",
         () => abortController.abort(options.signal?.reason),
-        { once: true },
-      );
+        { once: true }
+      )
     }
   }
 
-  let resolvedTools: Awaited<ReturnType<typeof buildAgentTools>> | null = null;
+  let resolvedTools: Awaited<ReturnType<typeof buildAgentTools>> | null = null
 
   try {
     // Check if cancellation occurred before tool setup
@@ -299,13 +290,13 @@ export async function executeAgentRun(
           completedAt: new Date(),
         })
         .where(and(eq(runs.id, runId), eq(runs.status, "running")))
-        .returning();
-      const [current] = await db.select().from(runs).where(eq(runs.id, runId));
-      return cancelledRun ?? current ?? runRecord;
+        .returning()
+      const [current] = await db.select().from(runs).where(eq(runs.id, runId))
+      return cancelledRun ?? current ?? runRecord
     }
 
     // Clear any previous partial steps if this run is being retried
-    await db.delete(runSteps).where(eq(runSteps.runId, runId));
+    await db.delete(runSteps).where(eq(runSteps.runId, runId))
 
     // Parallelize preparation: model resolution, tool resolution, conversation message loading, and connection queries concurrently
     const [resolvedToolsResult, historyMessages, activeConnections, model] =
@@ -329,42 +320,42 @@ export async function executeAgentRun(
             and(
               eq(connections.userId, runRecord.userId),
               eq(connections.status, "active"),
-              ne(connections.provider, "composio"),
-            ),
+              ne(connections.provider, "composio")
+            )
           ),
         resolveModel(runRecord.userId, agentRecord.model),
-      ]);
+      ])
 
-    resolvedTools = resolvedToolsResult;
+    resolvedTools = resolvedToolsResult
 
     // Prepare conversation messages (supporting multimodal user inputs)
-    const inputMessages: Array<any> = [];
+    const inputMessages: Array<any> = []
 
     for (const m of historyMessages) {
       if (m.role === "user") {
         const contentObj = (
           m.content && typeof m.content === "object" ? m.content : {}
-        ) as any;
+        ) as any
         const textContent =
           typeof m.content === "string"
             ? m.content
-            : (contentObj.text ?? contentObj.prompt ?? "");
+            : (contentObj.text ?? contentObj.prompt ?? "")
         const images: string[] = Array.isArray(contentObj.images)
           ? contentObj.images
-          : [];
+          : []
 
         if (images.length > 0) {
-          const parts: Array<any> = [];
+          const parts: Array<any> = []
           if (textContent) {
-            parts.push({ type: "text", text: textContent });
+            parts.push({ type: "text", text: textContent })
           }
           for (const imgUrl of images) {
-            parts.push(await fetchImagePart(imgUrl));
+            parts.push(await fetchImagePart(imgUrl))
           }
           inputMessages.push({
             role: "user",
             content: parts,
-          });
+          })
         } else {
           inputMessages.push({
             role: "user",
@@ -373,91 +364,91 @@ export async function executeAgentRun(
               (typeof m.content === "string"
                 ? m.content
                 : JSON.stringify(m.content)),
-          });
+          })
         }
       } else if (m.role === "assistant" || m.role === "system") {
-        let textContent = "";
+        let textContent = ""
         if (typeof m.content === "string") {
-          textContent = m.content;
+          textContent = m.content
         } else if (m.content && typeof m.content === "object") {
           textContent =
             (m.content as any).text ??
             (m.content as any).prompt ??
-            JSON.stringify(m.content);
+            JSON.stringify(m.content)
         }
         inputMessages.push({
           role: m.role,
           content: textContent,
-        });
+        })
       }
     }
 
     // Add current run input
-    const inputObj = runRecord.input as any;
+    const inputObj = runRecord.input as any
     const promptText =
       typeof inputObj === "string"
         ? inputObj
         : (inputObj?.prompt ??
           inputObj?.text ??
-          (inputObj?.messages ? null : ""));
+          (inputObj?.messages ? null : ""))
     const runImages: string[] = Array.isArray(inputObj?.images)
       ? inputObj.images
-      : [];
+      : []
 
     if (promptText || runImages.length > 0) {
-      const isScheduleTrigger = runRecord.triggerType === "schedule";
+      const isScheduleTrigger = runRecord.triggerType === "schedule"
       const effectiveUserPrompt = isScheduleTrigger
         ? `[SYSTEM NOTIFICATION: The timer/scheduled alarm for this task has elapsed now.]\nDeliver this reminder/scheduled alert directly to the user:\n"${promptText}"`
-        : promptText;
+        : promptText
 
       // Check if already in history as the last message
-      const lastMsg = inputMessages[inputMessages.length - 1];
+      const lastMsg = inputMessages[inputMessages.length - 1]
       const isDuplicate =
         lastMsg &&
         lastMsg.role === "user" &&
         (typeof lastMsg.content === "string"
           ? lastMsg.content === effectiveUserPrompt && runImages.length === 0
-          : false);
+          : false)
 
       if (!isDuplicate) {
         if (runImages.length > 0) {
-          const parts: Array<any> = [];
+          const parts: Array<any> = []
           if (effectiveUserPrompt) {
-            parts.push({ type: "text", text: effectiveUserPrompt });
+            parts.push({ type: "text", text: effectiveUserPrompt })
           }
           for (const imgUrl of runImages) {
-            parts.push(await fetchImagePart(imgUrl));
+            parts.push(await fetchImagePart(imgUrl))
           }
           inputMessages.push({
             role: "user",
             content: parts,
-          });
+          })
         } else if (effectiveUserPrompt) {
           inputMessages.push({
             role: "user",
             content: effectiveUserPrompt,
-          });
+          })
         }
       }
     } else if (Array.isArray(inputObj?.messages)) {
       for (const m of inputObj.messages) {
-        inputMessages.push(m);
+        inputMessages.push(m)
       }
     }
 
-    const connectedApps = activeConnections.map((c) => c.provider);
+    const connectedApps = activeConnections.map((c) => c.provider)
 
-    let connectionsInstruction = "";
+    let connectionsInstruction = ""
     if (connectedApps.length > 0) {
       connectionsInstruction = `
 ## Connected Apps:
 The user has already connected the following apps: ${connectedApps.join(", ")}.
 - Use the corresponding Composio tools (e.g. GMAIL_*, NOTION_*, SLACK_*, GITHUB_*) directly to perform actions on these apps.
 - DO NOT ask the user to connect or authorize these apps again. They are already authenticated and ready to use.
-- If a tool call fails with an auth error for a connected app, inform the user of the specific error instead of asking them to reconnect.`;
+- If a tool call fails with an auth error for a connected app, inform the user of the specific error instead of asking them to reconnect.`
     }
 
-    const isScheduledExecution = runRecord.triggerType === "schedule";
+    const isScheduledExecution = runRecord.triggerType === "schedule"
     const scheduledExecutionInstruction = isScheduledExecution
       ? `\n\n## SCHEDULED REMINDER EXECUTION:
 - You are executing a timer/scheduled reminder that has just fired right now.
@@ -465,7 +456,7 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
 - DO NOT treat the reminder text as a message sent by the user to you.
 - DO NOT ask the user if they did it yet or thank them for reminding you. You are the one reminding the user.
 - DO NOT reschedule or recreate this reminder unless explicitly requested.`
-      : "";
+      : ""
 
     const systemInstructions = `${agentRecord.instructions || "You are an AI assistant."}${scheduledExecutionInstruction}
 
@@ -481,26 +472,7 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
 - ONLY use 'react_to_message' when it is genuinely meaningful and natural (e.g., celebrating an accomplishment, acknowledging an exceptional insight, or expressing warm gratitude for kind praise).
 - DO NOT react to every routine question or instruction. Keep reactions rare and delightful.
 
-## Artifacts & Visual Rendering:
-- When asked to build, design, or render complete web pages, interactive tools/calculators, games, vector graphics, or diagrams, output a self-contained artifact using the <openbots-artifact> tag:
-  <openbots-artifact type="html" title="Title of Artifact">
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="p-4 bg-slate-900 text-white min-h-screen">
-    <!-- Clean HTML + Vanilla JavaScript + CSS -->
-  </body>
-  </html>
-  </openbots-artifact>
-- Supported types:
-  1. type="html" - Full web applications with standard HTML5, CSS, and Vanilla JavaScript (CDN Tailwind is supported). Do NOT use React.
-  2. type="svg" - Raw vector graphics (<svg ...>...</svg>).
-  3. type="mermaid" - Mermaid diagrams (e.g. flowchart TD, sequenceDiagram, erDiagram).
-- Always include an informative title attribute in the tag.
+${ARTIFACT_PROMPT}
 
 ## Slash Commands & User Intents:
 The user can trigger specific workflows using slash command prefixes in their prompts. Honor their intent when present:
@@ -508,37 +480,37 @@ The user can trigger specific workflows using slash command prefixes in their pr
 - /research <query>: Perform deep, exhaustive research. Search for authoritative sources, analyze multiple angles, synthesize insights, and provide a well-structured summary.
 - /review <code or request>: Perform a thorough code review. Focus on bugs, security vulnerabilities, edge cases, performance bottlenecks, architecture, and code style. Provide actionable improvements and diff-style suggestions.
 - /schedule <task and time>: The user wants to schedule a reminder, timer, or recurring job. Use 'create_schedule' directly.
-- /chart <data or description>: Create an interactive chart or data visualization. You can output an HTML artifact (<openbots-artifact type="html" ...>) rendering Chart.js or an SVG visualization.
-- /graph <equation/function>: Plot or graph mathematical equations or functions (e.g., using an interactive HTML canvas artifact or SVG plot).
-- /diagram <description>: Create a visual diagram (architecture, sequence, workflow, ER diagram). Render it using an artifact with type="mermaid" or type="svg".
+- /chart <data or description>: Create an interactive chart or data visualization. You can output an inline HTML artifact (<openbots-artifact type="html" title="..." mode="inline">) or SVG visualization.
+- /graph <equation/function>: Plot or graph mathematical equations or functions (e.g., using an interactive HTML canvas artifact or SVG plot with mode="inline").
+- /diagram <description>: Create a visual diagram (architecture, sequence, workflow, ER diagram). Render it using an inline artifact (<openbots-artifact type="mermaid" title="..." mode="inline"> or type="svg" mode="inline").
 - /analyze <prompt>: Thoroughly examine and analyze any attached images, documents, or data provided with the message. Extract key details, patterns, issues, and strategic insights.
-- /tasks: Show or inspect the user's scheduled tasks and reminders. Use the 'manage_schedule' tool with action="list" to retrieve active schedules and report their status clearly.${connectionsInstruction}`;
+- /tasks: Show or inspect the user's scheduled tasks and reminders. Use the 'manage_schedule' tool with action="list" to retrieve active schedules and report their status clearly.${connectionsInstruction}`
 
     const agent = new ToolLoopAgent({
       model,
       instructions: systemInstructions,
       tools: resolvedTools.tools,
       stopWhen: stepCountIs(agentRecord.maxSteps ?? 10),
-    });
+    })
 
-    let currentStepNumber = 0;
-    const pendingStepPersistTasks: Array<Promise<any>> = [];
+    let currentStepNumber = 0
+    const pendingStepPersistTasks: Array<Promise<any>> = []
 
     // Publish initial status
     runEventHub.publish(runRecord.id, {
       type: "status",
       status: "running",
-    });
+    })
 
     const generateResult = await agent.generate({
       messages: inputMessages as any,
       abortSignal: abortController.signal,
       onStepFinish: async (step) => {
         // Fast in-memory check first
-        if (abortController.signal.aborted) return;
+        if (abortController.signal.aborted) return
 
         // Batch steps to insert in a single DB roundtrip
-        const stepsToInsert: Array<typeof runSteps.$inferInsert> = [];
+        const stepsToInsert: Array<typeof runSteps.$inferInsert> = []
 
         stepsToInsert.push({
           runId: runRecord.id,
@@ -551,7 +523,7 @@ The user can trigger specific workflows using slash command prefixes in their pr
             finishReason: step.finishReason,
             usage: step.usage,
           },
-        });
+        })
 
         if (step.toolResults && step.toolResults.length > 0) {
           for (const tr of step.toolResults) {
@@ -566,13 +538,13 @@ The user can trigger specific workflows using slash command prefixes in their pr
               toolOutput: ((tr as any).output ??
                 (tr as any).result ??
                 null) as any,
-            });
+            })
 
             runEventHub.publish(runRecord.id, {
               type: "tool_finish",
               toolName: tr.toolName,
               stepNumber: currentStepNumber - 1,
-            });
+            })
           }
         }
 
@@ -581,44 +553,44 @@ The user can trigger specific workflows using slash command prefixes in their pr
           .insert(runSteps)
           .values(stepsToInsert)
           .catch((err) => {
-            console.warn("Failed to persist step batch:", err);
-          });
+            console.warn("Failed to persist step batch:", err)
+          })
 
-        pendingStepPersistTasks.push(insertPromise);
+        pendingStepPersistTasks.push(insertPromise)
       },
-    });
+    })
 
-    let finalText = generateResult.text?.trim() || "";
-    const finalSteps = generateResult.steps;
-    const finalUsage = generateResult.usage;
+    let finalText = generateResult.text?.trim() || ""
+    const finalSteps = generateResult.steps
+    const finalUsage = generateResult.usage
 
     // If finalText is empty but steps were executed (e.g. maxSteps reached right after tool call),
     // extract the last text or provide an informative completion summary so it never silently stops
     if (!finalText && finalSteps && finalSteps.length > 0) {
       for (let i = finalSteps.length - 1; i >= 0; i--) {
-        const s = finalSteps[i];
+        const s = finalSteps[i]
         if (s?.text && s.text.trim()) {
-          finalText = s.text.trim();
-          break;
+          finalText = s.text.trim()
+          break
         }
       }
 
       if (!finalText) {
         finalText =
-          "I finished executing the requested tool actions and reached the step limit.";
+          "I finished executing the requested tool actions and reached the step limit."
       }
     }
 
     // Wait for any remaining background step writes before completing
     if (pendingStepPersistTasks.length > 0) {
-      await Promise.allSettled(pendingStepPersistTasks);
+      await Promise.allSettled(pendingStepPersistTasks)
     }
 
     const finalOutput = {
       text: finalText,
       steps: finalSteps?.length ?? 0,
       usage: finalUsage,
-    };
+    }
 
     // Parallelize run completion update and assistant message persistence
     const [completedRunRows, insertedMessages] = await Promise.all([
@@ -641,28 +613,26 @@ The user can trigger specific workflows using slash command prefixes in their pr
             })
             .returning()
         : Promise.resolve([]),
-    ]);
+    ])
 
-    const completedRun = completedRunRows[0];
+    const completedRun = completedRunRows[0]
 
     runEventHub.publish(runRecord.id, {
       type: "done",
       status: "completed",
       output: finalOutput,
-    });
+    })
 
     if (!completedRun) {
       // Race: run was cancelled or modified concurrently
-      const [finalRun] = await db.select().from(runs).where(eq(runs.id, runId));
-      return (
-        finalRun ?? { id: runId, status: "cancelled", output: finalOutput }
-      );
+      const [finalRun] = await db.select().from(runs).where(eq(runs.id, runId))
+      return finalRun ?? { id: runId, status: "cancelled", output: finalOutput }
     }
 
-    return completedRun;
+    return completedRun
   } catch (error) {
     // Check if run was cancelled in DB or aborted
-    const [currentRun] = await db.select().from(runs).where(eq(runs.id, runId));
+    const [currentRun] = await db.select().from(runs).where(eq(runs.id, runId))
 
     if (currentRun?.status === "cancelled" || abortController.signal.aborted) {
       // Ensure DB status is cancelled if not already marked
@@ -673,18 +643,18 @@ The user can trigger specific workflows using slash command prefixes in their pr
             status: "cancelled",
             completedAt: new Date(),
           })
-          .where(and(eq(runs.id, runId), eq(runs.status, "running")));
+          .where(and(eq(runs.id, runId), eq(runs.status, "running")))
       }
       runEventHub.publish(runId, {
         type: "status",
         status: "cancelled",
-      });
-      const [finalRun] = await db.select().from(runs).where(eq(runs.id, runId));
-      return finalRun ?? currentRun;
+      })
+      const [finalRun] = await db.select().from(runs).where(eq(runs.id, runId))
+      return finalRun ?? currentRun
     }
 
     // Conditional failure update: only mark failed if still running
-    const safeError = sanitizeErrorMessage(error);
+    const safeError = sanitizeErrorMessage(error)
     await db
       .update(runs)
       .set({
@@ -692,18 +662,18 @@ The user can trigger specific workflows using slash command prefixes in their pr
         error: safeError,
         completedAt: new Date(),
       })
-      .where(and(eq(runs.id, runId), eq(runs.status, "running")));
+      .where(and(eq(runs.id, runId), eq(runs.status, "running")))
 
     runEventHub.publish(runId, {
       type: "status",
       status: "failed",
       error: safeError,
-    });
+    })
 
-    throw new Error(safeError);
+    throw new Error(safeError)
   } finally {
     if (resolvedTools) {
-      await resolvedTools.cleanup();
+      await resolvedTools.cleanup()
     }
   }
 }

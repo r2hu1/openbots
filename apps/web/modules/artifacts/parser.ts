@@ -3,6 +3,7 @@ export interface ParsedArtifact {
   type: "html" | "svg" | "mermaid";
   title: string;
   content: string;
+  mode?: "inline" | "card";
 }
 
 export interface ContentSegment {
@@ -13,7 +14,26 @@ export interface ContentSegment {
 }
 
 const ARTIFACT_REGEX =
-  /<openbots-artifact\s+type="([^"]+)"(?:\s+title="([^"]*)")?>([\s\S]*?)<\/openbots-artifact>/gi;
+  /<openbots-artifact\s+([^>]*?)>([\s\S]*?)<\/openbots-artifact>/gi;
+
+function parseAttributes(rawAttrs: string = ""): {
+  type?: string;
+  title?: string;
+  mode?: string;
+} {
+  const attrs: Record<string, string> = {};
+  const attrRegex = /([a-zA-Z0-9_-]+)="([^"]*)"/g;
+  let match = attrRegex.exec(rawAttrs);
+  while (match !== null) {
+    const key = match[1];
+    const val = match[2];
+    if (key !== undefined && val !== undefined) {
+      attrs[key.toLowerCase()] = val;
+    }
+    match = attrRegex.exec(rawAttrs);
+  }
+  return attrs;
+}
 
 export function parseArtifacts(content: string): {
   segments: ContentSegment[];
@@ -28,7 +48,7 @@ export function parseArtifacts(content: string): {
 
   let match = ARTIFACT_REGEX.exec(content);
   while (match !== null) {
-    const [fullMatch, rawType, rawTitle, rawContent] = match;
+    const [fullMatch, rawAttrs = "", rawContent = ""] = match;
     const matchIndex = match.index;
 
     // Push preceding text segment if any
@@ -43,18 +63,26 @@ export function parseArtifacts(content: string): {
       }
     }
 
+    const {
+      type: rawType,
+      title: rawTitle,
+      mode: rawMode,
+    } = parseAttributes(rawAttrs);
+
     const typeLower = (rawType || "html").toLowerCase().trim();
     const type: "html" | "svg" | "mermaid" =
       typeLower === "svg" || typeLower === "mermaid" ? typeLower : "html";
 
     const title = (rawTitle || `${type.toUpperCase()} Artifact`).trim();
     const cleanContent = (rawContent || "").trim();
+    const mode = rawMode === "inline" ? "inline" : "card";
 
     const artifact: ParsedArtifact = {
       id: `artifact-${artifacts.length + 1}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
       type,
       title,
       content: cleanContent,
+      mode,
     };
 
     artifacts.push(artifact);

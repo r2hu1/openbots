@@ -56,6 +56,13 @@ const RunHistorySheet = dynamic(
     ),
   { ssr: false },
 );
+const SchedulesSheet = dynamic(
+  () =>
+    import("@/modules/schedules/components/schedules-sheet").then(
+      (m) => m.SchedulesSheet,
+    ),
+  { ssr: false },
+);
 
 function useIdleReady() {
   const [ready, setReady] = React.useState(false);
@@ -277,6 +284,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   const [configureSheetOpen, setConfigureSheetOpen] = React.useState(false);
   const [historySheetOpen, setHistorySheetOpen] = React.useState(false);
   const [connectionsSheetOpen, setConnectionsSheetOpen] = React.useState(false);
+  const [schedulesSheetOpen, setSchedulesSheetOpen] = React.useState(false);
   const [inspectedRunId, setInspectedRunId] = React.useState<string | null>(
     null,
   );
@@ -313,6 +321,10 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
     () => setConnectionsSheetOpen(true),
     [],
   );
+  const openSchedules = React.useCallback(
+    () => setSchedulesSheetOpen(true),
+    [],
+  );
   const openCreate = React.useCallback(() => setCreateDialogOpen(true), []);
   useHotkey("mod+shift+a", openCreate);
   const openArtifact = React.useCallback(
@@ -332,6 +344,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   const configureMounted = useMountedOnce(configureSheetOpen) || idleReady;
   const historyMounted = useMountedOnce(historySheetOpen) || idleReady;
   const connectionsMounted = useMountedOnce(connectionsSheetOpen) || idleReady;
+  const schedulesMounted = useMountedOnce(schedulesSheetOpen) || idleReady;
   const artifactMounted =
     useMountedOnce(Boolean(selectedArtifact)) || idleReady;
 
@@ -343,6 +356,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
           onOpenConfigure={openConfigure}
           onOpenHistory={openHistory}
           onOpenConnections={openConnections}
+          onOpenSchedules={openSchedules}
         />
 
         <main className="flex flex-1 flex-col overflow-hidden">
@@ -398,6 +412,15 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
         <ConnectionsSheet
           open={connectionsSheetOpen}
           onOpenChange={setConnectionsSheetOpen}
+        />
+      )}
+
+      {schedulesMounted && (
+        <SchedulesSheet
+          agentId={selectedAgentId}
+          agentName={selectedAgent?.name}
+          open={schedulesSheetOpen}
+          onOpenChange={setSchedulesSheetOpen}
         />
       )}
 

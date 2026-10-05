@@ -6,6 +6,7 @@ import { apiKeysRoute } from "./routes/api-keys/api-keys.route.js";
 import { connectionsRoute } from "./routes/connections/connections.route.js";
 import { conversationsRoute } from "./routes/conversations/conversations.route.js";
 import { runsRoute } from "./routes/runs/runs.route.js";
+import { schedulesRoute } from "./routes/schedules/schedules.route.js";
 import { tasksRoute } from "./routes/tasks/tasks.route.js";
 
 const app = new Hono()
@@ -19,6 +20,7 @@ const app = new Hono()
   .route("/api-keys", apiKeysRoute)
   .route("/tasks", tasksRoute)
   .route("/runs", runsRoute)
+  .route("/schedules", schedulesRoute)
   .route("/conversations", conversationsRoute)
   .route("/connections", connectionsRoute);
 
@@ -27,4 +29,6 @@ export * from "./routes/agents/agents.logic.js";
 export * from "./routes/api-keys/api-keys.logic.js";
 export * from "./routes/conversations/conversations.logic.js";
 export * from "./routes/runs/runs.logic.js";
+export * from "./routes/schedules/schedules.logic.js";
 export { app };
+

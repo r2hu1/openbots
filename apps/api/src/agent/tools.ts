@@ -21,8 +21,22 @@ import { jsonSchema, tool } from "ai"
 import { and, desc, eq, inArray, or } from "drizzle-orm"
 import { z } from "zod"
 
-async function runTool(id: string, payload: unknown, tags: string[] = []) {
-  const handle = await tasks.trigger(id, payload, { tags })
+async function runTool(id: string, payload: unknown) {
+  try {
+    // Inside a Trigger task: checkpoints the parent, cancellation cascades
+    const result = await tasks.triggerAndWait(id, payload as any)
+    if (!result.ok) {
+      return { error: `Task ${id} failed`, details: String(result.error) }
+    }
+    return result.output
+  } catch (err: any) {
+    if (!String(err?.message).includes("can only be used from inside a task")) {
+      return { error: err?.message ?? "Tool task failed" }
+    }
+  }
+
+  // Outside a task (API route): trigger and poll
+  const handle = await tasks.trigger(id, payload as any)
   const run = await triggerRuns.poll(handle, { pollIntervalMs: 500 })
   if (!run.isSuccess) {
     return { error: `Task ${id} ${run.status}`, details: run.error?.message }
@@ -504,7 +518,8 @@ export const textAnalyzer = tool({
 
 export const executeCode = tool({
   description:
-    "Execute a quick JavaScript expression in an isolated Trigger.dev container (5s limit, no network/process access).",
+    "Evaluate a single JavaScript expression and return its value. console.log output is returned in `logs`. " +
+    "No require/import, network, or filesystem. For shell commands or Python, use the bash tool.",
   inputSchema: z.object({ code: z.string().min(1) }),
   execute: async ({ code }) => runTool("tool-execute-code", { code }),
 })
@@ -521,9 +536,7 @@ export const bash = tool({
     cwd: z
       .string()
       .optional()
-      .describe(
-        "Working directory (reuse `cwd` from a previous call to keep files)"
-      ),
+      .describe("Working directory (default: fresh temp dir)"),
     timeoutMs: z.number().int().min(1000).max(240000).default(60000),
   }),
   execute: async ({ command, cwd, timeoutMs }) =>

@@ -20,6 +20,7 @@ import {
 import { jsonSchema, tool } from "ai";
 import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
+import { runBash, runExecuteCode } from "../trigger/agent-tools.js";
 
 async function runTool(id: string, payload: unknown) {
   try {
@@ -35,13 +36,14 @@ async function runTool(id: string, payload: unknown) {
     }
   }
 
-  // Outside a task (API route): trigger and poll
-  const handle = await tasks.trigger(id, payload as any);
-  const run = await triggerRuns.poll(handle, { pollIntervalMs: 500 });
-  if (!run.isSuccess) {
-    return { error: `Task ${id} ${run.status}`, details: run.error?.message };
+  // Outside a task (API direct execution): execute directly in-process without polling
+  if (id === "tool-bash") {
+    return await runBash(payload as any);
   }
-  return run.output;
+  if (id === "tool-execute-code") {
+    return await runExecuteCode(payload as any);
+  }
+  return { error: `Unknown tool task ${id}` };
 }
 
 function parseArithmetic(expr: string): number {

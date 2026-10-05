@@ -21,13 +21,12 @@ import { jsonSchema, tool } from "ai"
 import { and, desc, eq, inArray, or } from "drizzle-orm"
 import { z } from "zod"
 
-async function runTool(id: string, payload: unknown, tags: string[] = []) {
-  const handle = await tasks.trigger(id, payload, { tags })
-  const run = await triggerRuns.poll(handle, { pollIntervalMs: 500 })
-  if (!run.isSuccess) {
-    return { error: `Task ${id} ${run.status}`, details: run.error?.message }
+async function runTool(id: string, payload: unknown) {
+  const result = await tasks.triggerAndWait(id, payload as any)
+  if (!result.ok) {
+    return { error: `Task ${id} failed`, details: String(result.error) }
   }
-  return run.output
+  return result.output
 }
 
 function parseArithmetic(expr: string): number {
@@ -504,7 +503,9 @@ export const textAnalyzer = tool({
 
 export const executeCode = tool({
   description:
-    "Execute a quick JavaScript expression in an isolated Trigger.dev container (5s limit, no network/process access).",
+    "Evaluate a single pure JavaScript expression (e.g. '[1,2,3].map(x => x * 2)'). " +
+    "No require/import, no console, no network, no filesystem. " +
+    "For shell commands or anything needing Node modules, use the bash tool.",
   inputSchema: z.object({ code: z.string().min(1) }),
   execute: async ({ code }) => runTool("tool-execute-code", { code }),
 })
@@ -521,9 +522,7 @@ export const bash = tool({
     cwd: z
       .string()
       .optional()
-      .describe(
-        "Working directory (reuse `cwd` from a previous call to keep files)"
-      ),
+      .describe("Working directory (default: fresh temp dir)"),
     timeoutMs: z.number().int().min(1000).max(240000).default(60000),
   }),
   execute: async ({ command, cwd, timeoutMs }) =>

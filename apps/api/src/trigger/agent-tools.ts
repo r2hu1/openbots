@@ -7,7 +7,15 @@ import { join } from "node:path"
 import vm from "node:vm"
 
 const execAsync = promisify(exec)
-const cap = (s?: string) => (s ?? "").slice(0, 20000)
+
+// Redact any env var value from output, so `env` / `cat /proc/*/environ` can't leak secrets into your DB
+function redact(s?: string) {
+  let out = (s ?? "").slice(0, 20000)
+  for (const v of Object.values(process.env)) {
+    if (v && v.length >= 8) out = out.split(v).join("[REDACTED]")
+  }
+  return out
+}
 
 export const bashTask = task({
   id: "tool-bash",
@@ -23,19 +31,13 @@ export const bashTask = task({
         maxBuffer: 5 * 1024 * 1024,
         env: { PATH: process.env.PATH, HOME: workdir },
       })
-      return {
-        exitCode: 0,
-        stdout: cap(stdout),
-        stderr: cap(stderr),
-        cwd: workdir,
-      }
+      return { exitCode: 0, stdout: redact(stdout), stderr: redact(stderr) }
     } catch (err: any) {
       return {
         exitCode: typeof err.code === "number" ? err.code : 1,
-        stdout: cap(err.stdout),
-        stderr: cap(err.stderr),
-        error: err.killed ? "Command timed out" : err.message,
-        cwd: workdir,
+        stdout: redact(err.stdout),
+        stderr: redact(err.stderr),
+        error: err.killed ? "Command timed out" : redact(err.message),
       }
     }
   },
@@ -57,11 +59,9 @@ export const executeCodeTask = task({
             ? "undefined"
             : JSON.parse(JSON.stringify(result)),
       }
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : "Code evaluation failed",
-      }
+    } catch (err: any) {
+      // errors from a vm context aren't `instanceof Error` in this realm
+      return { success: false, error: err?.message ?? String(err) }
     }
   },
 })

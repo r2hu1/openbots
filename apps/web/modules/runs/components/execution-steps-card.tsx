@@ -1,45 +1,45 @@
-"use client";
+"use client"
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@openbots/ui/components/collapsible";
+} from "@openbots/ui/components/collapsible"
 import {
   Marker,
   MarkerContent,
   MarkerIcon,
-} from "@openbots/ui/components/marker";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { IconCheck, IconChevronDown, IconX } from "@tabler/icons-react";
-import { formatToolStepLabel } from "../tool-label";
-import type { StepItem } from "../types";
-import { sanitizeDisplayData } from "../utils";
+} from "@openbots/ui/components/marker"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { IconCheck, IconChevronDown, IconX } from "@tabler/icons-react"
+import { formatToolStepLabel } from "../tool-label"
+import type { StepItem } from "../types"
+import { sanitizeDisplayData } from "../utils"
 
 interface ExecutionStepsCardProps {
-  steps: StepItem[];
-  isLive?: boolean;
+  steps: StepItem[]
+  isLive?: boolean
 }
 
 export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
-  const toolSteps = steps.filter((s) => s.type === "tool" || s.toolName);
+  const toolSteps = steps.filter((s) => s.type === "tool" || s.toolName)
 
   if (toolSteps.length === 0) {
-    return null;
+    return null
   }
 
   return (
     <div className="flex flex-col gap-2 py-1">
       {toolSteps.map((step) => {
-        const stepKey = step.id || `step-${step.stepNumber}`;
+        const stepKey = step.id || `step-${step.stepNumber}`
         const hasDetails =
-          step.toolInput !== undefined || step.toolOutput !== undefined;
+          step.toolInput !== undefined || step.toolOutput !== undefined
         const { label } = formatToolStepLabel(
           step.toolName,
           step.status,
           step.toolInput,
-          step.toolOutput,
-        );
+          step.toolOutput
+        )
 
         if (!hasDetails) {
           return (
@@ -57,14 +57,9 @@ export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
               </MarkerIcon>
               <MarkerContent className="flex items-center gap-2">
                 <span className="font-medium text-foreground">{label}</span>
-                {step.toolName && (
-                  <span className="font-mono text-[10px] text-muted-foreground/70">
-                    ({step.toolName})
-                  </span>
-                )}
               </MarkerContent>
             </Marker>
-          );
+          )
         }
 
         return (
@@ -86,11 +81,6 @@ export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
                   <span className="truncate font-medium text-foreground">
                     {label}
                   </span>
-                  {step.toolName && (
-                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70">
-                      ({step.toolName})
-                    </span>
-                  )}
                 </div>
                 <CollapsibleTrigger className="flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                   <span>details</span>
@@ -122,8 +112,8 @@ export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
               )}
             </CollapsibleContent>
           </Collapsible>
-        );
+        )
       })}
     </div>
-  );
+  )
 }

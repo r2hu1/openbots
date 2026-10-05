@@ -1,28 +1,28 @@
-"use client";
+"use client"
 
-import { Bubble, BubbleContent } from "@openbots/ui/components/bubble";
+import { Bubble, BubbleContent } from "@openbots/ui/components/bubble"
 import {
   Marker,
   MarkerContent,
   MarkerIcon,
-} from "@openbots/ui/components/marker";
+} from "@openbots/ui/components/marker"
 import {
   Message,
   MessageContent,
   MessageFooter,
   MessageGroup,
-} from "@openbots/ui/components/message";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
-import { IconAlertCircle, IconPlayerStop } from "@tabler/icons-react";
-import { ExecutionStepsCard } from "@/modules/runs/components/execution-steps-card";
-import type { RunRecord, StepItem } from "@/modules/runs/types";
+} from "@openbots/ui/components/message"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
+import { IconAlertCircle, IconPlayerStop } from "@tabler/icons-react"
+import { ExecutionStepsCard } from "@/modules/runs/components/execution-steps-card"
+import type { RunRecord, StepItem } from "@/modules/runs/types"
 
 interface ConversationLiveStatusProps {
-  agentName: string;
-  activeRun: RunRecord | null;
-  activeRunSteps: StepItem[];
-  isActiveRunOngoing: boolean;
-  hasStreamingContent?: boolean;
+  agentName: string
+  activeRun: RunRecord | null
+  activeRunSteps: StepItem[]
+  isActiveRunOngoing: boolean
+  hasStreamingContent?: boolean
 }
 
 export function ConversationLiveStatus({
@@ -34,7 +34,7 @@ export function ConversationLiveStatus({
 }: ConversationLiveStatusProps) {
   if (isActiveRunOngoing) {
     if (activeRunSteps.length === 0 && hasStreamingContent) {
-      return null;
+      return null
     }
     return (
       <div className="space-y-3 py-1">
@@ -46,7 +46,7 @@ export function ConversationLiveStatus({
         )}
 
         {!hasStreamingContent && (
-          <MessageGroup>
+          <MessageGroup className="-mt-6">
             <Message align="start" className="gap-2">
               <MessageContent>
                 <Bubble variant="secondary" align="start">
@@ -72,7 +72,7 @@ export function ConversationLiveStatus({
           </MessageGroup>
         )}
       </div>
-    );
+    )
   }
 
   if (
@@ -101,8 +101,8 @@ export function ConversationLiveStatus({
           </Marker>
         )}
       </div>
-    );
+    )
   }
 
-  return null;
+  return null
 }

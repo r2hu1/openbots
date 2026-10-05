@@ -70,6 +70,7 @@ export const runsRoute = new Hono<Env>()
         event: "status",
         data: JSON.stringify({
           status: initial.run.status,
+          steps: initial.steps,
         }),
       });
 
@@ -99,6 +100,7 @@ export const runsRoute = new Hono<Env>()
 
       try {
         let lastDbCheck = Date.now();
+        let lastPing = Date.now();
         while (!stream.aborted) {
           if (queue.length > 0) {
             const item = queue.shift()!;
@@ -112,40 +114,18 @@ export const runsRoute = new Hono<Env>()
             continue;
           }
 
-          if (isDone) {
+          if (isDone && queue.length === 0) {
             break;
           }
 
-          // Periodic DB check every 1500ms as fallback in case worker ran on another process
-          if (Date.now() - lastDbCheck > 1500) {
-            lastDbCheck = Date.now();
-            const current = await getRun(id, user.id);
-            if (
-              current?.run.status === "completed" ||
-              current?.run.status === "failed" ||
-              current?.run.status === "cancelled"
-            ) {
-              await stream.writeSSE({
-                event: "status",
-                data: JSON.stringify({
-                  status: current.run.status,
-                  output: current.run.output,
-                  error: current.run.error,
-                }),
-              });
-              await stream.writeSSE({
-                event: "done",
-                data: JSON.stringify({
-                  status: current.run.status,
-                  output: current.run.output,
-                }),
-              });
-              break;
-            }
+          // Send keep-alive ping comment every 10 seconds to keep connection alive across proxies
+          if (Date.now() - lastPing > 10_000) {
+            lastPing = Date.now();
+            await stream.write(": ping\n\n");
           }
 
           if (queue.length === 0 && !isDone) {
-            // Wait for next event or 500ms timeout
+            // Wait reactively for next event or 10s ping timeout
             await new Promise<void>((resolve) => {
               let timer: any = null;
               const cb = () => {
@@ -154,7 +134,7 @@ export const runsRoute = new Hono<Env>()
                 resolve();
               };
               notifyResolver = cb;
-              timer = setTimeout(cb, 500);
+              timer = setTimeout(cb, 10_000);
             });
           }
         }

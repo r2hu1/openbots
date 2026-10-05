@@ -33,14 +33,17 @@ export function ConversationLiveStatus({
   hasStreamingContent = false,
 }: ConversationLiveStatusProps) {
   if (isActiveRunOngoing) {
+    if (activeRunSteps.length === 0 && hasStreamingContent) {
+      return null;
+    }
     return (
       <div className="space-y-3 py-1">
-        {/*{activeRunSteps.length > 0 && (
+        {activeRunSteps.length > 0 && (
           <ExecutionStepsCard
             steps={activeRunSteps}
             isLive={isActiveRunOngoing}
           />
-        )}*/}
+        )}
 
         {!hasStreamingContent && (
           <MessageGroup>

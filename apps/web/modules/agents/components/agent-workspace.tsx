@@ -150,6 +150,7 @@ const ChatPane = React.memo(function ChatPane({
   const {
     activeRun,
     activeRunSteps,
+    streamingText,
     isActiveRun,
     isOptimisticRunning,
     optimisticMessages,
@@ -166,11 +167,6 @@ const ChatPane = React.memo(function ChatPane({
     onConversationCreated: setSelectedConversationId,
   });
 
-  const isPolling =
-    isOptimisticRunning ||
-    activeRun?.status === "running" ||
-    activeRun?.status === "queued";
-
   const {
     data: conversationInfiniteData,
     isLoading: isLoadingMessages,
@@ -178,7 +174,7 @@ const ChatPane = React.memo(function ChatPane({
     hasNextPage: hasOlderMessages,
     fetchNextPage,
   } = useInfiniteConversationDetailQuery(activeConversationId, {
-    refetchInterval: isPolling ? 800 : false,
+    refetchInterval: false,
   });
 
   // Combine pages: older pages are fetched later and prepend to the timeline
@@ -257,6 +253,7 @@ const ChatPane = React.memo(function ChatPane({
         onDismissError={clearExecutionError}
         onReply={setReplyTarget}
         onReact={handleToggleReaction}
+        streamingText={streamingText}
       />
 
       <MemoComposer
@@ -306,8 +303,10 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   React.useEffect(() => {
     if (!initialAgentId && agents[0]?.id) {
       router.replace(`/agent/${agents[0].id}`);
+    } else if (!isLoadingAgents && initialAgentId && !selectedAgent) {
+      router.replace("/");
     }
-  }, [initialAgentId, agents, router]);
+  }, [initialAgentId, agents, isLoadingAgents, selectedAgent, router]);
 
   const openConfigure = React.useCallback(
     () => setConfigureSheetOpen(true),
@@ -360,7 +359,8 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
         />
 
         <main className="flex flex-1 flex-col overflow-hidden">
-          {isLoadingAgents ? (
+          {isLoadingAgents ||
+          (initialAgentId && !selectedAgent && agents.length > 0) ? (
             <LoadingState label="Loading workspace agents..." />
           ) : !selectedAgent ? (
             <EmptyState

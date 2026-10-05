@@ -55,7 +55,7 @@ export function RunHistorySheet({
 
   const { data: runs = [], isLoading } = useRunsQuery(agentId, {
     enabled: open,
-    refetchInterval: open ? 3000 : false,
+    refetchInterval: false,
   });
 
   React.useEffect(() => {

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   AlertDialog,
@@ -9,17 +9,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@openbots/ui/components/alert-dialog"
-import { Button } from "@openbots/ui/components/button"
-import * as React from "react"
-import type { Agent } from "../types"
-import { useRouter } from "next/navigation"
+} from "@openbots/ui/components/alert-dialog";
+import { Button } from "@openbots/ui/components/button";
+import * as React from "react";
+import type { Agent } from "../types";
+import { getClient } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 interface DeleteAgentDialogProps {
-  agent: Agent | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess?: (deletedId: string) => void
+  agent: Agent | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: (deletedId: string) => void;
 }
 
 export function DeleteAgentDialog({
@@ -28,38 +29,38 @@ export function DeleteAgentDialog({
   onOpenChange,
   onSuccess,
 }: DeleteAgentDialogProps) {
-  const [isLoading, setIsLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const router = useRouter()
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const router = useRouter();
 
   const handleDelete = async () => {
-    if (!agent) return
+    if (!agent) return;
 
     try {
-      setIsLoading(true)
-      setError(null)
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/agents/${agent.id}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      )
+      setIsLoading(true);
+      setError(null);
+      const client = getClient();
+      const res = await client.api.agents[":id"].$delete({
+        param: { id: agent.id },
+      });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => null)
-        throw new Error(errData?.error || "Failed to delete agent")
+        const errData = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(errData?.error || "Failed to delete agent");
       }
 
-      router.push("/")
-      onSuccess?.(agent.id)
-      onOpenChange(false)
+      onSuccess?.(agent.id);
+      onOpenChange(false);
+      router.replace("/");
+      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete agent")
+      setError(err instanceof Error ? err.message : "Failed to delete agent");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -89,5 +90,5 @@ export function DeleteAgentDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }

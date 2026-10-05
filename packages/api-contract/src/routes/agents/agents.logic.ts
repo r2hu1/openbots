@@ -14,7 +14,7 @@ import {
   getProviderFromModel,
   listUserApiKeys,
 } from "../api-keys/api-keys.logic.js";
-import { getDirectRunExecutor } from "../runs/runs.logic.js";
+import { agentEventHub, getDirectRunExecutor } from "../runs/runs.logic.js";
 
 import type {
   ConfigureToolInput,
@@ -289,7 +289,10 @@ export async function createAgentRun(
     conversationId = conv?.id;
   }
 
-  const hasUserMessage = !!(data.prompt || (data.images && data.images.length > 0));
+  const hasUserMessage = !!(
+    data.prompt ||
+    (data.images && data.images.length > 0)
+  );
   const userContent = {
     text: data.prompt || "",
     ...(data.images && data.images.length > 0 ? { images: data.images } : {}),
@@ -305,9 +308,7 @@ export async function createAgentRun(
         conversationId,
         status: "queued",
         triggerType: "manual",
-        input: hasUserMessage
-          ? userContent
-          : (data.input ?? null),
+        input: hasUserMessage ? userContent : (data.input ?? null),
       })
       .returning(),
     conversationId && hasUserMessage
@@ -328,6 +329,12 @@ export async function createAgentRun(
   if (!run) {
     return { error: "Failed to create run", status: 500 as const };
   }
+
+  // Broadcast run_created in realtime to all agent stream listeners
+  agentEventHub.publish(agent.id, {
+    type: "run_created",
+    run,
+  });
 
   // Fast path: if direct executor is registered in this process (API server), start execution immediately
   const directExecutor = getDirectRunExecutor();

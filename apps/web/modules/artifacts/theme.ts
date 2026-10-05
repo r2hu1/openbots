@@ -1,4 +1,4 @@
-const TAILWIND_BROWSER = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
+const TAILWIND_BROWSER = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4";
 
 const CHART_COMPAT_SCRIPT = String.raw`
 (function () {
@@ -41,7 +41,7 @@ const CHART_COMPAT_SCRIPT = String.raw`
     }
   });
 })();
-`
+`;
 
 const AUTO_HEIGHT_SCRIPT = String.raw`
 (function () {
@@ -63,13 +63,13 @@ const AUTO_HEIGHT_SCRIPT = String.raw`
     start();
   }
 })();
-`
+`;
 
 const AUTO_HEIGHT_CSS = `
 html, body { height: auto !important; }
 .min-h-screen, .min-h-dvh, .min-h-svh { min-height: 0 !important; }
 .h-screen, .h-dvh, .h-svh { height: auto !important; }
-`
+`;
 
 const TOKENS_CSS = `
 :root {
@@ -120,12 +120,12 @@ const TOKENS_CSS = `
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
 }
-`
+`;
 
 const COLOR_SCHEME_CSS = `
 :root { color-scheme: light; }
 .dark { color-scheme: dark; }
-`
+`;
 
 const PLAIN_BASE_CSS = `
 ${COLOR_SCHEME_CSS}
@@ -133,7 +133,7 @@ ${COLOR_SCHEME_CSS}
 html, body { margin: 0; background: transparent; color: var(--foreground); }
 html { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 body { padding: 16px; font-size: 14px; line-height: 1.5; }
-`
+`;
 
 const THEME_CSS = `
 @custom-variant dark (&:is(.dark *));
@@ -182,10 +182,10 @@ const THEME_CSS = `
   }
   button:not(:disabled) { cursor: pointer; }
 }
-`
+`;
 
 interface DesignSystemOptions {
-  autoHeight?: boolean
+  autoHeight?: boolean;
 }
 
 function buildHead(theme: "light" | "dark", autoHeight: boolean) {
@@ -198,31 +198,31 @@ function buildHead(theme: "light" | "dark", autoHeight: boolean) {
     autoHeight ? `<script>${AUTO_HEIGHT_SCRIPT}</script>` : "",
     `<script src="${TAILWIND_BROWSER}"></script>`,
     `<style type="text/tailwindcss">${THEME_CSS}</style>`,
-  ].join("")
+  ].join("");
 }
 
 export function withDesignSystem(
   html: string,
   theme: "light" | "dark" = "light",
-  options: DesignSystemOptions = {}
+  options: DesignSystemOptions = {},
 ) {
-  const head = buildHead(theme, options.autoHeight ?? false)
+  const head = buildHead(theme, options.autoHeight ?? false);
   const cleaned = html
     .replace(/<script[^>]*cdn\.tailwindcss\.com[^>]*><\/script>/gi, "")
-    .replace(/<script[^>]*@tailwindcss\/browser[^>]*><\/script>/gi, "")
+    .replace(/<script[^>]*@tailwindcss\/browser[^>]*><\/script>/gi, "");
 
   if (/<head[^>]*>/i.test(cleaned)) {
-    return cleaned.replace(/<head[^>]*>/i, (match) => `${match}${head}`)
+    return cleaned.replace(/<head[^>]*>/i, (match) => `${match}${head}`);
   }
   if (/<html[^>]*>/i.test(cleaned)) {
     return cleaned.replace(
       /<html[^>]*>/i,
-      (match) => `${match}<head>${head}</head>`
-    )
+      (match) => `${match}<head>${head}</head>`,
+    );
   }
-  return `<!DOCTYPE html><html><head>${head}</head><body>${cleaned}</body></html>`
+  return `<!DOCTYPE html><html><head>${head}</head><body>${cleaned}</body></html>`;
 }
 
 export function svgDocument(svg: string, theme: "light" | "dark" = "light") {
-  return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:100%}body{display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}svg{max-width:100%;max-height:100%;height:auto}</style></head><body>${svg}</body></html>`
+  return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:100%}body{display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}svg{max-width:100%;max-height:100%;height:auto}</style></head><body>${svg}</body></html>`;
 }

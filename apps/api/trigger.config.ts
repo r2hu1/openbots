@@ -1,5 +1,5 @@
-import { defineConfig } from "@trigger.dev/sdk"
-import { aptGet } from "@trigger.dev/build/extensions/core"
+import { defineConfig } from "@trigger.dev/sdk";
+import { aptGet } from "@trigger.dev/build/extensions/core";
 
 export default defineConfig({
   project: process.env.TRIGGER_PROJECT_REF ?? "",
@@ -22,4 +22,4 @@ export default defineConfig({
       aptGet({ packages: ["git", "curl", "jq", "python3", "ripgrep"] }),
     ],
   },
-})
+});

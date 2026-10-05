@@ -4,7 +4,9 @@ import { Button } from "@openbots/ui/components/button";
 import { Spinner } from "@openbots/ui/components/spinner";
 import { IconArrowLeft, IconPlayerStop } from "@tabler/icons-react";
 import { Markdown } from "@/components/shared/markdown";
-import { useCancelRunMutation, useRunDetailQuery } from "../queries";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRunStream } from "../hooks/use-run-stream";
+import { runKeys, useCancelRunMutation, useRunDetailQuery } from "../queries";
 import {
   formatDuration,
   formatTimestamp,
@@ -21,10 +23,37 @@ interface RunDetailViewProps {
 }
 
 export function RunDetailView({ runId, agentId, onBack }: RunDetailViewProps) {
+  const queryClient = useQueryClient();
   const { data, isLoading } = useRunDetailQuery(runId, {
-    refetchInterval: (query) => {
-      const status = query.state.data?.run?.status;
-      return status === "queued" || status === "running" ? 1500 : false;
+    refetchInterval: false,
+  });
+
+  const isRunning =
+    data?.run?.status === "queued" || data?.run?.status === "running";
+
+  const {
+    streamingText,
+    streamingSteps,
+    status: streamStatus,
+  } = useRunStream({
+    runId: isRunning ? runId : null,
+    onDone: () => {
+      queryClient.invalidateQueries({ queryKey: runKeys.detail(runId) });
+      if (agentId) {
+        queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) });
+      }
+    },
+    onStatus: (st) => {
+      if (
+        st.status === "completed" ||
+        st.status === "failed" ||
+        st.status === "cancelled"
+      ) {
+        queryClient.invalidateQueries({ queryKey: runKeys.detail(runId) });
+        if (agentId) {
+          queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) });
+        }
+      }
     },
   });
 
@@ -39,9 +68,12 @@ export function RunDetailView({ runId, agentId, onBack }: RunDetailViewProps) {
   }
 
   const { run, steps } = data;
-  const isRunning = run.status === "queued" || run.status === "running";
+  const currentStatus = streamStatus || run.status;
+  const activeIsRunning =
+    currentStatus === "queued" || currentStatus === "running";
   const inputText = getInputText(run.input);
-  const outputText = getOutputText(run.output);
+  const outputText = streamingText || getOutputText(run.output);
+  const displaySteps = streamingSteps.length > 0 ? streamingSteps : steps;
 
   return (
     <div className="space-y-4 pb-4">

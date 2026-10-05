@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { Button } from "@openbots/ui/components/button"
-import * as React from "react"
-import type { ParsedArtifact } from "./parser"
-import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes"
+import { Button } from "@openbots/ui/components/button";
+import * as React from "react";
+import type { ParsedArtifact } from "./parser";
+import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes";
 import {
   ChartSquare,
   Check,
@@ -11,39 +11,39 @@ import {
   Copy,
   Maximize,
   VectorSquare,
-} from "reicon-react"
-import { cn } from "@/lib/utils"
+} from "reicon-react";
+import { cn } from "@/lib/utils";
 
 interface ArtifactCardProps {
-  artifact: ParsedArtifact
-  onClick: () => void
+  artifact: ParsedArtifact;
+  onClick: () => void;
 }
 
 const TYPE_LABEL: Record<string, string> = {
   html: "Interactive UI",
   svg: "SVG",
   mermaid: "Diagram",
-}
+};
 
 const THUMB_SIZE: Record<string, { w: number; h: number }> = {
   html: { w: 1280, h: 800 },
   svg: { w: 640, h: 400 },
   mermaid: { w: 640, h: 400 },
-}
+};
 
 const MEDIA_CENTER =
-  "flex items-center justify-center overflow-auto border-0 bg-background p-6 [&_svg]:max-h-full [&_svg]:max-w-full"
+  "flex items-center justify-center overflow-auto border-0 bg-background p-6 [&_svg]:max-h-full [&_svg]:max-w-full";
 
 function ArtifactIcon({ type }: { type: ParsedArtifact["type"] }) {
   switch (type) {
     case "svg":
-      return <VectorSquare className="size-4" />
+      return <VectorSquare className="size-4" />;
 
     case "mermaid":
-      return <ChartSquare className="size-4" />
+      return <ChartSquare className="size-4" />;
 
     default:
-      return <Code className="size-4" />
+      return <Code className="size-4" />;
   }
 }
 
@@ -57,10 +57,10 @@ function ArtifactPreview({
   mediaClassName,
   fitContent = false,
 }: {
-  artifact: ParsedArtifact
-  htmlClassName?: string
-  mediaClassName?: string
-  fitContent?: boolean
+  artifact: ParsedArtifact;
+  htmlClassName?: string;
+  mediaClassName?: string;
+  fitContent?: boolean;
 }) {
   switch (artifact.type) {
     case "html":
@@ -70,18 +70,18 @@ function ArtifactPreview({
           className={htmlClassName}
           fitContent={fitContent}
         />
-      )
+      );
 
     case "svg":
-      return <SvgSandbox svg={artifact.content} className={mediaClassName} />
+      return <SvgSandbox svg={artifact.content} className={mediaClassName} />;
 
     case "mermaid":
       return (
         <MermaidSandbox code={artifact.content} className={mediaClassName} />
-      )
+      );
 
     default:
-      return null
+      return null;
   }
 }
 
@@ -90,45 +90,45 @@ function ArtifactPreview({
 /* -------------------------------------------------------------------------- */
 
 function useCopy(content: string) {
-  const [copied, setCopied] = React.useState(false)
+  const [copied, setCopied] = React.useState(false);
 
-  const timeout = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     return () => {
       if (timeout.current) {
-        clearTimeout(timeout.current)
+        clearTimeout(timeout.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const copy = React.useCallback(
     async (event: React.MouseEvent) => {
-      event.stopPropagation()
+      event.stopPropagation();
 
       try {
-        await navigator.clipboard.writeText(content)
+        await navigator.clipboard.writeText(content);
 
-        setCopied(true)
+        setCopied(true);
 
         if (timeout.current) {
-          clearTimeout(timeout.current)
+          clearTimeout(timeout.current);
         }
 
         timeout.current = setTimeout(() => {
-          setCopied(false)
-        }, 2000)
+          setCopied(false);
+        }, 2000);
       } catch (error) {
-        console.error("Failed to copy artifact code:", error)
+        console.error("Failed to copy artifact code:", error);
       }
     },
-    [content]
-  )
+    [content],
+  );
 
   return {
     copied,
     copy,
-  }
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -136,49 +136,49 @@ function useCopy(content: string) {
 /* -------------------------------------------------------------------------- */
 
 function useThumbnailFrame() {
-  const ref = React.useRef<HTMLDivElement>(null)
+  const ref = React.useRef<HTMLDivElement>(null);
 
-  const [width, setWidth] = React.useState(0)
-  const [visible, setVisible] = React.useState(false)
+  const [width, setWidth] = React.useState(0);
+  const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
-    const element = ref.current
+    const element = ref.current;
 
     if (!element) {
-      return
+      return;
     }
 
     const resizeObserver = new ResizeObserver(([entry]) => {
-      setWidth(entry?.contentRect.width ?? 0)
-    })
+      setWidth(entry?.contentRect.width ?? 0);
+    });
 
-    resizeObserver.observe(element)
+    resizeObserver.observe(element);
 
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          setVisible(true)
-          intersectionObserver.disconnect()
+          setVisible(true);
+          intersectionObserver.disconnect();
         }
       },
       {
         rootMargin: "300px",
-      }
-    )
+      },
+    );
 
-    intersectionObserver.observe(element)
+    intersectionObserver.observe(element);
 
     return () => {
-      resizeObserver.disconnect()
-      intersectionObserver.disconnect()
-    }
-  }, [])
+      resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+    };
+  }, []);
 
   return {
     ref,
     width,
     visible,
-  }
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -186,7 +186,7 @@ function useThumbnailFrame() {
 /* -------------------------------------------------------------------------- */
 
 function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
-  const { copied, copy } = useCopy(artifact.content)
+  const { copied, copy } = useCopy(artifact.content);
 
   return (
     <div
@@ -212,7 +212,7 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
           "opacity-0 transition-opacity",
           "group-hover/artifact:opacity-100",
           "group-focus-within/artifact:opacity-100",
-          "[@media(hover:none)]:opacity-100"
+          "[@media(hover:none)]:opacity-100",
         )}
       >
         <Button
@@ -240,7 +240,7 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
         </Button>
       </div>
     </div>
-  )
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -248,18 +248,18 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
 /* -------------------------------------------------------------------------- */
 
 function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
-  const { ref, width, visible } = useThumbnailFrame()
+  const { ref, width, visible } = useThumbnailFrame();
 
-  const base = THUMB_SIZE[artifact.type] ?? THUMB_SIZE.html
+  const base = THUMB_SIZE[artifact.type] ?? THUMB_SIZE.html;
 
-  const scale = base && width ? width / base.w : 0
+  const scale = base && width ? width / base.w : 0;
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault()
-      onClick()
+      event.preventDefault();
+      onClick();
     }
-  }
+  };
 
   return (
     <div
@@ -277,7 +277,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
         "transition-colors outline-none",
         "hover:border-foreground/25",
         "focus-visible:ring-2",
-        "focus-visible:ring-ring"
+        "focus-visible:ring-ring",
       )}
     >
       <div
@@ -285,7 +285,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
         className={cn(
           "relative aspect-[16/10] w-full",
           "overflow-hidden border-b border-border",
-          "bg-muted/40"
+          "bg-muted/40",
         )}
       >
         {visible && base && scale > 0 && (
@@ -309,7 +309,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
           className={cn(
             "absolute inset-0",
             "transition-colors",
-            "group-hover/artifact:bg-foreground/[0.03]"
+            "group-hover/artifact:bg-foreground/[0.03]",
           )}
         />
       </div>
@@ -319,7 +319,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
           className={cn(
             "flex size-7 shrink-0",
             "items-center justify-center",
-            "rounded-md bg-muted text-foreground"
+            "rounded-md bg-muted text-foreground",
           )}
         >
           <ArtifactIcon type={artifact.type} />
@@ -330,7 +330,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
             className={cn(
               "truncate text-[13px]",
               "leading-tight font-medium",
-              "text-foreground"
+              "text-foreground",
             )}
           >
             {artifact.title}
@@ -346,12 +346,12 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
             "size-4 shrink-0",
             "text-muted-foreground/50",
             "transition-colors",
-            "group-hover/artifact:text-foreground"
+            "group-hover/artifact:text-foreground",
           )}
         />
       </div>
     </div>
-  )
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -363,5 +363,5 @@ export function ArtifactCard(props: ArtifactCardProps) {
     <InlineArtifact {...props} />
   ) : (
     <CardArtifact {...props} />
-  )
+  );
 }

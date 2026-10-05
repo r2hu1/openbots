@@ -39,4 +39,4 @@ Return a single <svg> with a viewBox and no fixed width or height. Use currentCo
 
 ### Mermaid artifacts
 Return only the diagram source (flowchart TD, sequenceDiagram, erDiagram and so on). Do not add styling, themes or init directives; the host themes it.
-`
+`;

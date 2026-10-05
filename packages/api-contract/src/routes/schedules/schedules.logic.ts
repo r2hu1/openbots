@@ -1,7 +1,11 @@
 import { db, runs, schedules } from "@openbots/db";
 import { schedules as triggerSchedules } from "@trigger.dev/sdk";
 import { and, desc, eq } from "drizzle-orm";
-import type { CreateScheduleInput, UpdateScheduleInput } from "./schedules.schema.js";
+import { agentEventHub } from "../runs/runs.logic.js";
+import type {
+  CreateScheduleInput,
+  UpdateScheduleInput,
+} from "./schedules.schema.js";
 
 export async function listSchedules(userId: string, agentId?: string) {
   const whereClause = agentId
@@ -26,7 +30,10 @@ export async function getSchedule(id: string, userId: string) {
   return schedule ?? null;
 }
 
-export async function createSchedule(userId: string, data: CreateScheduleInput) {
+export async function createSchedule(
+  userId: string,
+  data: CreateScheduleInput,
+) {
   const [inserted] = await db
     .insert(schedules)
     .values({
@@ -62,8 +69,18 @@ export async function createSchedule(userId: string, data: CreateScheduleInput) 
       inserted.triggerScheduleId = triggerSched.id;
     }
   } catch (err) {
-    console.warn("Could not register recurring schedule with Trigger.dev:", err);
+    console.warn(
+      "Could not register recurring schedule with Trigger.dev:",
+      err,
+    );
   }
+
+  // Broadcast schedule_updated in realtime
+  agentEventHub.publish(data.agentId, {
+    type: "schedule_updated",
+    scheduleId: inserted.id,
+    action: "created",
+  });
 
   return { schedule: inserted };
 }
@@ -112,6 +129,13 @@ export async function updateSchedule(
     }
   }
 
+  // Broadcast schedule_updated in realtime
+  agentEventHub.publish(updated.agentId, {
+    type: "schedule_updated",
+    scheduleId: updated.id,
+    action: "updated",
+  });
+
   return { schedule: updated };
 }
 
@@ -131,6 +155,14 @@ export async function deleteSchedule(id: string, userId: string) {
     .delete(schedules)
     .where(and(eq(schedules.id, id), eq(schedules.userId, userId)))
     .returning();
+
+  if (deleted) {
+    agentEventHub.publish(existing.agentId, {
+      type: "schedule_updated",
+      scheduleId: id,
+      action: "deleted",
+    });
+  }
 
   return deleted ? { schedule: deleted } : null;
 }

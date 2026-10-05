@@ -75,102 +75,137 @@ export async function cancelRun(runId: string, userId: string) {
 
 // Cross-process event emitter using Upstash Redis Pub/Sub with in-memory fallback
 export type RunEvent =
-  | { type: "delta"; text: string }
-  | { type: "tool_start"; toolName: string; stepNumber: number }
-  | { type: "tool_finish"; toolName: string; stepNumber: number }
-  | { type: "status"; status: string; output?: any; error?: string }
-  | { type: "done"; status: string; output?: any };
+  | { seq?: number; type: "delta"; text: string }
+  | {
+      seq?: number;
+      type: "tool_start";
+      toolName: string;
+      stepNumber: number;
+    }
+  | {
+      seq?: number;
+      type: "tool_finish";
+      toolName: string;
+      stepNumber: number;
+    }
+  | {
+      seq?: number;
+      type: "status";
+      status: string;
+      output?: any;
+      error?: string;
+      steps?: any[];
+    }
+  | { seq?: number; type: "done"; status: string; output?: any };
 
 type RunEventListener = (event: RunEvent) => void;
 
 class RunEventHub {
   private localListeners = new Map<string, Set<RunEventListener>>();
-  private redisPollIntervals = new Map<string, any>();
+  private inMemoryBuffers = new Map<string, RunEvent[]>();
+  private nextSeq = 0;
 
   subscribe(runId: string, listener: RunEventListener): () => void {
+    let lastSeenSeq = -1;
+    const safeListener: RunEventListener = (ev) => {
+      if (ev.seq !== undefined) {
+        if (ev.seq <= lastSeenSeq) return;
+        lastSeenSeq = ev.seq;
+      }
+      listener(ev);
+    };
+
     let set = this.localListeners.get(runId);
     if (!set) {
       set = new Set();
       this.localListeners.set(runId, set);
     }
-    set.add(listener);
+    set.add(safeListener);
 
-    // Sync from Redis list for both late-joining replay and cross-process streaming
+    // Replay in-memory events for late-joining subscribers
+    const buffered = this.inMemoryBuffers.get(runId);
+    if (buffered && buffered.length > 0) {
+      for (const ev of buffered) {
+        try {
+          safeListener(ev);
+        } catch {}
+      }
+    }
+
+    // One-time initial replay of stored events from Redis for late-joining subscribers
     try {
       const redis = getRedis();
-      if (redis && !this.redisPollIntervals.has(runId)) {
-        let lastLength = 0;
+      if (redis) {
         const channelKey = `run_events:${runId}`;
-
-        const pollEvents = async () => {
-          try {
-            const currentLen = await redis.llen(channelKey);
-            if (currentLen > lastLength) {
-              const newItems = await redis.lrange(
-                channelKey,
-                lastLength,
-                currentLen - 1,
-              );
-              lastLength = currentLen;
-              for (const item of newItems) {
+        redis
+          .lrange(channelKey, 0, -1)
+          .then((items) => {
+            if (items && items.length > 0) {
+              for (const item of items) {
                 const parsed: RunEvent =
                   typeof item === "string" ? JSON.parse(item) : item;
-                const activeSet = this.localListeners.get(runId);
-                if (activeSet) {
-                  for (const l of activeSet) {
-                    try {
-                      l(parsed);
-                    } catch {}
-                  }
-                }
+                safeListener(parsed);
               }
             }
-          } catch {
-            // Ignore Redis poll errors
-          }
-        };
-
-        // Immediate check to replay all events stored in Redis
-        pollEvents();
-        const interval = setInterval(pollEvents, 100);
-        this.redisPollIntervals.set(runId, interval);
+          })
+          .catch(() => {});
       }
     } catch {
       // Redis not configured, fallback to in-process dispatch
     }
 
     return () => {
-      set?.delete(listener);
+      set?.delete(safeListener);
       if (set && set.size === 0) {
         this.localListeners.delete(runId);
-        const poll = this.redisPollIntervals.get(runId);
-        if (poll) {
-          clearInterval(poll);
-          this.redisPollIntervals.delete(runId);
-        }
       }
     };
   }
 
   publish(runId: string, event: RunEvent): void {
-    // 1. Dispatch immediately to in-process listeners with 0ms latency
+    const eventWithSeq: RunEvent = {
+      ...event,
+      seq: event.seq ?? this.nextSeq++,
+    };
+
+    // 1. Buffer for immediate late-joining subscribers in-memory
+    let buffer = this.inMemoryBuffers.get(runId);
+    if (!buffer) {
+      buffer = [];
+      this.inMemoryBuffers.set(runId, buffer);
+    }
+    buffer.push(eventWithSeq);
+
+    if (
+      eventWithSeq.type === "done" ||
+      (eventWithSeq.type === "status" &&
+        (eventWithSeq.status === "completed" ||
+          eventWithSeq.status === "failed" ||
+          eventWithSeq.status === "cancelled"))
+    ) {
+      setTimeout(() => {
+        this.inMemoryBuffers.delete(runId);
+      }, 60_000);
+    }
+
+    // 2. Dispatch immediately to in-process listeners with 0ms latency
     const set = this.localListeners.get(runId);
     if (set) {
       for (const listener of set) {
         try {
-          listener(event);
+          listener(eventWithSeq);
         } catch (e) {
           console.error("Error in run event listener:", e);
         }
       }
     }
 
-    // 2. Fire-and-forget pipeline to Redis list for cross-process subscribers without blocking execution
+    // 3. Fire-and-forget pipeline to Redis list for cross-process subscribers without blocking execution
     try {
       const redis = getRedis();
       if (redis) {
         const channelKey = `run_events:${runId}`;
-        const serialized = JSON.stringify(event);
+        const serialized = JSON.stringify(eventWithSeq);
         redis
           .rpush(channelKey, serialized)
           .then(() => redis.expire(channelKey, 3600))
@@ -181,6 +216,136 @@ class RunEventHub {
 }
 
 export const runEventHub = new RunEventHub();
+
+export type AgentEvent =
+  | { seq?: number; type: "run_created"; run: any }
+  | {
+      seq?: number;
+      type: "run_status";
+      runId: string;
+      status: string;
+      error?: string;
+      output?: any;
+    }
+  | {
+      seq?: number;
+      type: "schedule_fired";
+      scheduleId?: string;
+      runId: string;
+      name?: string;
+      prompt?: string;
+      conversationId?: string | null;
+    }
+  | {
+      seq?: number;
+      type: "schedule_updated";
+      scheduleId: string;
+      action: "created" | "updated" | "deleted";
+    };
+
+type AgentEventListener = (event: AgentEvent) => void;
+
+class AgentEventHub {
+  private localListeners = new Map<string, Set<AgentEventListener>>();
+  private inMemoryBuffers = new Map<string, AgentEvent[]>();
+  private nextSeq = 0;
+
+  subscribe(agentId: string, listener: AgentEventListener): () => void {
+    let lastSeenSeq = -1;
+    const safeListener: AgentEventListener = (ev) => {
+      if (ev.seq !== undefined) {
+        if (ev.seq <= lastSeenSeq) return;
+        lastSeenSeq = ev.seq;
+      }
+      listener(ev);
+    };
+
+    let set = this.localListeners.get(agentId);
+    if (!set) {
+      set = new Set();
+      this.localListeners.set(agentId, set);
+    }
+    set.add(safeListener);
+
+    // Replay recent in-memory events
+    const buffered = this.inMemoryBuffers.get(agentId);
+    if (buffered && buffered.length > 0) {
+      for (const ev of buffered) {
+        try {
+          safeListener(ev);
+        } catch {}
+      }
+    }
+
+    try {
+      const redis = getRedis();
+      if (redis) {
+        const channelKey = `agent_events:${agentId}`;
+        redis
+          .lrange(channelKey, 0, -1)
+          .then((items) => {
+            if (items && items.length > 0) {
+              for (const item of items) {
+                const parsed: AgentEvent =
+                  typeof item === "string" ? JSON.parse(item) : item;
+                safeListener(parsed);
+              }
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {}
+
+    return () => {
+      set?.delete(safeListener);
+      if (set && set.size === 0) {
+        this.localListeners.delete(agentId);
+      }
+    };
+  }
+
+  publish(agentId: string, event: AgentEvent): void {
+    const eventWithSeq: AgentEvent = {
+      ...event,
+      seq: event.seq ?? this.nextSeq++,
+    };
+
+    let buffer = this.inMemoryBuffers.get(agentId);
+    if (!buffer) {
+      buffer = [];
+      this.inMemoryBuffers.set(agentId, buffer);
+    }
+    buffer.push(eventWithSeq);
+    if (buffer.length > 30) {
+      buffer.shift();
+    }
+
+    const set = this.localListeners.get(agentId);
+    if (set) {
+      for (const listener of set) {
+        try {
+          listener(eventWithSeq);
+        } catch (e) {
+          console.error("Error in agent event listener:", e);
+        }
+      }
+    }
+
+    try {
+      const redis = getRedis();
+      if (redis) {
+        const channelKey = `agent_events:${agentId}`;
+        const serialized = JSON.stringify(eventWithSeq);
+        redis
+          .rpush(channelKey, serialized)
+          .then(() => redis.expire(channelKey, 1800))
+          .catch(() => {});
+      }
+    } catch {}
+  }
+}
+
+export const agentEventHub = new AgentEventHub();
 
 export type DirectRunExecutor = (runId: string) => Promise<any>;
 let directRunExecutor: DirectRunExecutor | null = null;

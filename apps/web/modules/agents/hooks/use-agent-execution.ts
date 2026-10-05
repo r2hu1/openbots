@@ -9,6 +9,8 @@ import {
   useRunsQuery,
   useTriggerAgentRunMutation,
 } from "@/modules/runs/queries";
+import { useRunStream } from "@/modules/runs/hooks/use-run-stream";
+import { useAgentStream } from "./use-agent-stream";
 import type { RunRecord } from "@/modules/runs/types";
 
 interface UseAgentExecutionOptions {
@@ -34,23 +36,43 @@ export function useAgentExecution({
 
   const dismissedRunIds = React.useRef<Set<string>>(new Set());
 
-  // Reset state when agent changes
+  // Reset state when agent or conversation changes
   const prevAgentIdRef = React.useRef(agentId);
+  const prevConvIdRef = React.useRef(activeConversationId);
   React.useEffect(() => {
-    if (prevAgentIdRef.current !== agentId) {
+    if (
+      prevAgentIdRef.current !== agentId ||
+      prevConvIdRef.current !== activeConversationId
+    ) {
       prevAgentIdRef.current = agentId;
+      prevConvIdRef.current = activeConversationId;
       setActiveRunId(null);
       setLastTerminalRun(null);
       setIsOptimisticRunning(false);
       setOptimisticMessages([]);
       setExecutionError(null);
-      dismissedRunIds.current.clear();
+      if (prevAgentIdRef.current !== agentId) {
+        dismissedRunIds.current.clear();
+      }
     }
-  }, [agentId]);
+  }, [agentId, activeConversationId]);
 
-  // Discover and Poll Active Run across reloads and background scheduled triggers
+  // Listen to realtime agent events (schedules firing, runs created, runs status)
+  useAgentStream({
+    agentId,
+    onScheduleFired: (ev) => {
+      if (ev.runId) {
+        if (ev.conversationId && !activeConversationId) {
+          onConversationCreated?.(ev.conversationId);
+        }
+        setActiveRunId(ev.runId);
+      }
+    },
+  });
+
+  // Query runs without polling (updates stream via SSE in realtime)
   const { data: runs = [] } = useRunsQuery(agentId, {
-    refetchInterval: isOptimisticRunning || activeRunId ? 2000 : false,
+    refetchInterval: false,
   });
 
   React.useEffect(() => {
@@ -68,15 +90,95 @@ export function useAgentExecution({
     }
   }, [activeRunId, runs, activeConversationId]);
 
-  // Fetch active run details
+  // Fetch initial run details without polling
   const { data: activeRunData } = useRunDetailQuery(activeRunId, {
-    refetchInterval: (query) => {
-      const status = query.state.data?.run?.status;
-      return status === "queued" || status === "running" ? 800 : false;
+    refetchInterval: false,
+  });
+
+  // Connect live SSE stream for the active run
+  const {
+    streamingText,
+    streamingSteps,
+    isStreaming,
+    status: streamStatus,
+    resetStream,
+  } = useRunStream({
+    runId: activeRunId,
+    onStatus: (data) => {
+      if (data.status === "failed") {
+        setIsOptimisticRunning(false);
+        if (data.error) {
+          setExecutionError(data.error);
+        }
+        if (activeRunId) {
+          setLastTerminalRun({
+            id: activeRunId,
+            userId: "",
+            agentId: agentId || "",
+            conversationId: activeConversationId,
+            status: "failed",
+            triggerType: "manual",
+            input: null,
+            output: null,
+            error: data.error || "Run failed",
+            startedAt: new Date(),
+            completedAt: new Date(),
+            createdAt: new Date(),
+          });
+          dismissedRunIds.current.add(activeRunId);
+        }
+        setActiveRunId(null);
+      }
+    },
+    onDone: (data) => {
+      setIsOptimisticRunning(false);
+      const finalText = data.output?.text || streamingText;
+      if (finalText && activeRunId) {
+        setLastTerminalRun({
+          id: activeRunId,
+          userId: "",
+          agentId: agentId || "",
+          conversationId: activeConversationId,
+          status: "completed",
+          triggerType: "manual",
+          input: null,
+          output: { text: finalText },
+          error: null,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          createdAt: new Date(),
+        });
+      }
+      if (activeConversationId) {
+        queryClient.invalidateQueries({
+          queryKey: ["conversation", activeConversationId],
+        });
+      }
+      if (agentId) {
+        queryClient.invalidateQueries({
+          queryKey: ["runs", agentId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["agents"],
+        });
+      }
+      if (activeRunId) {
+        dismissedRunIds.current.add(activeRunId);
+      }
+      setActiveRunId(null);
+    },
+    onError: (err) => {
+      setIsOptimisticRunning(false);
+      const msg = err?.message || "Lost connection to stream";
+      setExecutionError(msg);
+      if (activeRunId) {
+        dismissedRunIds.current.add(activeRunId);
+      }
+      setActiveRunId(null);
     },
   });
 
-  const activeRunStatus = activeRunData?.run?.status;
+  const activeRunStatus = streamStatus || activeRunData?.run?.status;
 
   // Watch for background runs completing for the current conversation and invalidate queries
   const seenCompletedRunIdsRef = React.useRef<Set<string>>(new Set());
@@ -111,6 +213,21 @@ export function useAgentExecution({
       setIsOptimisticRunning(false);
       if (activeRunData?.run) {
         setLastTerminalRun(activeRunData.run);
+      } else if (activeRunId && streamingText) {
+        setLastTerminalRun({
+          id: activeRunId,
+          userId: "",
+          agentId: agentId || "",
+          conversationId: activeConversationId,
+          status: activeRunStatus,
+          triggerType: "manual",
+          input: null,
+          output: { text: streamingText },
+          error: null,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          createdAt: new Date(),
+        });
       }
       if (activeRunId) {
         dismissedRunIds.current.add(activeRunId);
@@ -136,6 +253,7 @@ export function useAgentExecution({
     activeRunId,
     activeConversationId,
     agentId,
+    streamingText,
     queryClient,
   ]);
 
@@ -197,6 +315,7 @@ export function useAgentExecution({
   );
 
   const cancelActiveRun = React.useCallback(() => {
+    resetStream();
     if (!activeRunId) {
       setIsOptimisticRunning(false);
       return;
@@ -206,17 +325,56 @@ export function useAgentExecution({
         setIsOptimisticRunning(false);
       },
     });
-  }, [activeRunId, cancelRunMutation]);
+  }, [activeRunId, cancelRunMutation, resetStream]);
+
+  const activeRun = React.useMemo(() => {
+    const base = activeRunData?.run || lastTerminalRun;
+    if (!base && activeRunId) {
+      return {
+        id: activeRunId,
+        userId: "",
+        agentId: agentId || "",
+        conversationId: activeConversationId,
+        status: streamStatus || "running",
+        triggerType: "manual",
+        input: null,
+        output: null,
+        error: null,
+        startedAt: new Date(),
+        completedAt: null,
+        createdAt: new Date(),
+      } as RunRecord;
+    }
+    if (base && streamStatus && base.status !== streamStatus) {
+      return { ...base, status: streamStatus };
+    }
+    return base;
+  }, [
+    activeRunData?.run,
+    lastTerminalRun,
+    activeRunId,
+    agentId,
+    activeConversationId,
+    streamStatus,
+  ]);
+
+  const activeRunSteps = React.useMemo(() => {
+    if (streamingSteps.length > 0) return streamingSteps;
+    return activeRunData?.steps || [];
+  }, [streamingSteps, activeRunData?.steps]);
 
   const isActiveRun =
     isOptimisticRunning ||
+    isStreaming ||
     activeRunStatus === "queued" ||
     activeRunStatus === "running";
 
   return {
     activeRunId,
-    activeRun: activeRunData?.run || lastTerminalRun,
-    activeRunSteps: activeRunData?.steps || [],
+    activeRun,
+    activeRunSteps,
+    streamingText: streamingText || null,
+    isStreaming,
     isActiveRun,
     isOptimisticRunning,
     optimisticMessages,

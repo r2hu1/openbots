@@ -25,9 +25,6 @@ interface ConnectionsSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const POLL_INTERVAL_MS = 3000;
-const POLL_TIMEOUT_MS = 120_000;
-
 const SCROLL_CLASS =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
   "[scrollbar-gutter:stable] [scrollbar-width:thin]";
@@ -37,45 +34,65 @@ export function ConnectionsSheet({
   onOpenChange,
 }: ConnectionsSheetProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [pollingEnabled, setPollingEnabled] = React.useState(false);
+  const [pendingAuthApp, setPendingAuthApp] = React.useState<string | null>(
+    null,
+  );
 
-  const baselineCount = React.useRef(0);
-  const pollTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const { data: connections = [], isLoading } = useConnectionsQuery({
+  const {
+    data: connections = [],
+    isLoading,
+    refetch: refetchConnections,
+  } = useConnectionsQuery({
     enabled: open,
-    refetchInterval: pollingEnabled ? POLL_INTERVAL_MS : false,
+    refetchInterval: false,
   });
 
   const connectMutation = useInitiateConnectionMutation();
   const deleteMutation = useDeleteConnectionMutation();
 
+  // Clear pending state when integration is connected
   React.useEffect(() => {
-    if (pollingEnabled && connections.length > baselineCount.current) {
-      setPollingEnabled(false);
-      if (pollTimeout.current) {
-        clearTimeout(pollTimeout.current);
-        pollTimeout.current = null;
+    if (pendingAuthApp) {
+      const isConnected = connections.some(
+        (c) =>
+          c.provider?.toLowerCase().includes(pendingAuthApp.toLowerCase()) ||
+          c.externalAccountId
+            ?.toLowerCase()
+            .includes(pendingAuthApp.toLowerCase()),
+      );
+      if (isConnected) {
+        setPendingAuthApp(null);
       }
     }
-  }, [connections.length, pollingEnabled]);
+  }, [connections, pendingAuthApp]);
 
+  // When user returns to window after OAuth, immediately refetch connections without polling
   React.useEffect(() => {
-    return () => {
-      if (pollTimeout.current) {
-        clearTimeout(pollTimeout.current);
+    if (!open || !pendingAuthApp) return;
+
+    const handleFocus = () => {
+      refetchConnections();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refetchConnections();
       }
     };
-  }, []);
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [open, pendingAuthApp, refetchConnections]);
 
   React.useEffect(() => {
     if (!open) {
       setSearchQuery("");
-      setPollingEnabled(false);
-      if (pollTimeout.current) {
-        clearTimeout(pollTimeout.current);
-        pollTimeout.current = null;
-      }
+      setPendingAuthApp(null);
     }
   }, [open]);
 
@@ -85,18 +102,8 @@ export function ConnectionsSheet({
       {
         onSuccess: (data) => {
           if (!data.redirectUrl) return;
-          baselineCount.current = connections.length;
+          setPendingAuthApp(appName);
           window.open(data.redirectUrl, "_blank", "noopener,noreferrer");
-          setPollingEnabled(true);
-
-          if (pollTimeout.current) {
-            clearTimeout(pollTimeout.current);
-          }
-
-          pollTimeout.current = setTimeout(() => {
-            setPollingEnabled(false);
-            pollTimeout.current = null;
-          }, POLL_TIMEOUT_MS);
         },
       },
     );
@@ -181,7 +188,7 @@ export function ConnectionsSheet({
                       connectMutation.isPending &&
                       connectMutation.variables?.appName === integration.id;
                     const isWaitingForAuth =
-                      pollingEnabled && !isConnected && isConnecting;
+                      pendingAuthApp === integration.id && !isConnected;
                     const isDisconnecting =
                       deleteMutation.isPending &&
                       deleteMutation.variables === activeConnection?.id;

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   AlertDialog,
@@ -10,44 +10,44 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@openbots/ui/components/alert-dialog"
-import { Button } from "@openbots/ui/components/button"
+} from "@openbots/ui/components/alert-dialog";
+import { Button } from "@openbots/ui/components/button";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@openbots/ui/components/sheet"
-import { Spinner } from "@openbots/ui/components/spinner"
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { useRunsQuery } from "@/modules/runs/queries"
+} from "@openbots/ui/components/sheet";
+import { Spinner } from "@openbots/ui/components/spinner";
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { useRunsQuery } from "@/modules/runs/queries";
 import {
   useDeleteScheduleMutation,
   useSchedulesQuery,
   useUpdateScheduleMutation,
-} from "../queries"
-import type { ScheduleItem } from "../types"
-import { Calendar2Newicons, Clock2, Pause, Play, Trash2 } from "reicon-react"
+} from "../queries";
+import type { ScheduleItem } from "../types";
+import { Calendar2Newicons, Clock2, Pause, Play, Trash2 } from "reicon-react";
 
 interface SchedulesSheetProps {
-  agentId: string | null
-  agentName?: string
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  agentId: string | null;
+  agentName?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 interface QueuedInput {
-  scheduledTaskName?: string
-  prompt?: string
-  scheduledFor?: string
+  scheduledTaskName?: string;
+  prompt?: string;
+  scheduledFor?: string;
 }
 
 const SCROLL_CLASS =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
   "[scrollbar-gutter:stable] [scrollbar-width:thin] " +
-  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]"
+  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]";
 
 const KNOWN_CRONS: Record<string, string> = {
   "0 9 * * *": "Every day at 9:00 AM",
@@ -58,26 +58,26 @@ const KNOWN_CRONS: Record<string, string> = {
   "0 * * * *": "Every hour",
   "0 9 * * 1": "Every Monday at 9:00 AM",
   "0 9 * * 1-5": "Every weekday at 9:00 AM",
-}
+};
 
 function formatWhen(value?: string) {
-  if (!value) return "Pending execution"
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return "Pending execution"
+  if (!value) return "Pending execution";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Pending execution";
   return date.toLocaleString([], {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  })
+  });
 }
 
 function GroupLabel({
   children,
   count,
 }: {
-  children: React.ReactNode
-  count: number
+  children: React.ReactNode;
+  count: number;
 }) {
   return (
     <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -86,7 +86,7 @@ function GroupLabel({
         {count}
       </span>
     </h3>
-  )
+  );
 }
 
 function ScheduleRow({
@@ -96,22 +96,22 @@ function ScheduleRow({
   onToggle,
   onDelete,
 }: {
-  schedule: ScheduleItem
-  toggling: boolean
-  deleting: boolean
-  onToggle: (schedule: ScheduleItem) => void
-  onDelete: (id: string) => void
+  schedule: ScheduleItem;
+  toggling: boolean;
+  deleting: boolean;
+  onToggle: (schedule: ScheduleItem) => void;
+  onDelete: (id: string) => void;
 }) {
-  const isPaused = schedule.status === "paused"
-  const cron = schedule.cronExpression.trim()
-  const readable = KNOWN_CRONS[cron]
+  const isPaused = schedule.status === "paused";
+  const cron = schedule.cronExpression.trim();
+  const readable = KNOWN_CRONS[cron];
 
   return (
     <div className="flex items-start gap-3 px-3.5 py-3.5">
       <span
         className={cn(
           "mt-1.5 size-2 shrink-0 rounded-full",
-          isPaused ? "bg-muted-foreground/40" : "bg-emerald-500"
+          isPaused ? "bg-muted-foreground/40" : "bg-emerald-500",
         )}
         title={isPaused ? "Paused" : "Active"}
       />
@@ -198,7 +198,7 @@ function ScheduleRow({
         </AlertDialog>
       </div>
     </div>
-  )
+  );
 }
 
 function QueuedRow({
@@ -206,9 +206,9 @@ function QueuedRow({
   prompt,
   scheduledFor,
 }: {
-  name: string
-  prompt: string
-  scheduledFor?: string
+  name: string;
+  prompt: string;
+  scheduledFor?: string;
 }) {
   return (
     <div className="flex items-start gap-3 px-3.5 py-3.5">
@@ -226,7 +226,7 @@ function QueuedRow({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export function SchedulesSheet({
@@ -238,45 +238,45 @@ export function SchedulesSheet({
   const { data: schedules = [], isLoading: isLoadingSchedules } =
     useSchedulesQuery(agentId, {
       enabled: open,
-      refetchInterval: open ? 5000 : false,
-    })
+      refetchInterval: false,
+    });
 
   const { data: allRuns = [], isLoading: isLoadingRuns } = useRunsQuery(
     agentId,
     {
       enabled: open,
-      refetchInterval: open ? 4000 : false,
-    }
-  )
+      refetchInterval: false,
+    },
+  );
 
   const queuedReminders = React.useMemo(
     () =>
       allRuns.filter(
-        (r) => r.triggerType === "schedule" && r.status === "queued"
+        (r) => r.triggerType === "schedule" && r.status === "queued",
       ),
-    [allRuns]
-  )
+    [allRuns],
+  );
 
-  const updateScheduleMutation = useUpdateScheduleMutation(agentId)
-  const deleteScheduleMutation = useDeleteScheduleMutation(agentId)
+  const updateScheduleMutation = useUpdateScheduleMutation(agentId);
+  const deleteScheduleMutation = useDeleteScheduleMutation(agentId);
 
   const handleToggleStatus = React.useCallback(
     (schedule: ScheduleItem) => {
       updateScheduleMutation.mutate({
         id: schedule.id,
         data: { status: schedule.status === "active" ? "paused" : "active" },
-      })
+      });
     },
-    [updateScheduleMutation]
-  )
+    [updateScheduleMutation],
+  );
 
   const handleDelete = React.useCallback(
     (id: string) => deleteScheduleMutation.mutate(id),
-    [deleteScheduleMutation]
-  )
+    [deleteScheduleMutation],
+  );
 
-  const isLoading = isLoadingSchedules || isLoadingRuns
-  const hasItems = schedules.length > 0 || queuedReminders.length > 0
+  const isLoading = isLoadingSchedules || isLoadingRuns;
+  const hasItems = schedules.length > 0 || queuedReminders.length > 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -340,7 +340,7 @@ export function SchedulesSheet({
                   <GroupLabel count={queuedReminders.length}>Queued</GroupLabel>
                   <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
                     {queuedReminders.map((run) => {
-                      const input = (run.input ?? {}) as QueuedInput
+                      const input = (run.input ?? {}) as QueuedInput;
                       return (
                         <QueuedRow
                           key={run.id}
@@ -348,7 +348,7 @@ export function SchedulesSheet({
                           prompt={input.prompt || ""}
                           scheduledFor={input.scheduledFor}
                         />
-                      )
+                      );
                     })}
                   </div>
                 </section>
@@ -358,5 +358,5 @@ export function SchedulesSheet({
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

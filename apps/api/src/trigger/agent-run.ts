@@ -1,3 +1,4 @@
+import { agentEventHub } from "@openbots/api-contract";
 import { db, runs, schedules } from "@openbots/db";
 import { schedules as triggerSchedules, task } from "@trigger.dev/sdk";
 import { and, eq, inArray } from "drizzle-orm";
@@ -41,7 +42,10 @@ export const scheduledAgentTask = triggerSchedules.task({
   run: async (payload: any, { ctx }: { ctx?: any } = {}) => {
     const scheduleId = payload?.externalId ?? payload?.scheduleId;
     if (!scheduleId) {
-      console.warn("scheduled-agent-task fired without scheduleId or externalId:", payload);
+      console.warn(
+        "scheduled-agent-task fired without scheduleId or externalId:",
+        payload,
+      );
       return;
     }
 
@@ -61,7 +65,9 @@ export const scheduledAgentTask = triggerSchedules.task({
     }
 
     if (scheduleRecord.status !== "active") {
-      console.log(`Schedule '${scheduleRecord.name}' (${scheduleRecord.id}) is paused, skipping execution.`);
+      console.log(
+        `Schedule '${scheduleRecord.name}' (${scheduleRecord.id}) is paused, skipping execution.`,
+      );
       return;
     }
 
@@ -83,11 +89,22 @@ export const scheduledAgentTask = triggerSchedules.task({
       .returning();
 
     if (!newRun) {
-      throw new Error(`Failed to create run for recurring schedule '${scheduleRecord.name}'`);
+      throw new Error(
+        `Failed to create run for recurring schedule '${scheduleRecord.name}'`,
+      );
     }
+
+    // Broadcast schedule_fired event in realtime
+    agentEventHub.publish(scheduleRecord.agentId, {
+      type: "schedule_fired",
+      scheduleId: scheduleRecord.id,
+      runId: newRun.id,
+      name: scheduleRecord.name,
+      prompt: scheduleRecord.prompt,
+      conversationId: newRun.conversationId,
+    });
 
     // Execute the run directly
     return await executeAgentRun(newRun.id, { signal: ctx?.signal });
   },
 });
-

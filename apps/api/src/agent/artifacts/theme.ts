@@ -1,4 +1,4 @@
-const TAILWIND_BROWSER = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
+const TAILWIND_BROWSER = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4";
 
 const TOKENS_CSS = `
 :root {
@@ -49,7 +49,7 @@ const TOKENS_CSS = `
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
 }
-`
+`;
 
 const BASE_CSS = `
 *, *::before, *::after { box-sizing: border-box; border-color: var(--border); }
@@ -58,7 +58,7 @@ html { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 body { padding: 16px; font-size: 14px; line-height: 1.5; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button:not(:disabled) { cursor: pointer; }
-`
+`;
 
 const THEME_CSS = `
 @custom-variant dark (&:is(.dark *));
@@ -94,7 +94,7 @@ const THEME_CSS = `
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
 }
-`
+`;
 
 function buildHead(theme: "light" | "dark") {
   return [
@@ -104,26 +104,26 @@ function buildHead(theme: "light" | "dark") {
     `<style>${TOKENS_CSS}${BASE_CSS}</style>`,
     `<script src="${TAILWIND_BROWSER}"></script>`,
     `<style type="text/tailwindcss">${THEME_CSS}</style>`,
-  ].join("")
+  ].join("");
 }
 
 export function withDesignSystem(
   html: string,
-  theme: "light" | "dark" = "light"
+  theme: "light" | "dark" = "light",
 ) {
-  const head = buildHead(theme)
+  const head = buildHead(theme);
   const cleaned = html
     .replace(/<script[^>]*cdn\.tailwindcss\.com[^>]*><\/script>/gi, "")
-    .replace(/<script[^>]*@tailwindcss\/browser[^>]*><\/script>/gi, "")
+    .replace(/<script[^>]*@tailwindcss\/browser[^>]*><\/script>/gi, "");
 
   if (/<head[^>]*>/i.test(cleaned)) {
-    return cleaned.replace(/<head[^>]*>/i, (match) => `${match}${head}`)
+    return cleaned.replace(/<head[^>]*>/i, (match) => `${match}${head}`);
   }
   if (/<html[^>]*>/i.test(cleaned)) {
     return cleaned.replace(
       /<html[^>]*>/i,
-      (match) => `${match}<head>${head}</head>`
-    )
+      (match) => `${match}<head>${head}</head>`,
+    );
   }
-  return `<!DOCTYPE html><html><head>${head}</head><body>${cleaned}</body></html>`
+  return `<!DOCTYPE html><html><head>${head}</head><body>${cleaned}</body></html>`;
 }

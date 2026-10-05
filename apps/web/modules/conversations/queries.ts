@@ -106,6 +106,7 @@ export function useInfiniteConversationDetailQuery(
     },
     enabled: Boolean(conversationId),
     refetchInterval: options?.refetchInterval ?? false,
+    placeholderData: (prev) => prev,
   });
 }
 

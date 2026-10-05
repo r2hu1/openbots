@@ -42,6 +42,7 @@ interface ConversationTimelineProps {
   onDismissError?: () => void;
   onReply?: (target: ReplyTarget) => void;
   onReact?: (messageId: string, emoji: string) => void;
+  streamingText?: string | null;
 }
 
 export function ConversationTimeline({
@@ -59,6 +60,7 @@ export function ConversationTimeline({
   onDismissError,
   onReply,
   onReact,
+  streamingText,
 }: ConversationTimelineProps) {
   const isActiveRunOngoing =
     isOptimisticRunning ||
@@ -366,21 +368,70 @@ export function ConversationTimeline({
                 </MessageScrollerItem>
               ))}
 
-            {(isActiveRunOngoing ||
-              (activeRun &&
-                (activeRun.status === "failed" ||
-                  activeRun.status === "cancelled"))) && (
-              <MessageScrollerItem>
+            {/* Live tool execution steps */}
+            {isActiveRunOngoing && activeRunSteps.length > 0 && (
+              <MessageScrollerItem key="live-steps">
                 <ConversationLiveStatus
                   agentName={agentName}
                   activeRun={activeRun}
                   activeRunSteps={activeRunSteps}
-                  isActiveRunOngoing={isActiveRunOngoing}
+                  isActiveRunOngoing={true}
+                  hasStreamingContent={true}
                 />
               </MessageScrollerItem>
             )}
 
-            {executionError && (
+            {/* Assistant message: streaming text if available, or thinking indicator while ongoing */}
+            {streamingText ? (
+              <MessageScrollerItem
+                key={`streaming-${activeRun?.id || "current"}`}
+                id={`streaming-${activeRun?.id || "current"}`}
+              >
+                <ConversationMessageItem
+                  message={{
+                    id: `streaming-${activeRun?.id || "current"}`,
+                    conversationId: activeRun?.conversationId || "current",
+                    role: "assistant",
+                    content: { text: streamingText },
+                    createdAt: new Date(),
+                  }}
+                  agentName={agentName}
+                  isStreaming={true}
+                  onOpenArtifact={onOpenArtifact}
+                />
+              </MessageScrollerItem>
+            ) : isActiveRunOngoing ? (
+              <MessageScrollerItem
+                key={`thinking-${activeRun?.id || "current"}`}
+                id={`thinking-${activeRun?.id || "current"}`}
+              >
+                <ConversationLiveStatus
+                  agentName={agentName}
+                  activeRun={activeRun}
+                  activeRunSteps={[]}
+                  isActiveRunOngoing={true}
+                  hasStreamingContent={false}
+                />
+              </MessageScrollerItem>
+            ) : null}
+
+            {/* Terminal failure or cancellation marker */}
+            {!isActiveRunOngoing &&
+              activeRun &&
+              (activeRun.status === "failed" ||
+                activeRun.status === "cancelled") && (
+                <MessageScrollerItem key={`terminal-${activeRun.id}`}>
+                  <ConversationLiveStatus
+                    agentName={agentName}
+                    activeRun={activeRun}
+                    activeRunSteps={[]}
+                    isActiveRunOngoing={false}
+                    hasStreamingContent={true}
+                  />
+                </MessageScrollerItem>
+              )}
+
+            {executionError && !activeRun?.error && (
               <MessageScrollerItem key="execution-error">
                 <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-destructive">
                   <div className="flex items-start gap-2.5">

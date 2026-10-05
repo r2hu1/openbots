@@ -14,6 +14,28 @@ import { stepCountIs, ToolLoopAgent } from "ai";
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { buildAgentTools } from "./tools.js";
 
+/**
+ * Pre-fetches an image URL using native fetch and returns an AI SDK image part
+ * with raw bytes. This avoids AI SDK's internal download logic which requires
+ * `undici` — a module unavailable in esbuild-bundled Node deployments.
+ */
+async function fetchImagePart(imgUrl: string) {
+  try {
+    const res = await fetch(imgUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = await res.arrayBuffer();
+    const mimeType = res.headers.get("content-type") || "image/png";
+    return {
+      type: "image" as const,
+      image: new Uint8Array(buf),
+      mimeType,
+    };
+  } catch {
+    // Last resort: pass the URL and let AI SDK attempt its own download.
+    return { type: "image" as const, image: new URL(imgUrl) };
+  }
+}
+
 async function resolveModel(userId: string, modelName: string) {
   const apiKey = await getApiKeyForModel(userId, modelName);
   const normalized = modelName.trim();
@@ -337,7 +359,7 @@ export async function executeAgentRun(
             parts.push({ type: "text", text: textContent });
           }
           for (const imgUrl of images) {
-            parts.push({ type: "image", image: new URL(imgUrl) });
+            parts.push(await fetchImagePart(imgUrl));
           }
           inputMessages.push({
             role: "user",
@@ -404,7 +426,7 @@ export async function executeAgentRun(
             parts.push({ type: "text", text: effectiveUserPrompt });
           }
           for (const imgUrl of runImages) {
-            parts.push({ type: "image", image: new URL(imgUrl) });
+            parts.push(await fetchImagePart(imgUrl));
           }
           inputMessages.push({
             role: "user",

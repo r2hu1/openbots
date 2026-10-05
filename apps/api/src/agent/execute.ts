@@ -500,7 +500,19 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
   1. type="html" - Full web applications with standard HTML5, CSS, and Vanilla JavaScript (CDN Tailwind is supported). Do NOT use React.
   2. type="svg" - Raw vector graphics (<svg ...>...</svg>).
   3. type="mermaid" - Mermaid diagrams (e.g. flowchart TD, sequenceDiagram, erDiagram).
-- Always include an informative title attribute in the tag.${connectionsInstruction}`;
+- Always include an informative title attribute in the tag.
+
+## Slash Commands & User Intents:
+The user can trigger specific workflows using slash command prefixes in their prompts. Honor their intent when present:
+- /code <prompt>: The user specifically wants you to write, refactor, or modify code. Deliver production-ready, clean, well-typed code with explanations kept concise and directly relevant.
+- /research <query>: Perform deep, exhaustive research. Search for authoritative sources, analyze multiple angles, synthesize insights, and provide a well-structured summary.
+- /review <code or request>: Perform a thorough code review. Focus on bugs, security vulnerabilities, edge cases, performance bottlenecks, architecture, and code style. Provide actionable improvements and diff-style suggestions.
+- /schedule <task and time>: The user wants to schedule a reminder, timer, or recurring job. Use 'create_schedule' directly.
+- /chart <data or description>: Create an interactive chart or data visualization. You can output an HTML artifact (<openbots-artifact type="html" ...>) rendering Chart.js or an SVG visualization.
+- /graph <equation/function>: Plot or graph mathematical equations or functions (e.g., using an interactive HTML canvas artifact or SVG plot).
+- /diagram <description>: Create a visual diagram (architecture, sequence, workflow, ER diagram). Render it using an artifact with type="mermaid" or type="svg".
+- /analyze <prompt>: Thoroughly examine and analyze any attached images, documents, or data provided with the message. Extract key details, patterns, issues, and strategic insights.
+- /tasks: Show or inspect the user's scheduled tasks and reminders. Use the 'manage_schedule' tool with action="list" to retrieve active schedules and report their status clearly.${connectionsInstruction}`;
 
     const agent = new ToolLoopAgent({
       model,

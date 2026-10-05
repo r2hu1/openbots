@@ -12,15 +12,25 @@ import {
 } from "@openbots/ui/components/attachment"
 import { Button } from "@openbots/ui/components/button"
 import { Spinner } from "@openbots/ui/components/spinner"
+import { Badge } from "@openbots/ui/components/badge"
 import { Textarea } from "@openbots/ui/components/textarea"
 import { toast } from "@openbots/ui/components/toast"
 import * as React from "react"
 import {
+  Activity,
   ArrowToDownLeft,
   ArrowUp,
+  Calendar,
+  Chart,
+  ClipboardCheck,
+  Code,
+  Diagram,
   ImageUp,
+  ListCheck,
   Paperclip,
   Plus,
+  Scan,
+  Search2,
   Stop3,
   X,
 } from "reicon-react"
@@ -29,6 +39,72 @@ import {
   useUploadConversationImageMutation,
 } from "../queries"
 import type { ReplyTarget } from "../types"
+import { cn } from "@/lib/utils"
+import { Kbd } from "@openbots/ui/components/kbd"
+
+export interface SlashCommand {
+  name: string
+  label: string
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+export const SLASH_COMMANDS: SlashCommand[] = [
+  {
+    name: "code",
+    label: "/code",
+    description: "Write or modify code",
+    icon: Code,
+  },
+  {
+    name: "research",
+    label: "/research",
+    description: "Deep research",
+    icon: Search2,
+  },
+  {
+    name: "review",
+    label: "/review",
+    description: "Review code",
+    icon: ClipboardCheck,
+  },
+  {
+    name: "schedule",
+    label: "/schedule",
+    description: "Schedule a task",
+    icon: Calendar,
+  },
+  {
+    name: "chart",
+    label: "/chart",
+    description: "Create a chart from data",
+    icon: Chart,
+  },
+  {
+    name: "graph",
+    label: "/graph",
+    description: "Plot an equation/function",
+    icon: Activity,
+  },
+  {
+    name: "diagram",
+    label: "/diagram",
+    description: "Create a diagram",
+    icon: Diagram,
+  },
+  {
+    name: "analyze",
+    label: "/analyze",
+    description: "Analyze the attached file/image",
+    icon: Scan,
+  },
+  {
+    name: "tasks",
+    label: "/tasks",
+    description: "Show scheduled tasks",
+    icon: ListCheck,
+  },
+]
 
 const MAX_IMAGES = 10
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
@@ -68,8 +144,12 @@ export function InputComposer({
 }: InputComposerProps) {
   const [text, setText] = React.useState("")
   const [attachments, setAttachments] = React.useState<UploadingImage[]>([])
+  const [selectedIndex, setSelectedIndex] = React.useState(0)
+  const [isDismissed, setIsDismissed] = React.useState(false)
+
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const commandListRef = React.useRef<HTMLDivElement>(null)
 
   const uploadMutation = useUploadConversationImageMutation()
   const deleteMutation = useDeleteConversationImageMutation()
@@ -91,6 +171,69 @@ export function InputComposer({
     textarea.style.height = "auto"
     textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`
   }, [text])
+
+  // Check if user is typing a slash command:
+  const slashMatch = React.useMemo(() => {
+    if (isDismissed) return null
+    const match = text.match(/(?:^|\s)\/([a-zA-Z0-9_-]*)$/)
+    if (!match) return null
+    return {
+      query: (match[1] ?? "").toLowerCase(),
+      startIndex: match.index! + (match[0].startsWith(" ") ? 1 : 0),
+    }
+  }, [text, isDismissed])
+
+  const filteredCommands = React.useMemo(() => {
+    if (!slashMatch) return []
+    const q = slashMatch.query
+    if (!q) return SLASH_COMMANDS
+    return SLASH_COMMANDS.filter(
+      (cmd) =>
+        cmd.name.toLowerCase().includes(q) ||
+        cmd.description.toLowerCase().includes(q)
+    )
+  }, [slashMatch])
+
+  const isMenuOpen = slashMatch !== null && filteredCommands.length > 0
+
+  // Reset selected index when filtered list changes
+  React.useEffect(() => {
+    setSelectedIndex(0)
+  }, [filteredCommands.length])
+
+  // Scroll active command into view
+  React.useEffect(() => {
+    if (!isMenuOpen || !commandListRef.current) return
+    const activeItem = commandListRef.current.querySelector(
+      `[data-index="${selectedIndex}"]`
+    ) as HTMLElement | null
+    if (activeItem) {
+      activeItem.scrollIntoView({ block: "nearest" })
+    }
+  }, [selectedIndex, isMenuOpen])
+
+  // Select a command and insert into text
+  const handleSelectCommand = React.useCallback(
+    (command: SlashCommand) => {
+      if (!slashMatch) {
+        setText(`${command.label} `)
+      } else {
+        const before = text.slice(0, slashMatch.startIndex)
+        const newText = `${before}${command.label} `
+        setText(newText)
+      }
+      setIsDismissed(false)
+      requestAnimationFrame(() => {
+        const textarea = textareaRef.current
+        if (textarea) {
+          textarea.focus()
+          const length = textarea.value.length
+          textarea.setSelectionRange(length, length)
+        }
+      })
+    },
+    [slashMatch, text]
+  )
 
   // Press "/" anywhere on the page to focus the composer
   React.useEffect(() => {
@@ -292,6 +435,7 @@ export function InputComposer({
     }
     setAttachments([])
     setText("")
+    setIsDismissed(false)
     onClearReply?.()
 
     requestAnimationFrame(() => {
@@ -302,12 +446,49 @@ export function InputComposer({
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing) return
 
+    // Handle slash command popover keyboard navigation
+    if (isMenuOpen) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault()
+        setSelectedIndex((prev) => (prev + 1) % filteredCommands.length)
+        return
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault()
+        setSelectedIndex(
+          (prev) =>
+            (prev - 1 + filteredCommands.length) % filteredCommands.length
+        )
+        return
+      }
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault()
+        const selected = filteredCommands[selectedIndex]
+        if (selected) {
+          handleSelectCommand(selected)
+        }
+        return
+      }
+      if (event.key === "Escape") {
+        event.preventDefault()
+        setIsDismissed(true)
+        return
+      }
+    }
+
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
       handleSubmit()
     } else if (event.key === "Escape" && replyTarget && !text) {
       event.preventDefault()
       onClearReply?.()
+    }
+  }
+
+  const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(event.target.value)
+    if (isDismissed) {
+      setIsDismissed(false)
     }
   }
 
@@ -318,7 +499,72 @@ export function InputComposer({
 
   return (
     <div className="w-full px-3 pb-4">
-      <div className="mx-auto max-w-4xl">
+      <div className="relative mx-auto max-w-4xl">
+        {/* Slash Commands Floating Menu */}
+        {isMenuOpen && (
+          <div
+            ref={commandListRef}
+            role="listbox"
+            aria-label="Slash commands"
+            className="absolute bottom-full left-0 z-50 mb-2 w-full max-w-md overflow-hidden rounded-xl border border-border/80 bg-popover/95 shadow-xl backdrop-blur-md outline-none"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between bg-popover px-2.5 py-1.5 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+              Commands
+              <Kbd>TAB</Kbd>
+            </div>
+            <div className="max-h-72 w-full max-w-md space-y-0.5 overflow-y-auto px-2 pb-2">
+              {filteredCommands.map((command, idx) => {
+                const isSelected = idx === selectedIndex
+                const Icon = command.icon
+                return (
+                  <button
+                    key={command.name}
+                    type="button"
+                    data-index={idx}
+                    role="option"
+                    aria-selected={isSelected}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleSelectCommand(command)
+                    }}
+                    className={cn(
+                      "flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                      isSelected
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    )}
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div
+                        className={cn(
+                          "flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/50",
+                          isSelected
+                            ? "bg-background text-foreground"
+                            : "bg-muted/40 text-muted-foreground"
+                        )}
+                      >
+                        <Icon className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">
+                            {command.label}
+                          </span>
+                        </div>
+                        <p className="line-clamp-1 text-xs text-muted-foreground">
+                          {command.description}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -443,7 +689,7 @@ export function InputComposer({
               <Textarea
                 ref={textareaRef}
                 value={text}
-                onChange={(event) => setText(event.target.value)}
+                onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
                 placeholder={

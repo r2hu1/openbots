@@ -1,4 +1,6 @@
-import { useMemo, useEffect } from 'react';
+'use client';
+
+import * as React from "react";
 import type { MessageItem } from "@/modules/conversations/types";
 import type { RunRecord } from "@/modules/runs/types";
 
@@ -17,15 +19,17 @@ export function useReconciledMessages({
   activeConversationId,
   onClearOptimistic,
 }: UseReconciledMessagesOptions) {
-  const messages = useMemo(() => {
+  const messages = React.useMemo(() => {
     const result: MessageItem[] = [...serverMessages];
-    const serverMsgMap = new Map<string, MessageItem>(serverMessages.map(m => [m.id, m]));
+    const serverMsgMap = new Map<string, MessageItem>(serverMessages.map((m) => [m.id, m]));
 
     // Handle completed run output
     if (activeRun && activeRun.status === "completed") {
       const output = activeRun.output;
       const completedOutputText =
-        output && typeof output === "object" && "text" in output ? (output as any).text.trim() : null;
+        output && typeof output === "object" && "text" in output
+          ? (output as { text: string }).text.trim()
+          : null;
 
       if (completedOutputText && !serverMsgMap.has(`opt-assistant-${activeRun.id}`)) {
         result.push({
@@ -48,16 +52,20 @@ export function useReconciledMessages({
     return result;
   }, [serverMessages, optimisticMessages, activeRun, activeConversationId]);
 
-  useEffect(() => {
+  // Clear optimistic messages once server messages catch up or run finishes
+  React.useEffect(() => {
     if (optimisticMessages.length === 0) return;
+    
     if (activeRun && (activeRun.status === "completed" || activeRun.status === "failed")) {
       onClearOptimistic();
       return;
     }
 
+    // Faster check for whether optimistic user messages have been synced to server
     const allUserMessagesSaved = optimisticMessages.every((opt) => {
       if (opt.role !== "user") return true;
-      return serverMessages.some((srv) => srv.role === 'user' && (srv.content as any).text.trim() === (opt.content as any).text.trim());
+      const optText = (opt.content as { text: string }).text.trim();
+      return serverMessages.some((srv) => srv.role === 'user' && (srv.content as { text: string }).text.trim() === optText);
     });
 
     if (allUserMessagesSaved) {

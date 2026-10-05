@@ -13,6 +13,7 @@ import {
 import { Button } from "@openbots/ui/components/button"
 import * as React from "react"
 import type { Agent } from "../types"
+import { useRouter } from "next/navigation"
 
 interface DeleteAgentDialogProps {
   agent: Agent | null
@@ -29,6 +30,7 @@ export function DeleteAgentDialog({
 }: DeleteAgentDialogProps) {
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const router = useRouter()
 
   const handleDelete = async () => {
     if (!agent) return
@@ -49,8 +51,7 @@ export function DeleteAgentDialog({
         throw new Error(errData?.error || "Failed to delete agent")
       }
 
-      window.location.href = "/"
-
+      router.push("/")
       onSuccess?.(agent.id)
       onOpenChange(false)
     } catch (err) {

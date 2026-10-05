@@ -43,6 +43,8 @@ export function useAgentStream({
 
     const abortController = new AbortController();
 
+    let reconnectTimer: any = null;
+
     const connect = async () => {
       try {
         const apiBaseUrl =
@@ -68,7 +70,11 @@ export function useAgentStream({
           signal: abortController.signal,
         });
 
-        if (!res.ok || !res.body) return;
+        if (!res.ok || !res.body) {
+          throw new Error(
+            `Failed to connect to agent stream: ${res.statusText}`,
+          );
+        }
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -182,10 +188,19 @@ export function useAgentStream({
             } catch {}
           }
         }
+
+        // Stream completed or closed: schedule reconnect if still mounted
+        if (!abortController.signal.aborted) {
+          reconnectTimer = setTimeout(() => {
+            if (!abortController.signal.aborted) {
+              connect();
+            }
+          }, 1500);
+        }
       } catch (err: any) {
         if (err.name === "AbortError" || abortController.signal.aborted) return;
         // Reconnect after brief backoff
-        setTimeout(() => {
+        reconnectTimer = setTimeout(() => {
           if (!abortController.signal.aborted) {
             connect();
           }
@@ -196,6 +211,7 @@ export function useAgentStream({
     connect();
 
     return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       abortController.abort();
     };
   }, [agentId, queryClient]);

@@ -53,6 +53,7 @@ export const runsRoute = new Hono<Env>()
             status: initial.run.status,
             output: initial.run.output,
             error: initial.run.error,
+            steps: initial.steps,
           }),
         });
         await stream.writeSSE({
@@ -118,14 +119,48 @@ export const runsRoute = new Hono<Env>()
             break;
           }
 
+          // Fallback DB check every 3s: if run is already terminal in database, send terminal state and exit
+          if (Date.now() - lastDbCheck > 3_000) {
+            lastDbCheck = Date.now();
+            const current = await getRun(id, user.id);
+            if (
+              current &&
+              (current.run.status === "completed" ||
+                current.run.status === "failed" ||
+                current.run.status === "cancelled")
+            ) {
+              await stream.writeSSE({
+                event: "status",
+                data: JSON.stringify({
+                  status: current.run.status,
+                  output: current.run.output,
+                  error: current.run.error,
+                  steps: current.steps,
+                }),
+              });
+              await stream.writeSSE({
+                event: "done",
+                data: JSON.stringify({
+                  status: current.run.status,
+                  output: current.run.output,
+                }),
+              });
+              break;
+            }
+          }
+
           // Send keep-alive ping comment every 10 seconds to keep connection alive across proxies
           if (Date.now() - lastPing > 10_000) {
             lastPing = Date.now();
-            await stream.write(": ping\n\n");
+            try {
+              await stream.write(": ping\n\n");
+            } catch {
+              break;
+            }
           }
 
           if (queue.length === 0 && !isDone) {
-            // Wait reactively for next event or 10s ping timeout
+            // Wait reactively for next event or 3s timeout for DB sync
             await new Promise<void>((resolve) => {
               let timer: any = null;
               const cb = () => {
@@ -134,7 +169,7 @@ export const runsRoute = new Hono<Env>()
                 resolve();
               };
               notifyResolver = cb;
-              timer = setTimeout(cb, 10_000);
+              timer = setTimeout(cb, 3_000);
             });
           }
         }

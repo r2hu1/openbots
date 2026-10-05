@@ -625,10 +625,13 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
     });
 
     // Consume stream parts and broadcast token deltas & tool events live via SSE
+    let accumulatedStreamText = "";
+    let streamError: any = null;
     for await (const part of streamResult.fullStream) {
       if (abortController.signal.aborted) break;
 
       if (part.type === "text-delta") {
+        accumulatedStreamText += part.text;
         runEventHub.publish(runRecord.id, {
           type: "delta",
           text: part.text,
@@ -639,10 +642,23 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
           toolName: part.toolName,
           stepNumber: currentStepNumber,
         });
+      } else if (part.type === "error") {
+        streamError = (part as any).error;
       }
     }
 
-    let finalText = (await streamResult.text)?.trim() || "";
+    let finalText = "";
+    try {
+      finalText = (await streamResult.text)?.trim() || "";
+    } catch (textErr) {
+      if (accumulatedStreamText.trim()) {
+        finalText = accumulatedStreamText.trim();
+      } else if (streamError) {
+        throw streamError;
+      } else {
+        throw textErr;
+      }
+    }
     const finalSteps = await streamResult.steps;
     const finalUsage = await streamResult.usage;
 

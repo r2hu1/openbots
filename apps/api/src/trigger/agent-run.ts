@@ -94,17 +94,7 @@ export const scheduledAgentTask = triggerSchedules.task({
       );
     }
 
-    // Broadcast schedule_fired event in realtime
-    agentEventHub.publish(scheduleRecord.agentId, {
-      type: "schedule_fired",
-      scheduleId: scheduleRecord.id,
-      runId: newRun.id,
-      name: scheduleRecord.name,
-      prompt: scheduleRecord.prompt,
-      conversationId: newRun.conversationId,
-    });
-
-    // Execute the run directly
+    // Execute the run directly (executeAgentRun publishes schedule_fired and runs the agent)
     return await executeAgentRun(newRun.id, { signal: ctx?.signal });
   },
 });

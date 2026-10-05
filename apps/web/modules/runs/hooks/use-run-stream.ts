@@ -58,6 +58,10 @@ export function useRunStream({
     const abortController = new AbortController();
     let isTerminated = false;
     let accumulatedText = "";
+    let retryCount = 0;
+    const MAX_RETRIES = 4;
+    let retryTimeout: any = null;
+    let lastSeenSeq = -1;
 
     setStreamingText("");
     setStreamingSteps([]);
@@ -90,6 +94,12 @@ export function useRunStream({
         });
 
         if (!res.ok) {
+          if (res.status === 404 && retryCount < 2) {
+            // Run record might still be committing; retry briefly
+            retryCount++;
+            retryTimeout = setTimeout(connect, 600);
+            return;
+          }
           throw new Error(`Failed to connect to run stream: ${res.statusText}`);
         }
 
@@ -100,11 +110,13 @@ export function useRunStream({
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
-        let lastSeenSeq = -1;
 
         while (!abortController.signal.aborted && !isTerminated) {
           const { done, value } = await reader.read();
           if (done) break;
+
+          // Successful data read resets retry count
+          retryCount = 0;
 
           buffer += decoder.decode(value, { stream: true });
           buffer = buffer.replace(/\r\n/g, "\n");
@@ -235,14 +247,90 @@ export function useRunStream({
             }
           }
         }
+
+        // Connection closed normally: if not yet terminated, attempt reconnect or verify DB
+        if (!abortController.signal.aborted && !isTerminated) {
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            const delay = Math.min(800 * Math.pow(1.5, retryCount), 3000);
+            retryTimeout = setTimeout(connect, delay);
+            return;
+          }
+        }
       } catch (err: any) {
-        if (err.name === "AbortError" || abortController.signal.aborted) {
+        if (
+          err.name === "AbortError" ||
+          abortController.signal.aborted ||
+          isTerminated
+        ) {
           return;
         }
+
+        // Attempt retry on transient network errors
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          const delay = Math.min(800 * Math.pow(1.5, retryCount), 3000);
+          retryTimeout = setTimeout(connect, delay);
+          return;
+        }
+
+        // Retries exhausted: try one fallback fetch to verify terminal state in DB before reporting error
+        try {
+          const apiBaseUrl =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+          const fallbackHeaders: Record<string, string> = {};
+          if (typeof window !== "undefined") {
+            const token =
+              localStorage.getItem("bearer_token") ||
+              localStorage.getItem("better-auth_token");
+            if (token) fallbackHeaders.Authorization = `Bearer ${token}`;
+          }
+
+          const fallbackRes = await fetch(`${apiBaseUrl}/api/runs/${runId}`, {
+            headers: fallbackHeaders,
+            credentials: "include",
+            signal: abortController.signal,
+          });
+
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json();
+            const run = fallbackData?.run;
+            if (
+              run &&
+              (run.status === "completed" ||
+                run.status === "failed" ||
+                run.status === "cancelled")
+            ) {
+              isTerminated = true;
+              setIsStreaming(false);
+              setStatus(run.status);
+              const finalText = run.output?.text || accumulatedText;
+              if (finalText) {
+                setStreamingText(finalText);
+              }
+              if (fallbackData.steps) {
+                setStreamingSteps(fallbackData.steps);
+              }
+              onStatusRef.current?.({
+                status: run.status,
+                output: run.output,
+                error: run.error,
+              });
+              onDoneRef.current?.({
+                status: run.status,
+                output: run.output,
+              });
+              return;
+            }
+          }
+        } catch {
+          // Ignore fallback error
+        }
+
         setIsStreaming(false);
         onErrorRef.current?.(err);
       } finally {
-        if (!abortController.signal.aborted) {
+        if (!abortController.signal.aborted && isTerminated) {
           setIsStreaming(false);
         }
       }
@@ -251,6 +339,7 @@ export function useRunStream({
     connect();
 
     return () => {
+      if (retryTimeout) clearTimeout(retryTimeout);
       abortController.abort();
     };
   }, [runId]);

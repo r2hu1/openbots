@@ -62,10 +62,16 @@ export function useAgentExecution({
     agentId,
     onScheduleFired: (ev) => {
       if (ev.runId) {
-        if (ev.conversationId && !activeConversationId) {
-          onConversationCreated?.(ev.conversationId);
+        if (ev.conversationId) {
+          if (!activeConversationId) {
+            onConversationCreated?.(ev.conversationId);
+            setActiveRunId(ev.runId);
+          } else if (activeConversationId === ev.conversationId) {
+            setActiveRunId(ev.runId);
+          }
+        } else if (!activeConversationId) {
+          setActiveRunId(ev.runId);
         }
-        setActiveRunId(ev.runId);
       }
     },
   });
@@ -167,12 +173,64 @@ export function useAgentExecution({
       }
       setActiveRunId(null);
     },
-    onError: (err) => {
+    onError: async (err) => {
       setIsOptimisticRunning(false);
+      const currentRunId = activeRunId;
+
+      // Double-check if the run actually succeeded in the DB before reporting an error
+      if (currentRunId) {
+        try {
+          const apiBaseUrl =
+            process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+          const headers: Record<string, string> = {};
+          if (typeof window !== "undefined") {
+            const token =
+              localStorage.getItem("bearer_token") ||
+              localStorage.getItem("better-auth_token");
+            if (token) headers.Authorization = `Bearer ${token}`;
+          }
+          const res = await fetch(`${apiBaseUrl}/api/runs/${currentRunId}`, {
+            headers,
+            credentials: "include",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const run = data?.run;
+            if (
+              run &&
+              (run.status === "completed" ||
+                run.status === "failed" ||
+                run.status === "cancelled")
+            ) {
+              if (run.status === "completed") {
+                setLastTerminalRun(run);
+                dismissedRunIds.current.add(currentRunId);
+                setActiveRunId(null);
+                if (activeConversationId) {
+                  queryClient.invalidateQueries({
+                    queryKey: ["conversation", activeConversationId],
+                  });
+                }
+                return;
+              }
+              if (run.status === "failed") {
+                setExecutionError(run.error || "Run failed");
+                setLastTerminalRun(run);
+                dismissedRunIds.current.add(currentRunId);
+                setActiveRunId(null);
+                return;
+              }
+            }
+          }
+        } catch {
+          // ignore verification network error
+        }
+      }
+
       const msg = err?.message || "Lost connection to stream";
       setExecutionError(msg);
-      if (activeRunId) {
-        dismissedRunIds.current.add(activeRunId);
+      if (currentRunId) {
+        dismissedRunIds.current.add(currentRunId);
       }
       setActiveRunId(null);
     },

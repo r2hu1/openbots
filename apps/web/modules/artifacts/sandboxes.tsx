@@ -332,9 +332,11 @@ export function SvgSandbox({
 export function MermaidSandbox({
   code,
   className,
+  isStreaming = false,
 }: {
   code: string;
   className?: string;
+  isStreaming?: boolean;
 }) {
   const theme = useIframeTheme();
 
@@ -375,6 +377,7 @@ export function MermaidSandbox({
 
         if (isMounted && containerRef.current) {
           containerRef.current.innerHTML = svg;
+          setError(null);
         }
       } catch (err) {
         if (isMounted) {
@@ -395,6 +398,25 @@ export function MermaidSandbox({
   }, [code, theme, baseId]);
 
   if (error) {
+    if (isStreaming) {
+      return (
+        <div
+          className={
+            className ??
+            "flex h-full min-h-[300px] w-full flex-col items-center justify-center gap-2 rounded-md border border-border bg-muted/20 p-4 text-xs text-muted-foreground"
+          }
+        >
+          <div className="flex items-center gap-2 text-primary">
+            <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+            <p className="font-medium">Rendering diagram live...</p>
+          </div>
+          <p className="text-[11px] opacity-70">
+            Updating as diagram syntax completes
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div
         className={

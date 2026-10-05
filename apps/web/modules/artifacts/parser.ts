@@ -4,6 +4,7 @@ export interface ParsedArtifact {
   title: string;
   content: string;
   mode?: "inline" | "card";
+  isStreaming?: boolean;
 }
 
 export interface ContentSegment {
@@ -83,6 +84,7 @@ export function parseArtifacts(content: string): {
       title,
       content: cleanContent,
       mode,
+      isStreaming: false,
     };
 
     artifacts.push(artifact);
@@ -96,15 +98,122 @@ export function parseArtifacts(content: string): {
     match = ARTIFACT_REGEX.exec(content);
   }
 
-  // Push remaining text segment if any
+  // Handle remaining text and check for optimistic / live streaming unclosed artifacts
   if (lastIndex < content.length) {
-    const text = content.slice(lastIndex);
-    if (text.trim().length > 0) {
+    const remaining = content.slice(lastIndex);
+
+    // Case 1: Opening tag is complete and content is streaming
+    const streamingOpenMatch = /<openbots-artifact\s+([^>]*?)>([\s\S]*)$/i.exec(
+      remaining,
+    );
+
+    // Case 2: Opening tag itself is still being streamed
+    const streamingTagMatch = !streamingOpenMatch
+      ? /<openbots-artifact(\s+[^>]*)?$/i.exec(remaining)
+      : null;
+
+    if (streamingOpenMatch) {
+      const matchIndex = streamingOpenMatch.index;
+      const rawAttrs = streamingOpenMatch[1] || "";
+      const rawContent = streamingOpenMatch[2] || "";
+
+      // Push text prior to the streaming artifact
+      if (matchIndex > 0) {
+        const text = remaining.slice(0, matchIndex);
+        if (text.trim().length > 0) {
+          segments.push({
+            id: `seg-text-${segments.length}-${lastIndex}`,
+            type: "text",
+            text,
+          });
+        }
+      }
+
+      const {
+        type: rawType,
+        title: rawTitle,
+        mode: rawMode,
+      } = parseAttributes(rawAttrs);
+
+      const typeLower = (rawType || "html").toLowerCase().trim();
+      const type: "html" | "svg" | "mermaid" =
+        typeLower === "svg" || typeLower === "mermaid" ? typeLower : "html";
+
+      const title = (rawTitle || `${type.toUpperCase()} Artifact`).trim();
+      const cleanContent = rawContent.replace(
+        /<\/openbots-artifact?[\s\S]*$/i,
+        "",
+      );
+      const mode = rawMode === "inline" ? "inline" : "card";
+
+      const artifact: ParsedArtifact = {
+        id: `artifact-streaming-${artifacts.length + 1}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+        type,
+        title,
+        content: cleanContent,
+        mode,
+        isStreaming: true,
+      };
+
+      artifacts.push(artifact);
       segments.push({
-        id: `seg-text-end-${lastIndex}`,
-        type: "text",
-        text,
+        id: `seg-art-${artifact.id}`,
+        type: "artifact",
+        artifact,
       });
+    } else if (streamingTagMatch) {
+      const matchIndex = streamingTagMatch.index;
+      const rawAttrs = streamingTagMatch[1] || "";
+
+      if (matchIndex > 0) {
+        const text = remaining.slice(0, matchIndex);
+        if (text.trim().length > 0) {
+          segments.push({
+            id: `seg-text-${segments.length}-${lastIndex}`,
+            type: "text",
+            text,
+          });
+        }
+      }
+
+      const {
+        type: rawType,
+        title: rawTitle,
+        mode: rawMode,
+      } = parseAttributes(rawAttrs);
+
+      const typeLower = (rawType || "html").toLowerCase().trim();
+      const type: "html" | "svg" | "mermaid" =
+        typeLower === "svg" || typeLower === "mermaid" ? typeLower : "html";
+
+      const title = (
+        rawTitle || `Creating ${type.toUpperCase()} Artifact...`
+      ).trim();
+      const mode = rawMode === "inline" ? "inline" : "card";
+
+      const artifact: ParsedArtifact = {
+        id: `artifact-streaming-${artifacts.length + 1}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+        type,
+        title,
+        content: "",
+        mode,
+        isStreaming: true,
+      };
+
+      artifacts.push(artifact);
+      segments.push({
+        id: `seg-art-${artifact.id}`,
+        type: "artifact",
+        artifact,
+      });
+    } else {
+      if (remaining.trim().length > 0) {
+        segments.push({
+          id: `seg-text-end-${lastIndex}`,
+          type: "text",
+          text: remaining,
+        });
+      }
     }
   }
 

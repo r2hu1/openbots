@@ -102,7 +102,6 @@ type RunEventListener = (event: RunEvent) => void;
 
 class RunEventHub {
   private localListeners = new Map<string, Set<RunEventListener>>();
-  private inMemoryBuffers = new Map<string, RunEvent[]>();
   private nextSeq = 0;
 
   subscribe(runId: string, listener: RunEventListener): () => void {
@@ -122,17 +121,7 @@ class RunEventHub {
     }
     set.add(safeListener);
 
-    // Replay in-memory events for late-joining subscribers
-    const buffered = this.inMemoryBuffers.get(runId);
-    if (buffered && buffered.length > 0) {
-      for (const ev of buffered) {
-        try {
-          safeListener(ev);
-        } catch {}
-      }
-    }
-
-    // One-time initial replay of stored events from Redis for late-joining subscribers
+    // Initial replay of stored events from Redis for late-joining subscribers across scale
     try {
       const redis = getRedis();
       if (redis) {
@@ -168,27 +157,7 @@ class RunEventHub {
       seq: event.seq ?? this.nextSeq++,
     };
 
-    // 1. Buffer for immediate late-joining subscribers in-memory
-    let buffer = this.inMemoryBuffers.get(runId);
-    if (!buffer) {
-      buffer = [];
-      this.inMemoryBuffers.set(runId, buffer);
-    }
-    buffer.push(eventWithSeq);
-
-    if (
-      eventWithSeq.type === "done" ||
-      (eventWithSeq.type === "status" &&
-        (eventWithSeq.status === "completed" ||
-          eventWithSeq.status === "failed" ||
-          eventWithSeq.status === "cancelled"))
-    ) {
-      setTimeout(() => {
-        this.inMemoryBuffers.delete(runId);
-      }, 60_000);
-    }
-
-    // 2. Dispatch immediately to in-process listeners with 0ms latency
+    // 1. Dispatch immediately to in-process listeners with 0ms latency
     const set = this.localListeners.get(runId);
     if (set) {
       for (const listener of set) {
@@ -200,7 +169,7 @@ class RunEventHub {
       }
     }
 
-    // 3. Fire-and-forget pipeline to Redis list for cross-process subscribers without blocking execution
+    // 2. Persist to Redis list for cross-process subscribers and scaling across instances
     try {
       const redis = getRedis();
       if (redis) {
@@ -247,7 +216,6 @@ type AgentEventListener = (event: AgentEvent) => void;
 
 class AgentEventHub {
   private localListeners = new Map<string, Set<AgentEventListener>>();
-  private inMemoryBuffers = new Map<string, AgentEvent[]>();
   private nextSeq = 0;
 
   subscribe(agentId: string, listener: AgentEventListener): () => void {
@@ -266,16 +234,6 @@ class AgentEventHub {
       this.localListeners.set(agentId, set);
     }
     set.add(safeListener);
-
-    // Replay recent in-memory events
-    const buffered = this.inMemoryBuffers.get(agentId);
-    if (buffered && buffered.length > 0) {
-      for (const ev of buffered) {
-        try {
-          safeListener(ev);
-        } catch {}
-      }
-    }
 
     try {
       const redis = getRedis();
@@ -309,16 +267,6 @@ class AgentEventHub {
       ...event,
       seq: event.seq ?? this.nextSeq++,
     };
-
-    let buffer = this.inMemoryBuffers.get(agentId);
-    if (!buffer) {
-      buffer = [];
-      this.inMemoryBuffers.set(agentId, buffer);
-    }
-    buffer.push(eventWithSeq);
-    if (buffer.length > 30) {
-      buffer.shift();
-    }
 
     const set = this.localListeners.get(agentId);
     if (set) {

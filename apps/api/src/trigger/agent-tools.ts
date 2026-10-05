@@ -48,20 +48,24 @@ export const executeCodeTask = task({
   maxDuration: 60,
   retry: { maxAttempts: 1 },
   run: async ({ code }: { code: string }) => {
+    const logs: string[] = []
+    const sandbox = {
+      console: {
+        log: (...a: unknown[]) => logs.push(a.map(String).join(" ")),
+      },
+    }
     try {
-      const result = vm.runInNewContext(`(${code})`, Object.create(null), {
-        timeout: 5000,
-      })
+      const result = vm.runInNewContext(`(${code})`, sandbox, { timeout: 5000 })
       return {
         success: true,
         result:
           result === undefined
             ? "undefined"
             : JSON.parse(JSON.stringify(result)),
+        logs,
       }
     } catch (err: any) {
-      // errors from a vm context aren't `instanceof Error` in this realm
-      return { success: false, error: err?.message ?? String(err) }
+      return { success: false, error: err?.message ?? String(err), logs }
     }
   },
 })

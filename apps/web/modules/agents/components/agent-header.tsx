@@ -149,13 +149,20 @@ export function AgentHeader({
                   old ? { ...old, agent: updated } : old
                 )
                 queryClient.setQueryData(["agents"], (old: any) => {
-                  if (!old?.agents) return old
-                  return {
-                    ...old,
-                    agents: old.agents.map((a: Agent) =>
+                  if (Array.isArray(old)) {
+                    return old.map((a: Agent) =>
                       a.id === updated.id ? { ...a, ...updated } : a
-                    ),
+                    )
                   }
+                  if (old?.agents) {
+                    return {
+                      ...old,
+                      agents: old.agents.map((a: Agent) =>
+                        a.id === updated.id ? { ...a, ...updated } : a
+                      ),
+                    }
+                  }
+                  return old
                 })
                 onAgentRenamed?.(updated)
               }}
@@ -169,14 +176,18 @@ export function AgentHeader({
                 queryClient.invalidateQueries({ queryKey: ["agents"] })
                 queryClient.removeQueries({ queryKey: ["agent", id] })
                 queryClient.setQueryData(["agents"], (old: any) => {
-                  if (!old?.agents) return old
-                  return {
-                    ...old,
-                    agents: old.agents.filter((a: Agent) => a.id !== id),
+                  if (Array.isArray(old)) {
+                    return old.filter((a: Agent) => a.id !== id)
                   }
+                  if (old?.agents) {
+                    return {
+                      ...old,
+                      agents: old.agents.filter((a: Agent) => a.id !== id),
+                    }
+                  }
+                  return old
                 })
                 onAgentDeleted?.(id)
-                router.push("/")
               }}
             />
           </>

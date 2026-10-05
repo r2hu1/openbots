@@ -1,16 +1,5 @@
 "use client"
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@openbots/ui/components/alert-dialog"
 import { Badge } from "@openbots/ui/components/badge"
 import { Button } from "@openbots/ui/components/button"
 import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field"
@@ -37,16 +26,17 @@ import {
 } from "@openbots/ui/components/tabs"
 import { Textarea } from "@openbots/ui/components/textarea"
 import { IconCheck, IconTrash } from "@tabler/icons-react"
+import { useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import { TOOL_DESCRIPTIONS } from "../constants"
 import {
   useAgentToolsQuery,
   useAvailableModelsQuery,
-  useDeleteAgentMutation,
   useToggleAgentToolMutation,
   useUpdateAgentMutation,
 } from "../queries"
 import type { Agent } from "../types"
+import { DeleteAgentDialog } from "./delete-agent-dialog"
 import { useRouter } from "next/navigation"
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -107,8 +97,8 @@ export function ConfigureAgentSheet({
     open
   )
 
+  const queryClient = useQueryClient()
   const updateMutation = useUpdateAgentMutation(agent?.id)
-  const deleteMutation = useDeleteAgentMutation(agent?.id)
   const toggleToolMutation = useToggleAgentToolMutation(agent?.id)
 
   React.useEffect(() => {
@@ -166,22 +156,6 @@ export function ConfigureAgentSheet({
         },
       }
     )
-  }
-
-  const router = useRouter()
-
-  const handleDelete = () => {
-    deleteMutation.mutate(undefined, {
-      onSuccess: () => {
-        setDeleteConfirmOpen(false)
-        onOpenChange(false)
-        router.push("/")
-      },
-      onError: (err) => {
-        setDeleteConfirmOpen(false)
-        setSaveError(err.message)
-      },
-    })
   }
 
   if (!agent) return null
@@ -402,49 +376,37 @@ export function ConfigureAgentSheet({
             Save changes
           </Button>
 
-          <AlertDialog
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            onClick={() => setDeleteConfirmOpen(true)}
+          >
+            <IconTrash />
+          </Button>
+
+          <DeleteAgentDialog
+            agent={agent}
             open={deleteConfirmOpen}
             onOpenChange={setDeleteConfirmOpen}
-          >
-            <AlertDialogTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={deleteMutation.isPending}
-                  size="icon"
-                />
-              }
-            >
-              {deleteMutation.isPending ? (
-                <Spinner data-icon="inline-start" />
-              ) : (
-                <IconTrash />
-              )}
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete agent</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete &ldquo;{agent.name}&rdquo;?
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                >
-                  {deleteMutation.isPending && (
-                    <Spinner data-icon="inline-start" />
-                  )}
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            onSuccess={(id) => {
+              queryClient.invalidateQueries({ queryKey: ["agents"] })
+              queryClient.removeQueries({ queryKey: ["agent", id] })
+              queryClient.setQueryData(["agents"], (old: any) => {
+                if (Array.isArray(old)) {
+                  return old.filter((a: Agent) => a.id !== id)
+                }
+                if (old?.agents) {
+                  return {
+                    ...old,
+                    agents: old.agents.filter((a: Agent) => a.id !== id),
+                  }
+                }
+                return old
+              })
+              onOpenChange(false)
+            }}
+          />
         </SheetFooter>
       </SheetContent>
     </Sheet>

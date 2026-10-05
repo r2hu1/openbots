@@ -20,17 +20,29 @@ import {
   Activity,
   ArrowToDownLeft,
   ArrowUp,
+  Book,
+  Calculator,
   Calendar,
   Chart,
   ClipboardCheck,
+  Clock,
+  Cloud,
   Code,
   Diagram,
+  Dollar,
+  FileText,
+  Fingerprint,
+  Globe,
   ImageUp,
   ListCheck,
   Paperclip,
   Plus,
+  Scale,
   Scan,
   Search2,
+  Send,
+  Server,
+  Shuffle,
   Stop3,
   X,
 } from "reicon-react"
@@ -46,63 +58,188 @@ export interface SlashCommand {
   name: string
   label: string
   description: string
+  category?: "agent" | "tool"
   icon: React.ComponentType<{ className?: string }>
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
+  // Agent & Workflow Commands
   {
     name: "code",
     label: "/code",
     description: "Write or modify code",
+    category: "agent",
     icon: Code,
   },
   {
     name: "research",
     label: "/research",
-    description: "Deep research",
+    description: "Deep research and synthesis",
+    category: "agent",
     icon: Search2,
   },
   {
     name: "review",
     label: "/review",
-    description: "Review code",
+    description: "Review code for bugs and improvements",
+    category: "agent",
     icon: ClipboardCheck,
   },
   {
     name: "schedule",
     label: "/schedule",
-    description: "Schedule a task",
+    description: "Schedule a task, reminder, or delayed job",
+    category: "tool",
     icon: Calendar,
+  },
+  {
+    name: "tasks",
+    label: "/tasks",
+    description: "Show and manage scheduled tasks",
+    category: "tool",
+    icon: ListCheck,
   },
   {
     name: "chart",
     label: "/chart",
-    description: "Create a chart from data",
+    description: "Create an interactive chart from data",
+    category: "agent",
     icon: Chart,
   },
   {
     name: "graph",
     label: "/graph",
-    description: "Plot an equation/function",
+    description: "Plot an equation or mathematical function",
+    category: "agent",
     icon: Activity,
   },
   {
     name: "diagram",
     label: "/diagram",
-    description: "Create a diagram",
+    description: "Create a visual diagram or flowchart",
+    category: "agent",
     icon: Diagram,
   },
   {
     name: "analyze",
     label: "/analyze",
-    description: "Analyze the attached file/image",
+    description: "Analyze the attached file or image",
+    category: "agent",
     icon: Scan,
   },
+
+  // Internal Tools
   {
-    name: "tasks",
-    label: "/tasks",
-    description: "Show scheduled tasks",
-    icon: ListCheck,
+    name: "web_search",
+    label: "/web_search",
+    description: "Search the web for real-time information",
+    category: "tool",
+    icon: Search2,
+  },
+  {
+    name: "fetch_web_page",
+    label: "/fetch_web_page",
+    description: "Extract clean content from a public web page",
+    category: "tool",
+    icon: Globe,
+  },
+  {
+    name: "http_request",
+    label: "/http_request",
+    description: "Perform an HTTP request to any JSON REST API",
+    category: "tool",
+    icon: Send,
+  },
+  {
+    name: "calculate",
+    label: "/calculate",
+    description: "Evaluate a mathematical arithmetic expression",
+    category: "tool",
+    icon: Calculator,
+  },
+  {
+    name: "execute_code",
+    label: "/execute_code",
+    description: "Execute a JavaScript expression or computation",
+    category: "tool",
+    icon: Code,
+  },
+  {
+    name: "get_weather",
+    label: "/get_weather",
+    description: "Get real-time weather and forecast for a location",
+    category: "tool",
+    icon: Cloud,
+  },
+  {
+    name: "wikipedia_search",
+    label: "/wikipedia_search",
+    description: "Search Wikipedia articles and summaries",
+    category: "tool",
+    icon: Book,
+  },
+  {
+    name: "currency_converter",
+    label: "/currency_converter",
+    description: "Convert amounts between global fiat currencies",
+    category: "tool",
+    icon: Dollar,
+  },
+  {
+    name: "unit_converter",
+    label: "/unit_converter",
+    description: "Convert units of length, mass, temperature, and more",
+    category: "tool",
+    icon: Scale,
+  },
+  {
+    name: "get_current_time",
+    label: "/get_current_time",
+    description: "Get current date, time, and timezone information",
+    category: "tool",
+    icon: Clock,
+  },
+  {
+    name: "text_analyzer",
+    label: "/text_analyzer",
+    description: "Analyze text statistics (word count, reading time, readability)",
+    category: "tool",
+    icon: FileText,
+  },
+  {
+    name: "transform_text",
+    label: "/transform_text",
+    description: "Transform text casing, slugify, or base64 encode/decode",
+    category: "tool",
+    icon: FileText,
+  },
+  {
+    name: "json_parser",
+    label: "/json_parser",
+    description: "Validate, format, minify, or query JSON data",
+    category: "tool",
+    icon: Code,
+  },
+  {
+    name: "dns_lookup",
+    label: "/dns_lookup",
+    description: "Look up DNS records (A, AAAA, MX, TXT, CNAME) for a domain",
+    category: "tool",
+    icon: Server,
+  },
+  {
+    name: "generate_uuid",
+    label: "/generate_uuid",
+    description: "Generate cryptographically secure v4 UUIDs",
+    category: "tool",
+    icon: Fingerprint,
+  },
+  {
+    name: "random_generator",
+    label: "/random_generator",
+    description: "Generate random numbers, strings, coin flips, or dice rolls",
+    category: "tool",
+    icon: Shuffle,
   },
 ]
 
@@ -558,6 +695,11 @@ export function InputComposer({
                         </p>
                       </div>
                     </div>
+                    {command.category && (
+                      <span className="shrink-0 text-[10px] font-medium text-muted-foreground/60 uppercase">
+                        {command.category}
+                      </span>
+                    )}
                   </button>
                 )
               })}

@@ -484,7 +484,8 @@ The user can trigger specific workflows using slash command prefixes in their pr
 - /graph <equation/function>: Plot or graph mathematical equations or functions (e.g., using an interactive HTML canvas artifact or SVG plot with mode="inline").
 - /diagram <description>: Create a visual diagram (architecture, sequence, workflow, ER diagram). Render it using an inline artifact (<openbots-artifact type="mermaid" title="..." mode="inline"> or type="svg" mode="inline").
 - /analyze <prompt>: Thoroughly examine and analyze any attached images, documents, or data provided with the message. Extract key details, patterns, issues, and strategic insights.
-- /tasks: Show or inspect the user's scheduled tasks and reminders. Use the 'manage_schedule' tool with action="list" to retrieve active schedules and report their status clearly.${connectionsInstruction}`
+- /tasks: Show or inspect the user's scheduled tasks and reminders. Use the 'manage_schedule' tool with action="list" to retrieve active schedules and report their status clearly.
+- /<tool_name> <arguments>: The user is directly invoking a specific tool (e.g. /web_search, /fetch_web_page, /http_request, /calculate, /execute_code, /get_weather, /wikipedia_search, /currency_converter, /unit_converter, /get_current_time, /text_analyzer, /transform_text, /json_parser, /dns_lookup, /generate_uuid, /random_generator). Immediately invoke the corresponding tool to fulfill their request.${connectionsInstruction}`
 
     const agent = new ToolLoopAgent({
       model,

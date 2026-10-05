@@ -167,13 +167,19 @@ export function useRunStream({
               } else if (eventType === "tool_start") {
                 setStreamingSteps((prev) => {
                   const existingIdx = prev.findIndex(
-                    (s) => s.stepNumber === data.stepNumber,
+                    (s) =>
+                      (data.toolCallId && s.toolCallId === data.toolCallId) ||
+                      (data.stepNumber !== undefined &&
+                        s.stepNumber === data.stepNumber) ||
+                      (s.toolName === data.toolName && s.status === "running"),
                   );
                   const step: StepItem = {
-                    stepNumber: data.stepNumber,
+                    stepNumber: data.stepNumber ?? prev.length,
                     type: "tool",
                     status: "running",
                     toolName: data.toolName,
+                    toolCallId: data.toolCallId ?? null,
+                    toolInput: data.input ?? null,
                     startedAt: new Date(),
                   };
                   if (existingIdx >= 0) {
@@ -188,7 +194,11 @@ export function useRunStream({
               } else if (eventType === "tool_finish") {
                 setStreamingSteps((prev) => {
                   const existingIdx = prev.findIndex(
-                    (s) => s.stepNumber === data.stepNumber,
+                    (s) =>
+                      (data.toolCallId && s.toolCallId === data.toolCallId) ||
+                      (data.stepNumber !== undefined &&
+                        s.stepNumber === data.stepNumber) ||
+                      (s.toolName === data.toolName && s.status === "running"),
                   );
                   if (existingIdx >= 0) {
                     const current = prev[existingIdx]!;
@@ -196,6 +206,8 @@ export function useRunStream({
                     next[existingIdx] = {
                       ...current,
                       status: "completed",
+                      toolCallId: data.toolCallId ?? current.toolCallId,
+                      toolOutput: data.output ?? current.toolOutput,
                       completedAt: new Date(),
                     };
                     return next;
@@ -203,10 +215,12 @@ export function useRunStream({
                   return [
                     ...prev,
                     {
-                      stepNumber: data.stepNumber,
+                      stepNumber: data.stepNumber ?? prev.length,
                       type: "tool",
                       status: "completed",
                       toolName: data.toolName,
+                      toolCallId: data.toolCallId ?? null,
+                      toolOutput: data.output ?? null,
                       completedAt: new Date(),
                     },
                   ];

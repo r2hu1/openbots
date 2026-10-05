@@ -185,6 +185,19 @@ export function ConversationMessageItem({
       };
     }
 
+    if (isStreaming) {
+      // While streaming, keep as a single unified part to prevent visual jumping, tearing into multiple bubbles, or remounting DOM elements mid-stream
+      const { segments } = parseArtifacts(text);
+      return {
+        messageParts: [
+          {
+            partId: `asst-${message.id}-streaming`,
+            segments,
+          },
+        ],
+      };
+    }
+
     // Split text into natural conversational parts when text is large
     const parts = splitIntoMessageParts(text);
     const formattedParts = parts.map((partText, idx) => {
@@ -196,7 +209,7 @@ export function ConversationMessageItem({
     });
 
     return { messageParts: formattedParts };
-  }, [isUser, message.id, text]);
+  }, [isUser, isStreaming, message.id, text]);
 
   const [copied, setCopied] = React.useState(false);
   const [shared, setShared] = React.useState(false);

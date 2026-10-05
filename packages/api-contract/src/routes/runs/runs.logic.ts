@@ -80,13 +80,18 @@ export type RunEvent =
       seq?: number;
       type: "tool_start";
       toolName: string;
-      stepNumber: number;
+      toolCallId?: string;
+      stepNumber?: number;
+      input?: any;
     }
   | {
       seq?: number;
       type: "tool_finish";
       toolName: string;
-      stepNumber: number;
+      toolCallId?: string;
+      stepNumber?: number;
+      input?: any;
+      output?: any;
     }
   | {
       seq?: number;

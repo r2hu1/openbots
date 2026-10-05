@@ -607,7 +607,9 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
             runEventHub.publish(runRecord.id, {
               type: "tool_finish",
               toolName: tr.toolName,
+              toolCallId: tr.toolCallId,
               stepNumber: currentStepNumber - 1,
+              output: ((tr as any).output ?? (tr as any).result ?? null) as any,
             });
           }
         }
@@ -640,7 +642,15 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
         runEventHub.publish(runRecord.id, {
           type: "tool_start",
           toolName: part.toolName,
+          toolCallId: (part as any).toolCallId,
           stepNumber: currentStepNumber,
+        });
+      } else if (part.type === "tool-result") {
+        runEventHub.publish(runRecord.id, {
+          type: "tool_finish",
+          toolName: (part as any).toolName,
+          toolCallId: (part as any).toolCallId,
+          output: (part as any).result ?? (part as any).output ?? null,
         });
       } else if (part.type === "error") {
         streamError = (part as any).error;

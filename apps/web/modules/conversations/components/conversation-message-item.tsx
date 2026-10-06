@@ -1,6 +1,11 @@
 "use client";
 
 import {
+  Attachment,
+  AttachmentGroup,
+  AttachmentMedia,
+} from "@openbots/ui/components/attachment";
+import {
   Bubble,
   BubbleContent,
   BubbleReactions,
@@ -45,11 +50,6 @@ import {
 } from "reicon-react";
 import { Markdown } from "@/components/shared/markdown";
 import { ArtifactCard } from "@/modules/artifacts/artifact-card";
-import {
-  Attachment,
-  AttachmentGroup,
-  AttachmentMedia,
-} from "@openbots/ui/components/attachment";
 import {
   type ParsedArtifact,
   parseArtifacts,

@@ -649,14 +649,14 @@ export function InputComposer({
 
   return (
     <div className="w-full px-3 pb-4">
-      <div className="relative mx-auto max-w-3xl">
+      <div className="relative mx-auto max-w-4xl">
         {/* Slash Commands Floating Menu */}
         {isMenuOpen && (
           <div
             ref={commandListRef}
             role="listbox"
             aria-label="Slash commands"
-            className="absolute bottom-full left-0 z-50 mb-2 w-full max-w-md animate-in overflow-hidden rounded-lg border border-border/60 bg-popover shadow-[0_4px_24px_rgba(0,0,0,0.08)] duration-150 fade-in-0 outline-none zoom-in-95 slide-in-from-bottom-1"
+            className="dark absolute bottom-full left-0 z-50 mb-2 w-full max-w-md origin-bottom-left animate-in overflow-hidden rounded-lg border border-border/60 bg-popover duration-100 fade-in-0 outline-none slide-in-from-bottom-10 zoom-in-95"
           >
             <div className="sticky top-0 z-10 flex items-center justify-between bg-popover px-3 py-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
               Commands
@@ -726,7 +726,7 @@ export function InputComposer({
         >
           <div
             onClick={handleContainerClick}
-            className="flex cursor-text flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-[0_2px_12px_rgba(0,0,0,0.04)] ring-border transition-shadow duration-200 focus-within:border-border focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.09)] focus-within:ring-2 hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)]"
+            className="flex cursor-text flex-col overflow-hidden rounded-2xl border border-border/60 bg-card ring-foreground/20 transition-shadow duration-200 focus-within:border-border focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.09)] focus-within:ring-2"
           >
             {/* Hidden file input */}
             <input
@@ -802,7 +802,7 @@ export function InputComposer({
                             e.stopPropagation()
                             handleRemoveAttachment(att.id)
                           }}
-                          className="size-5 rounded-full bg-background/80 shadow-xs hover:bg-background"
+                          className="size-5 rounded-full bg-background/80 hover:bg-background"
                           title="Remove image"
                           aria-label="Remove image"
                         >
@@ -855,7 +855,7 @@ export function InputComposer({
                       ? "Add a message or press enter to send..."
                       : placeholder
                 }
-                disabled={disabled}
+                disabled={disabled || isActiveRun}
                 rows={1}
                 className={cn(
                   "block field-sizing-fixed max-h-60 min-h-0 w-full resize-none rounded-none border-0 bg-transparent! py-2 text-[15px] leading-6 shadow-none transition-[height] duration-200 ease-out placeholder:text-muted-foreground/70 focus-visible:ring-0 focus-visible:ring-offset-0 motion-reduce:transition-none",

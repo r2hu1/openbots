@@ -289,7 +289,7 @@ export function ConversationTimeline({
         <MessageScrollerViewport
           ref={viewportRef}
           onScroll={handleScroll}
-          className="border-none! px-4 py-6 ring-2! outline-none!"
+          className="border-none! px-4 py-6 outline-none!"
         >
           <MessageScrollerContent className="mx-auto max-w-4xl space-y-6">
             <div

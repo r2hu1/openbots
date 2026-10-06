@@ -591,7 +591,7 @@ export function ConversationMessageItem({
                                   <Markdown>{seg.text}</Markdown>
                                   {isStreaming && isVeryLastSegment && (
                                     <span
-                                      className="ml-1 inline-block h-3.5 w-1.5 translate-y-0.5 animate-pulse rounded-xs bg-foreground"
+                                      className="ml-1.5 inline-block size-2 rounded-full bg-primary/70 animate-pulse border-none! ring-0! outline-none!"
                                       aria-hidden="true"
                                     />
                                   )}

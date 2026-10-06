@@ -1,27 +1,27 @@
-"use client"
+"use client";
 
-import { Button } from "@openbots/ui/components/button"
-import { Kbd } from "@openbots/ui/components/kbd"
+import { Button } from "@openbots/ui/components/button";
+import { Kbd } from "@openbots/ui/components/kbd";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
   useSidebar,
-} from "@openbots/ui/components/sidebar"
+} from "@openbots/ui/components/sidebar";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@openbots/ui/components/tooltip"
-import { useShortcutLabel } from "@openbots/ui/hooks/use-hotkey"
-import { Plus, Search2, SidebarRight2 } from "reicon-react"
-import { cn } from "@/lib/utils"
+} from "@openbots/ui/components/tooltip";
+import { useShortcutLabel } from "@openbots/ui/hooks/use-hotkey";
+import { Plus, Search2, SidebarRight2 } from "reicon-react";
+import { cn } from "@/lib/utils";
 
 interface BrandRowProps {
-  onOpenCreate: () => void
-  onOpenSearch?: () => void
-  rowClass: string
+  onOpenCreate: () => void;
+  onOpenSearch?: () => void;
+  rowClass: string;
 }
 
 export function BrandRow({
@@ -29,9 +29,9 @@ export function BrandRow({
   onOpenSearch,
   rowClass,
 }: BrandRowProps) {
-  const { state, toggleSidebar } = useSidebar()
-  const collapsed = state === "collapsed"
-  const shortcut = useShortcutLabel("mod+shift+a")
+  const { state, toggleSidebar } = useSidebar();
+  const collapsed = state === "collapsed";
+  const shortcut = useShortcutLabel("mod+shift+a");
 
   return (
     <SidebarMenu>
@@ -85,5 +85,5 @@ export function BrandRow({
         )}
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

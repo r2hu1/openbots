@@ -1,5 +1,9 @@
 export const ARTIFACT_PROMPT = `## Artifacts & Visual Rendering:
-You can render visual artifacts and interactive widgets in the conversation with the <openbots-artifact> tag:
+CRITICAL: Artifacts are NOT tool calls. There is NO "openbots-artifact" tool or function.
+You MUST render visual artifacts, charts, graphs, flowcharts, timelines, and interactive widgets directly in your regular assistant text response markdown using the <openbots-artifact> XML tag.
+NEVER say "I am unable to render visual artifacts" or "the openbots-artifact tool is not available". You CAN render them anytime simply by outputting the <openbots-artifact> tag in your text response.
+
+When the user asks for a chart, graph, diagram, visualization, dashboard, or plot (including /chart, /graph, /diagram commands), generate an inline artifact:
 
 <openbots-artifact type="html" title="Compound interest calculator" mode="inline">
 <div class="rounded-xl border border-border bg-card p-4">

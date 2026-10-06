@@ -1365,6 +1365,313 @@ export function createScheduleTool(
   });
 }
 
+export function createRecurringTaskTool(userId: string, agentId: string) {
+  return tool({
+    description:
+      "Create a repeating or recurring scheduled task / cron job for this agent. " +
+      "Use this whenever the user wants an instruction, report, check, or action to repeat automatically on a regular schedule " +
+      "(e.g. 'every day at 9am', 'every Monday morning', 'every 2 hours', 'every weekday at 5pm', 'daily crypto check', 'weekly summary'). " +
+      "Supports friendly frequency presets or standard 5-field cron expressions.",
+    inputSchema: z.object({
+      name: z
+        .string()
+        .describe(
+          "A descriptive title for the recurring task (e.g. 'Daily Crypto Summary', 'Hourly Site Health Check')",
+        ),
+      prompt: z
+        .string()
+        .describe(
+          "The exact instruction or task for the agent to execute each time the schedule triggers",
+        ),
+      frequency: z
+        .enum(["hourly", "daily", "weekdays", "weekly", "monthly", "custom"])
+        .default("daily")
+        .describe(
+          "Schedule frequency: 'hourly' (at minute 0), 'daily' (once a day), 'weekdays' (Monday to Friday), 'weekly' (once a week on a chosen day), 'monthly' (1st of month), or 'custom' (uses cronExpression)",
+        ),
+      cronExpression: z
+        .string()
+        .optional()
+        .describe(
+          "A standard 5-field cron expression (e.g. '0 9 * * *' for 9am daily, '*/30 * * * *' for every 30 mins). If provided, takes precedence over frequency.",
+        ),
+      timeOfDay: z
+        .string()
+        .optional()
+        .describe(
+          "Time of day to run in 24h 'HH:MM' format (e.g. '09:00' for 9am, '18:30' for 6:30pm). Defaults to '09:00' for daily/weekdays/weekly.",
+        ),
+      dayOfWeek: z
+        .enum([
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+        ])
+        .optional()
+        .describe("Day of week when frequency is 'weekly' (e.g. 'monday')"),
+      timezone: z
+        .string()
+        .optional()
+        .describe(
+          "IANA timezone for the schedule (e.g. 'America/New_York', 'Asia/Kolkata', 'UTC'). Defaults to UTC.",
+        ),
+    }),
+    execute: async ({
+      name,
+      prompt,
+      frequency,
+      cronExpression,
+      timeOfDay,
+      dayOfWeek,
+      timezone = "UTC",
+    }) => {
+      let cron = cronExpression;
+      if (!cron) {
+        let hour = 9;
+        let minute = 0;
+        if (timeOfDay) {
+          const parts = timeOfDay.split(":");
+          const h = parseInt(parts[0] ?? "", 10);
+          const m = parseInt(parts[1] ?? "", 10);
+          if (!isNaN(h) && h >= 0 && h <= 23) hour = h;
+          if (!isNaN(m) && m >= 0 && m <= 59) minute = m;
+        }
+
+        switch (frequency) {
+          case "hourly":
+            cron = "0 * * * *";
+            break;
+          case "weekdays":
+            cron = `${minute} ${hour} * * 1-5`;
+            break;
+          case "weekly": {
+            const dayMap: Record<string, number> = {
+              sunday: 0,
+              monday: 1,
+              tuesday: 2,
+              wednesday: 3,
+              thursday: 4,
+              friday: 5,
+              saturday: 6,
+            };
+            const dayNum = dayOfWeek
+              ? (dayMap[dayOfWeek.toLowerCase()] ?? 1)
+              : 1;
+            cron = `${minute} ${hour} * * ${dayNum}`;
+            break;
+          }
+          case "monthly":
+            cron = `${minute} ${hour} 1 * *`;
+            break;
+          case "daily":
+          default:
+            cron = `${minute} ${hour} * * *`;
+            break;
+        }
+      }
+
+      const inserted = await db
+        .insert(schedules)
+        .values({
+          userId,
+          agentId,
+          name,
+          prompt,
+          cronExpression: cron,
+          timezone: timezone ?? "UTC",
+          status: "active",
+        })
+        .returning();
+      const schedule = inserted[0];
+
+      if (!schedule) {
+        throw new Error("Failed to create recurring schedule");
+      }
+
+      // Register dynamic schedule with Trigger.dev
+      try {
+        const triggerSched = await triggerSchedules.create({
+          task: "scheduled-agent-task",
+          cron,
+          timezone: timezone ?? "UTC",
+          deduplicationKey: schedule.id,
+          externalId: schedule.id,
+        });
+
+        if (triggerSched?.id) {
+          await db
+            .update(schedules)
+            .set({ triggerScheduleId: triggerSched.id })
+            .where(eq(schedules.id, schedule.id));
+          schedule.triggerScheduleId = triggerSched.id;
+        }
+      } catch (triggerErr) {
+        console.warn(
+          "Could not register recurring schedule with Trigger.dev:",
+          triggerErr,
+        );
+      }
+
+      return {
+        scheduleId: schedule.id,
+        name: schedule.name,
+        prompt: schedule.prompt,
+        cronExpression: schedule.cronExpression,
+        timezone: schedule.timezone,
+        status: schedule.status,
+        message: `Recurring task '${name}' successfully scheduled with cron '${cron}' in timezone ${schedule.timezone}. The agent will automatically execute this instruction on schedule.`,
+      };
+    },
+  });
+}
+
+export function getTaskHistoryTool(userId: string, agentId: string) {
+  return tool({
+    description:
+      "Get the execution history of scheduled tasks and reminders. " +
+      "Use this to find out: " +
+      "(1) How many scheduled tasks have run, " +
+      "(2) When each task ran (start time, completion time, duration), " +
+      "(3) What tasks ran (name, prompt, trigger type), " +
+      "(4) The status and results/output of past executions (completed, failed, errors). " +
+      "ALWAYS use this whenever the user asks 'did my reminder run?', 'what tasks ran?', 'show task history', 'when did my task run?', or 'how many times did my schedule run?'.",
+    inputSchema: z.object({
+      taskId: z
+        .string()
+        .optional()
+        .describe(
+          "Optional specific schedule ID or run ID to filter history for",
+        ),
+      taskName: z
+        .string()
+        .optional()
+        .describe(
+          "Optional fuzzy task name to search in execution history (e.g. 'crypto', 'tea reminder')",
+        ),
+      status: z
+        .enum(["all", "completed", "failed", "cancelled", "running"])
+        .default("all")
+        .describe(
+          "Filter by execution status: 'all', 'completed', 'failed', 'cancelled', 'running'",
+        ),
+      limit: z
+        .number()
+        .default(20)
+        .describe(
+          "Maximum number of past execution records to return (1-50, default 20)",
+        ),
+    }),
+    execute: async ({ taskId, taskName, status, limit }) => {
+      const conditions = [
+        eq(runs.userId, userId),
+        eq(runs.agentId, agentId),
+        eq(runs.triggerType, "schedule"),
+      ];
+
+      if (status && status !== "all") {
+        conditions.push(eq(runs.status, status as any));
+      }
+
+      if (taskId) {
+        conditions.push(eq(runs.id, taskId));
+      }
+
+      const pastRuns = await db
+        .select({
+          id: runs.id,
+          status: runs.status,
+          triggerType: runs.triggerType,
+          input: runs.input,
+          output: runs.output,
+          error: runs.error,
+          startedAt: runs.startedAt,
+          completedAt: runs.completedAt,
+          createdAt: runs.createdAt,
+        })
+        .from(runs)
+        .where(and(...conditions))
+        .orderBy(desc(runs.createdAt))
+        .limit(Math.min(50, Math.max(1, limit ?? 20)));
+
+      const normalize = (s?: string | null) => (s ?? "").trim().toLowerCase();
+      const filterName = normalize(taskName);
+
+      const filteredRuns = filterName
+        ? pastRuns.filter((r) => {
+            const inp = (r.input as any) ?? {};
+            const name = normalize(inp.scheduledTaskName);
+            const prompt = normalize(inp.prompt);
+            return name.includes(filterName) || prompt.includes(filterName);
+          })
+        : pastRuns;
+
+      const formatted = filteredRuns.map((r) => {
+        const inp = (r.input as any) ?? {};
+        const out = (r.output as any) ?? {};
+        const outText =
+          typeof out?.text === "string"
+            ? out.text
+            : typeof out === "string"
+              ? out
+              : "";
+        const durationSeconds =
+          r.startedAt && r.completedAt
+            ? Math.max(
+                0,
+                Math.round(
+                  (new Date(r.completedAt).getTime() -
+                    new Date(r.startedAt).getTime()) /
+                    1000,
+                ),
+              )
+            : null;
+
+        return {
+          runId: r.id,
+          taskName: inp.scheduledTaskName ?? "Scheduled Task",
+          prompt: inp.prompt ?? (typeof inp === "string" ? inp : ""),
+          status: r.status,
+          startedAt: r.startedAt?.toISOString() ?? null,
+          completedAt: r.completedAt?.toISOString() ?? null,
+          durationSeconds,
+          outputPreview:
+            outText.length > 300 ? `${outText.slice(0, 300)}...` : outText,
+          fullOutput: outText,
+          error: r.error ?? null,
+        };
+      });
+
+      const totalRuns = formatted.length;
+      const completedCount = formatted.filter(
+        (f) => f.status === "completed",
+      ).length;
+      const failedCount = formatted.filter((f) => f.status === "failed").length;
+
+      let summaryMessage = "";
+      const lastRun = formatted[0];
+      if (!lastRun) {
+        summaryMessage = "No scheduled task execution records found.";
+      } else {
+        summaryMessage =
+          `Found ${totalRuns} scheduled execution(s): ${completedCount} completed successfully, ${failedCount} failed. ` +
+          `The most recent task was '${lastRun.taskName}' which ${lastRun.status} at ${lastRun.completedAt ?? lastRun.startedAt ?? "unknown time"}.`;
+      }
+
+      return {
+        totalExecutedCount: totalRuns,
+        completedCount,
+        failedCount,
+        executions: formatted,
+        summary: summaryMessage,
+      };
+    },
+  });
+}
+
 export function manageScheduleTool(
   userId: string,
   agentId: string,
@@ -1372,16 +1679,17 @@ export function manageScheduleTool(
 ) {
   return tool({
     description:
-      "Manage, inspect, reschedule, modify, or cancel queued/scheduled reminders and recurring tasks. " +
+      "Manage, inspect, check history, reschedule, modify, or cancel queued/scheduled reminders and recurring tasks. " +
       "Use this whenever the user asks to: " +
       "(1) List or check active/pending reminders or schedules (e.g. 'what reminders do I have?', 'show my scheduled tasks'), " +
-      "(2) Cancel a reminder or schedule (e.g. 'cancel my tea reminder', 'cancel task 123', 'delete reminder'), " +
-      "(3) Modify or reschedule a reminder or schedule (e.g. 'change my tea reminder to 10 minutes', 'reschedule to 5pm', 'update reminder prompt').",
+      "(2) Check past execution history (e.g. 'did my task run?', 'how many tasks ran?', 'show execution history'), " +
+      "(3) Cancel a reminder or schedule (e.g. 'cancel my tea reminder', 'cancel task 123', 'delete reminder'), " +
+      "(4) Modify or reschedule a reminder or schedule (e.g. 'change my tea reminder to 10 minutes', 'reschedule to 5pm', 'update reminder prompt').",
     inputSchema: z.object({
       action: z
-        .enum(["list", "cancel", "modify"])
+        .enum(["list", "history", "cancel", "modify"])
         .describe(
-          "Action to perform: 'list' to see all scheduled/queued tasks, 'cancel' to stop/delete a scheduled task, or 'modify' to change its timing or prompt",
+          "Action to perform: 'list' to see all pending/active tasks, 'history' to see past executed tasks and results, 'cancel' to stop/delete a scheduled task, or 'modify' to change its timing or prompt",
         ),
       taskId: z
         .string()
@@ -1473,6 +1781,27 @@ export function manageScheduleTool(
           )
           .orderBy(desc(schedules.createdAt));
 
+        const recentPastRuns = await db
+          .select({
+            id: runs.id,
+            status: runs.status,
+            input: runs.input,
+            output: runs.output,
+            startedAt: runs.startedAt,
+            completedAt: runs.completedAt,
+          })
+          .from(runs)
+          .where(
+            and(
+              eq(runs.userId, userId),
+              eq(runs.agentId, agentId),
+              eq(runs.triggerType, "schedule"),
+              inArray(runs.status, ["completed", "failed"]),
+            ),
+          )
+          .orderBy(desc(runs.createdAt))
+          .limit(3);
+
         const formattedQueued = queuedRuns.map((r) => {
           const inp = (r.input as any) ?? {};
           return {
@@ -1497,21 +1826,127 @@ export function manageScheduleTool(
           createdAt: s.createdAt,
         }));
 
-        const totalCount = formattedQueued.length + formattedRecurring.length;
+        const totalActive = formattedQueued.length + formattedRecurring.length;
+        const totalPastExecuted = recentPastRuns.length;
+
         return {
-          totalCount,
+          totalActive,
           queuedReminders: formattedQueued,
           recurringSchedules: formattedRecurring,
+          recentExecutionSummary: {
+            recentlyCompletedCount: totalPastExecuted,
+            latestExecution: recentPastRuns[0]
+              ? {
+                  id: recentPastRuns[0].id,
+                  taskName:
+                    (recentPastRuns[0].input as any)?.scheduledTaskName ??
+                    "Scheduled Task",
+                  status: recentPastRuns[0].status,
+                  completedAt: recentPastRuns[0].completedAt?.toISOString(),
+                }
+              : null,
+          },
           message:
-            totalCount === 0
-              ? "You have no active scheduled tasks or queued reminders."
-              : `Found ${totalCount} active scheduled item(s): ${formattedQueued.length} queued reminder(s) and ${formattedRecurring.length} recurring schedule(s).`,
+            totalActive === 0
+              ? totalPastExecuted > 0
+                ? `You have no active pending tasks, but ${totalPastExecuted} past task(s) ran recently (call action='history' to inspect them).`
+                : "You have no active scheduled tasks or queued reminders."
+              : `Found ${totalActive} active scheduled item(s): ${formattedQueued.length} queued reminder(s) and ${formattedRecurring.length} recurring schedule(s).`,
         };
       }
 
       // Helper to find a task by ID or fuzzy taskName
       const normalize = (s?: string | null) => (s ?? "").trim().toLowerCase();
       const searchTarget = normalize(taskName);
+
+      // 2. ACTION: HISTORY
+      if (action === "history") {
+        const pastRuns = await db
+          .select({
+            id: runs.id,
+            status: runs.status,
+            triggerType: runs.triggerType,
+            input: runs.input,
+            output: runs.output,
+            error: runs.error,
+            startedAt: runs.startedAt,
+            completedAt: runs.completedAt,
+            createdAt: runs.createdAt,
+          })
+          .from(runs)
+          .where(
+            and(
+              eq(runs.userId, userId),
+              eq(runs.agentId, agentId),
+              eq(runs.triggerType, "schedule"),
+            ),
+          )
+          .orderBy(desc(runs.createdAt))
+          .limit(20);
+
+        const filtered = searchTarget
+          ? pastRuns.filter((r) => {
+              const inp = (r.input as any) ?? {};
+              const name = normalize(inp.scheduledTaskName);
+              const prompt = normalize(inp.prompt);
+              return (
+                name.includes(searchTarget) || prompt.includes(searchTarget)
+              );
+            })
+          : pastRuns;
+
+        const formattedHistory = filtered.map((r) => {
+          const inp = (r.input as any) ?? {};
+          const out = (r.output as any) ?? {};
+          const outText =
+            typeof out?.text === "string"
+              ? out.text
+              : typeof out === "string"
+                ? out
+                : "";
+          const duration =
+            r.startedAt && r.completedAt
+              ? Math.max(
+                  0,
+                  Math.round(
+                    (new Date(r.completedAt).getTime() -
+                      new Date(r.startedAt).getTime()) /
+                      1000,
+                  ),
+                )
+              : null;
+          return {
+            runId: r.id,
+            name: inp.scheduledTaskName ?? "Scheduled Task",
+            prompt: inp.prompt ?? (typeof inp === "string" ? inp : ""),
+            status: r.status,
+            startedAt: r.startedAt?.toISOString() ?? null,
+            completedAt: r.completedAt?.toISOString() ?? null,
+            durationSeconds: duration,
+            output:
+              outText.length > 400 ? `${outText.slice(0, 400)}...` : outText,
+            error: r.error ?? null,
+          };
+        });
+
+        const completedCount = formattedHistory.filter(
+          (f) => f.status === "completed",
+        ).length;
+        const failedCount = formattedHistory.filter(
+          (f) => f.status === "failed",
+        ).length;
+
+        return {
+          totalRanCount: formattedHistory.length,
+          completedCount,
+          failedCount,
+          history: formattedHistory,
+          message:
+            formattedHistory.length === 0
+              ? "No scheduled tasks or reminders have run yet."
+              : `Found ${formattedHistory.length} executed scheduled task(s): ${completedCount} completed successfully, ${failedCount} failed.`,
+        };
+      }
 
       // 2. ACTION: CANCEL
       if (action === "cancel") {
@@ -2033,6 +2468,8 @@ export async function buildAgentTools(params: {
 
   const activeTools: Record<string, any> = {
     create_schedule: createScheduleTool(userId, agentId, conversationId),
+    create_recurring_task: createRecurringTaskTool(userId, agentId),
+    get_task_history: getTaskHistoryTool(userId, agentId),
     manage_schedule: manageScheduleTool(userId, agentId, conversationId),
     react_to_message: createReactToMessageTool(conversationId),
   };

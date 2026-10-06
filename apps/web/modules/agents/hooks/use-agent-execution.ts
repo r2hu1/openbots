@@ -40,10 +40,10 @@ export function useAgentExecution({
   const prevAgentIdRef = React.useRef(agentId);
   const prevConvIdRef = React.useRef(activeConversationId);
   React.useEffect(() => {
-    if (
-      prevAgentIdRef.current !== agentId ||
-      prevConvIdRef.current !== activeConversationId
-    ) {
+    const agentChanged = prevAgentIdRef.current !== agentId;
+    const convChanged = prevConvIdRef.current !== activeConversationId;
+
+    if (agentChanged) {
       prevAgentIdRef.current = agentId;
       prevConvIdRef.current = activeConversationId;
       setActiveRunId(null);
@@ -51,8 +51,31 @@ export function useAgentExecution({
       setIsOptimisticRunning(false);
       setOptimisticMessages([]);
       setExecutionError(null);
-      if (prevAgentIdRef.current !== agentId) {
-        dismissedRunIds.current.clear();
+      dismissedRunIds.current.clear();
+      return;
+    }
+
+    if (convChanged) {
+      const wasTempOrNull = !prevConvIdRef.current;
+      prevConvIdRef.current = activeConversationId;
+
+      // If transitioning from null/new conversation to the newly assigned conversation ID,
+      // migrate optimistic messages rather than discarding them so the user's prompt remains visible.
+      if (wasTempOrNull && activeConversationId) {
+        setOptimisticMessages((prev) =>
+          prev.map((m) =>
+            m.conversationId === "temp" || !m.conversationId
+              ? { ...m, conversationId: activeConversationId }
+              : m,
+          ),
+        );
+      } else {
+        // True conversation switch: clear state for the other conversation
+        setActiveRunId(null);
+        setLastTerminalRun(null);
+        setIsOptimisticRunning(false);
+        setOptimisticMessages([]);
+        setExecutionError(null);
       }
     }
   }, [agentId, activeConversationId]);

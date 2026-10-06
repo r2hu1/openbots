@@ -831,7 +831,7 @@ export function InputComposer({
                   fileInputRef.current?.click()
                 }}
                 disabled={disabled || attachments.length >= MAX_IMAGES}
-                className="absolute bottom-3 left-2 size-8 rounded-lg text-muted-foreground transition-transform hover:bg-muted hover:text-foreground active:scale-95"
+                className="absolute bottom-3 left-2.5 size-8.5 rounded-full text-muted-foreground transition-transform hover:bg-muted hover:text-foreground active:scale-95"
                 title={
                   attachments.length >= MAX_IMAGES
                     ? `Maximum ${MAX_IMAGES} images attached`
@@ -870,7 +870,7 @@ export function InputComposer({
                   size="icon"
                   onClick={onCancelRun}
                   disabled={isCancelling}
-                  className="absolute right-2 bottom-3 size-8 rounded-lg transition-transform active:scale-95"
+                  className="absolute right-2.5 bottom-3 size-8.5 rounded-full transition-transform active:scale-95"
                   aria-label="Stop run"
                 >
                   {isCancelling ? (
@@ -884,7 +884,7 @@ export function InputComposer({
                   type="submit"
                   size="icon"
                   disabled={!canSubmit}
-                  className="absolute right-2 bottom-3 size-8 rounded-lg transition-[opacity,transform] active:scale-95 disabled:opacity-40"
+                  className="absolute right-2.5 bottom-3 size-8.5 rounded-full transition-[opacity,transform] active:scale-95 disabled:opacity-40"
                   aria-label="Send message"
                 >
                   {isSubmitting || isUploadingAny ? (

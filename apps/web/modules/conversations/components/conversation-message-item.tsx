@@ -589,12 +589,6 @@ export function ConversationMessageItem({
                               >
                                 <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
                                   <Markdown>{seg.text}</Markdown>
-                                  {isStreaming && isVeryLastSegment && (
-                                    <span
-                                      className="ml-1.5 inline-block size-2 rounded-full bg-primary/70 animate-pulse border-none! ring-0! outline-none!"
-                                      aria-hidden="true"
-                                    />
-                                  )}
                                 </BubbleContent>
                                 {isVeryLastSegment && reactions.length > 0 && (
                                   <BubbleReactions side="bottom" align="start">

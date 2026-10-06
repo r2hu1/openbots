@@ -63,7 +63,7 @@ export function ConversationLiveStatus({
                     className="size-6 shrink-0"
                     blobatar={{ animate: "always" }}
                   />
-                  <span className="shimmer text-xs font-medium text-foreground">
+                  <span className="shimmer text-xs font-medium">
                     {agentName}
                   </span>
                 </MessageFooter>

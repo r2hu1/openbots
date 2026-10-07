@@ -1,37 +1,37 @@
-"use client"
+"use client";
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@openbots/ui/components/collapsible"
+} from "@openbots/ui/components/collapsible";
 import {
   Marker,
   MarkerContent,
   MarkerIcon,
-} from "@openbots/ui/components/marker"
-import { Spinner } from "@openbots/ui/components/spinner"
-import { IconCheck, IconChevronDown, IconX } from "@tabler/icons-react"
-import * as React from "react"
+} from "@openbots/ui/components/marker";
+import { Spinner } from "@openbots/ui/components/spinner";
+import { IconCheck, IconChevronDown, IconX } from "@tabler/icons-react";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 import {
   type ActivityGroup,
   normalizeActivities,
   sanitizeDisplayData,
-} from "../activity-stream"
-import { formatToolStepLabel } from "../tool-label"
-import type { StepItem } from "../types"
-import { cn } from "@/lib/utils"
+} from "../activity-stream";
+import { formatToolStepLabel } from "../tool-label";
+import type { StepItem } from "../types";
 
 interface ExecutionStepsCardProps {
-  steps: StepItem[]
-  isLive?: boolean
+  steps: StepItem[];
+  isLive?: boolean;
 }
 
 export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
-  const activities = React.useMemo(() => normalizeActivities(steps), [steps])
+  const activities = React.useMemo(() => normalizeActivities(steps), [steps]);
 
   if (activities.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -40,19 +40,19 @@ export function ExecutionStepsCard({ steps }: ExecutionStepsCardProps) {
         <ActivityItem key={activity.id} activity={activity} />
       ))}
     </div>
-  )
+  );
 }
 
 function ActivityItem({ activity }: { activity: ActivityGroup }) {
-  const isRunning = activity.status === "running"
-  const isFailed = activity.status === "failed"
+  const isRunning = activity.status === "running";
+  const isFailed = activity.status === "failed";
 
   return (
     <Collapsible className="group/activity w-full">
       <Marker
         className={cn(
           "text-xs transition-colors hover:text-foreground",
-          isRunning && !isFailed && "shimmer"
+          isRunning && !isFailed && "shimmer",
         )}
       >
         <MarkerIcon className="size-4 shrink-0">
@@ -85,17 +85,17 @@ function ActivityItem({ activity }: { activity: ActivityGroup }) {
 
       <CollapsibleContent className="mt-1.5 ml-6 space-y-2 rounded-lg border border-border/40 bg-muted/30 p-2.5 font-mono text-[11px]">
         {activity.steps.map((step, idx) => {
-          const stepKey = step.id || `substep-${step.stepNumber}-${idx}`
+          const stepKey = step.id || `substep-${step.stepNumber}-${idx}`;
           const { label } = formatToolStepLabel(
             step.toolName,
             step.status,
             step.toolInput,
-            step.toolOutput
-          )
+            step.toolOutput,
+          );
           const hasInput =
-            step.toolInput !== undefined && step.toolInput !== null
+            step.toolInput !== undefined && step.toolInput !== null;
           const hasOutput =
-            step.toolOutput !== undefined && step.toolOutput !== null
+            step.toolOutput !== undefined && step.toolOutput !== null;
 
           return (
             <div
@@ -133,9 +133,9 @@ function ActivityItem({ activity }: { activity: ActivityGroup }) {
                 </div>
               )}
             </div>
-          )
+          );
         })}
       </CollapsibleContent>
     </Collapsible>
-  )
+  );
 }

@@ -565,21 +565,52 @@ export function ConversationMessageItem({
                     return (
                       <React.Fragment key={part.partId}>
                         {part.segments.map((seg, segIndex) => {
+                          const isVeryLastSegment =
+                            isLastPart && segIndex === part.segments.length - 1;
+
                           if (seg.type === "artifact" && seg.artifact) {
                             const artifact = seg.artifact;
                             return (
-                              <div key={seg.id} className="w-full max-w-2xl">
+                              <div
+                                key={seg.id}
+                                className="relative w-full max-w-2xl"
+                              >
                                 <ArtifactCard
                                   artifact={artifact}
                                   onClick={() => onOpenArtifact?.(artifact)}
                                 />
+                                {isVeryLastSegment && reactions.length > 0 && (
+                                  <BubbleReactions side="bottom" align="start">
+                                    {reactions.map((emoji, i) => (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const rect =
+                                            e.currentTarget.getBoundingClientRect();
+                                          handleReaction(emoji, {
+                                            x:
+                                              (rect.left + rect.width / 2) /
+                                              window.innerWidth,
+                                            y:
+                                              (rect.top + rect.height / 2) /
+                                              window.innerHeight,
+                                          });
+                                        }}
+                                        title={`Reacted ${emoji} (click to toggle)`}
+                                        aria-label={`Reaction ${emoji}`}
+                                        className="cursor-pointer px-1 py-px transition-transform hover:scale-125 active:scale-95"
+                                      >
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </BubbleReactions>
+                                )}
                               </div>
                             );
                           }
                           if (seg.text) {
-                            const isVeryLastSegment =
-                              isLastPart &&
-                              segIndex === part.segments.length - 1;
                             return (
                               <Bubble
                                 key={seg.id}

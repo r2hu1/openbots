@@ -1,7 +1,7 @@
 import { agentEventHub } from "@openbots/api-contract";
 import { db, runs, schedules } from "@openbots/db";
-import { schedules as triggerSchedules, task } from "@trigger.dev/sdk";
-import { and, eq, inArray } from "drizzle-orm";
+import { task, schedules as triggerSchedules } from "@trigger.dev/sdk";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { executeAgentRun } from "../agent/execute.js";
 
 export const agentRunTask = task({
@@ -40,8 +40,13 @@ export const scheduledAgentTask = triggerSchedules.task({
     maxAttempts: 1,
   },
   run: async (payload: any, { ctx }: { ctx?: any } = {}) => {
-    const scheduleId = payload?.externalId ?? payload?.scheduleId;
-    if (!scheduleId) {
+    const targetId =
+      payload?.externalId ??
+      payload?.scheduleId ??
+      payload?.id ??
+      payload?.triggerScheduleId;
+
+    if (!targetId) {
       console.warn(
         "scheduled-agent-task fired without scheduleId or externalId:",
         payload,
@@ -49,18 +54,42 @@ export const scheduledAgentTask = triggerSchedules.task({
       return;
     }
 
-    // Look up schedule by id or triggerScheduleId
-    const [scheduleRecord] = await db
+    // Look up schedule by id, triggerScheduleId, or externalId
+    let [scheduleRecord] = await db
       .select()
       .from(schedules)
       .where(
-        payload.externalId
-          ? eq(schedules.id, payload.externalId)
-          : eq(schedules.triggerScheduleId, scheduleId),
+        or(
+          eq(schedules.id, targetId),
+          eq(schedules.triggerScheduleId, targetId),
+        ),
       );
 
+    // If still not found by direct ID (e.g., if trigger.dev scheduled task fired for an orphaned schedule ID
+    // or externalId was not propagated), attempt matching active schedules
     if (!scheduleRecord) {
-      console.warn(`No schedule found in DB for id: ${scheduleId}`);
+      console.warn(
+        `No schedule found in DB for id: ${targetId}, checking active schedules...`,
+      );
+      const activeList = await db
+        .select()
+        .from(schedules)
+        .where(eq(schedules.status, "active"));
+
+      if (activeList.length === 1 && activeList[0]) {
+        // Unambiguous single active schedule
+        scheduleRecord = activeList[0];
+        console.log(
+          `Resolved to single active schedule: '${scheduleRecord.name}' (${scheduleRecord.id})`,
+        );
+      } else {
+        console.warn(`Could not resolve schedule for trigger ID: ${targetId}`);
+        return;
+      }
+    }
+
+    if (!scheduleRecord) {
+      console.warn(`Schedule record is undefined for ID: ${targetId}`);
       return;
     }
 

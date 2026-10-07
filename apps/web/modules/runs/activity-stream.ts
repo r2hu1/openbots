@@ -131,7 +131,7 @@ function extractTargetDomainOrHost(url: unknown): string | null {
  */
 function buildGroupPresentation(
   category: ActivityCategory,
-  steps: StepItem[]
+  steps: StepItem[],
 ): { title: string; summary?: string } {
   const isRunning = steps.some((s) => s.status === "running");
   const isFailed = steps.some((s) => s.status === "failed");
@@ -140,7 +140,9 @@ function buildGroupPresentation(
   if (category === "research") {
     if (isRunning) {
       // Find latest search or web read query
-      const latest = [...steps].reverse().find((s) => s.toolInput && typeof s.toolInput === "object");
+      const latest = [...steps]
+        .reverse()
+        .find((s) => s.toolInput && typeof s.toolInput === "object");
       const query = (latest?.toolInput as Record<string, unknown>)?.query;
       const url = (latest?.toolInput as Record<string, unknown>)?.url;
       const host = extractTargetDomainOrHost(url);
@@ -159,7 +161,8 @@ function buildGroupPresentation(
       }
       return {
         title: "Researching…",
-        summary: count > 1 ? `Consulting multiple sources` : "Gathering information",
+        summary:
+          count > 1 ? `Consulting multiple sources` : "Gathering information",
       };
     }
 
@@ -212,7 +215,7 @@ function buildGroupPresentation(
       firstStep?.toolName,
       firstStep?.status,
       firstStep?.toolInput,
-      firstStep?.toolOutput
+      firstStep?.toolOutput,
     );
 
     if (isRunning) {
@@ -248,7 +251,7 @@ function buildGroupPresentation(
       firstStep?.toolName,
       firstStep?.status,
       firstStep?.toolInput,
-      firstStep?.toolOutput
+      firstStep?.toolOutput,
     );
 
     if (isRunning) {
@@ -284,7 +287,7 @@ function buildGroupPresentation(
       firstStep?.toolName,
       firstStep?.status,
       firstStep?.toolInput,
-      firstStep?.toolOutput
+      firstStep?.toolOutput,
     );
     return {
       title: isRunning ? `${label}…` : label,
@@ -335,7 +338,7 @@ function buildGroupPresentation(
       firstStep?.toolName,
       firstStep?.status,
       firstStep?.toolInput,
-      firstStep?.toolOutput
+      firstStep?.toolOutput,
     );
     return {
       title: isRunning ? `${label}…` : label,
@@ -349,7 +352,7 @@ function buildGroupPresentation(
     firstStep?.toolName,
     firstStep?.status,
     firstStep?.toolInput,
-    firstStep?.toolOutput
+    firstStep?.toolOutput,
   );
 
   if (count > 1) {
@@ -388,7 +391,7 @@ export function normalizeActivities(steps: StepItem[]): ActivityGroup[] {
     if (currentGroupSteps.length === 0 || !currentCategory) return;
 
     const groupStatus: StepItem["status"] = currentGroupSteps.some(
-      (s) => s.status === "running"
+      (s) => s.status === "running",
     )
       ? "running"
       : currentGroupSteps.some((s) => s.status === "failed")
@@ -397,14 +400,20 @@ export function normalizeActivities(steps: StepItem[]): ActivityGroup[] {
 
     const { title, summary } = buildGroupPresentation(
       currentCategory,
-      currentGroupSteps
+      currentGroupSteps,
     );
 
     const firstStep = currentGroupSteps[0];
     const lastStep = currentGroupSteps[currentGroupSteps.length - 1];
+    const groupIdx = groups.length;
+    const baseStepId =
+      firstStep?.id ||
+      (firstStep?.stepNumber !== undefined
+        ? `step-${firstStep.stepNumber}`
+        : "step");
 
     groups.push({
-      id: `act-${firstStep?.id || firstStep?.stepNumber || groups.length}-${currentCategory}`,
+      id: `act-${groupIdx}-${baseStepId}-${currentCategory}`,
       category: currentCategory,
       title,
       summary,
@@ -426,7 +435,10 @@ export function normalizeActivities(steps: StepItem[]): ActivityGroup[] {
     if (currentCategory === null) {
       currentCategory = cat;
       currentGroupSteps.push(step);
-    } else if (currentCategory === cat && (cat === "research" || cat === "data" || cat === "code")) {
+    } else if (
+      currentCategory === cat &&
+      (cat === "research" || cat === "data" || cat === "code")
+    ) {
       currentGroupSteps.push(step);
     } else {
       flushGroup();

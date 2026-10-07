@@ -200,6 +200,7 @@ export type AgentEvent =
       status: string;
       error?: string;
       output?: any;
+      conversationId?: string | null;
     }
   | {
       seq?: number;

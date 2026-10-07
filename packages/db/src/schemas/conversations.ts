@@ -4,6 +4,7 @@ import { agents } from "./agents.js";
 import { user } from "./auth.js";
 import { messages } from "./messages.js";
 import { runs } from "./runs.js";
+import { schedules } from "./schedules.js";
 
 export const conversations = pgTable(
   "conversations",
@@ -43,6 +44,7 @@ export const conversationsRelations = relations(
     }),
     messages: many(messages),
     runs: many(runs),
+    schedules: many(schedules),
   }),
 );
 

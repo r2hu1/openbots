@@ -214,6 +214,7 @@ export async function createSchedule(
     .values({
       userId,
       agentId: data.agentId,
+      conversationId: data.conversationId ?? null,
       name: data.name,
       prompt: data.prompt,
       cronExpression: data.cronExpression,

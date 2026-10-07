@@ -92,7 +92,20 @@ export function useAgentExecution({
           } else if (activeConversationId === ev.conversationId) {
             setActiveRunId(ev.runId);
           }
-        } else if (!activeConversationId) {
+        } else {
+          // If no conversationId is bound or we are in the default conversation view, attach stream
+          setActiveRunId(ev.runId);
+        }
+      }
+    },
+    onRunStatus: (ev) => {
+      if (
+        ev.runId &&
+        ev.status === "running" &&
+        !activeRunId &&
+        !dismissedRunIds.current.has(ev.runId)
+      ) {
+        if (!ev.conversationId || !activeConversationId || ev.conversationId === activeConversationId) {
           setActiveRunId(ev.runId);
         }
       }
@@ -111,7 +124,7 @@ export function useAgentExecution({
           !dismissedRunIds.current.has(r.id) &&
           (r.status === "running" ||
             (r.status === "queued" && r.triggerType !== "schedule")) &&
-          (!activeConversationId || r.conversationId === activeConversationId),
+          (!activeConversationId || !r.conversationId || r.conversationId === activeConversationId),
       );
       if (ongoingRun) {
         setActiveRunId(ongoingRun.id);

@@ -1,11 +1,7 @@
 "use client";
 
 import { Button } from "@openbots/ui/components/button";
-import {
-  Marker,
-  MarkerContent,
-  MarkerIcon,
-} from "@openbots/ui/components/marker";
+import { Marker, MarkerContent } from "@openbots/ui/components/marker";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -18,7 +14,6 @@ import { Spinner } from "@openbots/ui/components/spinner";
 import { Blobatar } from "@openbots/ui/components/ui/blobatar";
 import { IconAlertCircle, IconChevronUp, IconX } from "@tabler/icons-react";
 import * as React from "react";
-import { ChevronDown } from "reicon-react";
 import type { ParsedArtifact } from "@/modules/artifacts/parser";
 import type { RunRecord, StepItem } from "@/modules/runs/types";
 import type { MessageItem, ReplyTarget } from "../types";
@@ -66,6 +61,29 @@ export function ConversationTimeline({
     isOptimisticRunning ||
     activeRun?.status === "queued" ||
     activeRun?.status === "running";
+
+  // Check if the most recent message in the timeline is already an assistant response matching or completing the run
+  const hasRecentAssistantResponse = React.useMemo(() => {
+    if (!messages || messages.length === 0) return false;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role !== "assistant") return false;
+
+    // If active run is already finished or output is present, response is finished
+    if (
+      activeRun?.status === "completed" ||
+      activeRun?.status === "failed" ||
+      activeRun?.status === "cancelled"
+    ) {
+      return true;
+    }
+
+    // If message is linked to current run, it is already rendered
+    if (activeRun?.id && lastMsg.id.includes(activeRun.id)) {
+      return true;
+    }
+
+    return false;
+  }, [messages, activeRun]);
 
   const topSentinelRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
@@ -400,7 +418,7 @@ export function ConversationTimeline({
                   onOpenArtifact={onOpenArtifact}
                 />
               </MessageScrollerItem>
-            ) : isActiveRunOngoing ? (
+            ) : isActiveRunOngoing && !hasRecentAssistantResponse ? (
               <MessageScrollerItem
                 key={`thinking-${activeRun?.id || "current"}`}
                 id={`thinking-${activeRun?.id || "current"}`}

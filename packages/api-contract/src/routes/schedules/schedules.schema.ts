@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createScheduleInputSchema = z.object({
   agentId: z.string().uuid(),
+  conversationId: z.string().uuid().optional().nullable(),
   name: z.string().min(1),
   prompt: z.string().min(1),
   cronExpression: z.string().min(1),

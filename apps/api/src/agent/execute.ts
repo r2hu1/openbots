@@ -273,6 +273,7 @@ export async function executeAgentRun(
     type: "run_status",
     runId: runRecord.id,
     status: "running",
+    conversationId: runRecord.conversationId,
   })
 
   // Broadcast schedule_fired if this run was triggered by a schedule
@@ -739,6 +740,7 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       runId: runRecord.id,
       status: "completed",
       output: finalOutput,
+      conversationId: runRecord.conversationId,
     })
 
     if (!completedRun) {
@@ -795,6 +797,7 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
         type: "run_status",
         runId,
         status: "cancelled",
+        conversationId: runRecord.conversationId,
       })
       const [finalRun] = await db.select().from(runs).where(eq(runs.id, runId))
       return finalRun ?? currentRun
@@ -821,6 +824,7 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       runId,
       status: "failed",
       error: safeError,
+      conversationId: runRecord.conversationId,
     })
 
     throw new Error(safeError)

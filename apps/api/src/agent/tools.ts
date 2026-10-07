@@ -200,7 +200,7 @@ export const calculate = tool({
 
 export const webSearch = tool({
   description:
-    "Search the public web for real-time information, current events, technical documentation, or facts using DuckDuckGo. Returns search result snippets and source URLs. If no other tool is available, this is the fallback search tool.",
+    "Search the public web for real-time information, current events, technical documentation, or facts. Automatically tries multiple search engines if rate limited or unavailable. Returns search result snippets and source URLs.",
   inputSchema: z.object({
     query: z
       .string()
@@ -215,27 +215,33 @@ export const webSearch = tool({
       .describe("Maximum number of search results to return (default 5)"),
   }),
   execute: async ({ query, maxResults }) => {
-    try {
-      const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        },
-      });
+    const userAgents: string[] = [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    ];
+    const getRandomUA = (): string =>
+      userAgents[Math.floor(Math.random() * userAgents.length)] ??
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
-      if (!response.ok) {
-        return {
-          error: `Search request failed with status ${response.status}`,
-        };
-      }
+    type SearchResult = { title: string; snippet: string; link: string };
+
+    // Provider 1: DuckDuckGo HTML
+    const tryDuckDuckGoHtml = async (): Promise<SearchResult[]> => {
+      const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      const headers: Record<string, string> = {
+        "User-Agent": getRandomUA(),
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      };
+      const response = await fetch(url, { headers });
+      if (!response.ok) return [];
 
       const html = await response.text();
-      const results: Array<{ title: string; snippet: string; link: string }> =
-        [];
-
-      // Extract result elements
+      const results: SearchResult[] = [];
       const resultBlocks = html.split(/class="[^"]*result__body[^"]*"/);
+
       for (
         let i = 1;
         i < resultBlocks.length && results.length < maxResults;
@@ -244,7 +250,6 @@ export const webSearch = tool({
         const block = resultBlocks[i];
         if (!block) continue;
 
-        // Extract title and URL
         const titleMatch = block.match(
           /class="result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/,
         );
@@ -271,17 +276,168 @@ export const webSearch = tool({
           });
         }
       }
+      return results;
+    };
+
+    // Provider 2: DuckDuckGo Lite (POST endpoint, completely separate rate limit pool)
+    const tryDuckDuckGoLite = async (): Promise<SearchResult[]> => {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": getRandomUA(),
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      };
+      const response = await fetch("https://lite.duckduckgo.com/lite/", {
+        method: "POST",
+        headers,
+        body: `q=${encodeURIComponent(query)}`,
+      });
+      if (!response.ok) return [];
+
+      const html = await response.text();
+      const results: SearchResult[] = [];
+      const linkRegex =
+        /<a\s+[^>]*href=["']([^"']+)["'][^>]*class=["']result-link["'][^>]*>([\s\S]*?)<\/a>/gi;
+      const snippetRegex =
+        /<td\s+class=["']result-snippet["'][^>]*>([\s\S]*?)<\/td>/gi;
+
+      const links = [...html.matchAll(linkRegex)];
+      const snippets = [...html.matchAll(snippetRegex)];
+
+      for (let i = 0; i < links.length && results.length < maxResults; i++) {
+        const linkMatch = links[i];
+        if (!linkMatch) continue;
+        let url = linkMatch[1] ?? "";
+        if (url.includes("uddg=")) {
+          const match = url.match(/uddg=([^&]+)/);
+          if (match?.[1]) url = decodeURIComponent(match[1]);
+        }
+        const title = (linkMatch[2] ?? "").replace(/<[^>]*>/g, "").trim();
+        const snippetItem = snippets[i];
+        const snippet = snippetItem?.[1]
+          ? snippetItem[1].replace(/<[^>]*>/g, "").trim()
+          : "";
+        if (title && url) {
+          results.push({ title, snippet, link: url });
+        }
+      }
+      return results;
+    };
+
+    // Provider 3: Brave Search (Scraped web results, zero API key)
+    const tryBraveSearch = async (): Promise<SearchResult[]> => {
+      const headers: Record<string, string> = {
+        "User-Agent": getRandomUA(),
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      };
+      const response = await fetch(
+        `https://search.brave.com/search?q=${encodeURIComponent(query)}`,
+        { headers },
+      );
+      if (!response.ok) return [];
+
+      const html = await response.text();
+      const results: SearchResult[] = [];
+      const titleMatches = [
+        ...html.matchAll(
+          /<a\s+[^>]*href="(https?:\/\/(?!search\.brave)[^"]+)"[^>]*>[\s\S]*?<div\s+class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
+        ),
+      ];
+
+      for (const m of titleMatches) {
+        if (results.length >= maxResults) break;
+        const link = m[1];
+        const title = (m[2] ?? "").replace(/<[^>]*>/g, "").trim();
+        const postIndex = m.index + m[0].length;
+        const following = html.slice(postIndex, postIndex + 900);
+        const descMatch =
+          following.match(
+            /<div\s+class="[^"]*snippet-description[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
+          ) || following.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+        const snippet = descMatch?.[1]
+          ? descMatch[1].replace(/<[^>]*>/g, "").trim()
+          : "";
+
+        if (title && link) {
+          results.push({ title, snippet, link });
+        }
+      }
+      return results;
+    };
+
+    // Provider 4: Wikipedia Search API (Free, zero rate limits, reliable encyclopedia & current docs)
+    const tryWikipedia = async (): Promise<SearchResult[]> => {
+      const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "OpenBots/1.0 (agent-websearch; support@openbots.ai)",
+          Accept: "application/json",
+        },
+      });
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      const items = (data?.query?.search || []).slice(0, maxResults);
+      return items.map((item: any) => ({
+        title: item.title,
+        snippet: (item.snippet || "").replace(/<[^>]*>/g, "").trim(),
+        link: `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/ /g, "_"))}`,
+      }));
+    };
+
+    try {
+      // Cascade providers in order
+      let results: SearchResult[] = [];
+      let usedProvider = "DuckDuckGo";
+
+      try {
+        results = await tryDuckDuckGoHtml();
+      } catch {
+        // Fall through to next provider
+      }
+
+      if (results.length === 0) {
+        try {
+          usedProvider = "DuckDuckGo Lite";
+          results = await tryDuckDuckGoLite();
+        } catch {
+          // Fall through
+        }
+      }
+
+      if (results.length === 0) {
+        try {
+          usedProvider = "Brave Search";
+          results = await tryBraveSearch();
+        } catch {
+          // Fall through
+        }
+      }
+
+      if (results.length === 0) {
+        try {
+          usedProvider = "Wikipedia";
+          results = await tryWikipedia();
+        } catch {
+          // Fall through
+        }
+      }
 
       return {
         query,
         count: results.length,
+        provider: usedProvider,
         results:
           results.length > 0
             ? results
             : [
                 {
                   title: `Query: ${query}`,
-                  snippet: "No direct search snippets found.",
+                  snippet:
+                    "No direct search snippets found across search providers.",
                   link: "",
                 },
               ],
@@ -1239,6 +1395,7 @@ export function createScheduleTool(
           .values({
             userId,
             agentId,
+            conversationId: conversationId ?? null,
             name,
             prompt,
             cronExpression: cron,

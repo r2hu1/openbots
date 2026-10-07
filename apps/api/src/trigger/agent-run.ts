@@ -106,6 +106,7 @@ export const scheduledAgentTask = triggerSchedules.task({
       .values({
         userId: scheduleRecord.userId,
         agentId: scheduleRecord.agentId,
+        conversationId: scheduleRecord.conversationId ?? null,
         status: "queued",
         triggerType: "schedule",
         input: {

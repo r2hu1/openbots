@@ -81,14 +81,16 @@ When your agent creates code, designs, or diagrams, it doesn't just print raw te
 - **Vector SVGs**: Render logos, icons, and illustrations.
 - **Copy & Export**: Switch seamlessly between preview and code with one click.
 
-### 5. Durable Background Workflows & Scheduling
+### 5. Durable Background Workflows, Scheduling & Web Push
 
 ![Schedules](./apps/web/public/preview-schedules.png)
 
-Agents don't only react when you prompt them — they can run on their own:
+Agents don't only react when you prompt them — they can run autonomously on their own:
 
 - **Delayed Execution**: Ask your agent to _"remind me in 30 minutes"_ or _"summarize market closes at 5:00 PM"_.
 - **Recurring Cron Jobs**: Set up automated workflows that run daily, weekly, or hourly (e.g. _"Check GitHub issues every weekday morning"_).
+- **Live Realtime SSE Streaming**: When scheduled tasks fire, your active workspace immediately connects via Server-Sent Events (SSE) to stream thought processes, tool steps, and outputs in real time without refreshing.
+- **Native Web Push Notifications**: Stay updated even when away from your browser with desktop & mobile Web Push notifications when scheduled tasks finish.
 - **Survives Restarts**: Powered by Trigger.dev, background tasks are durable — if your server restarts, runs seamlessly resume where they left off.
 
 ### 6. 200+ SaaS Integrations via Composio & MCP

@@ -56,7 +56,7 @@ export function useRunDetailQuery(
       return (await res.json()) as { run: RunRecord; steps: StepItem[] };
     },
     enabled: (options?.enabled ?? true) && Boolean(runId),
-    refetchInterval: options?.refetchInterval,
+    refetchInterval: options?.refetchInterval ?? false,
   });
 }
 

@@ -24,12 +24,14 @@ interface UseAgentStreamOptions {
   agentId: string | null;
   onScheduleFired?: (event: AgentStreamEvent) => void;
   onRunCreated?: (event: AgentStreamEvent) => void;
+  onRunStatus?: (event: AgentStreamEvent) => void;
 }
 
 export function useAgentStream({
   agentId,
   onScheduleFired,
   onRunCreated,
+  onRunStatus,
 }: UseAgentStreamOptions) {
   const queryClient = useQueryClient();
 
@@ -37,6 +39,8 @@ export function useAgentStream({
   onScheduleFiredRef.current = onScheduleFired;
   const onRunCreatedRef = React.useRef(onRunCreated);
   onRunCreatedRef.current = onRunCreated;
+  const onRunStatusRef = React.useRef(onRunStatus);
+  onRunStatusRef.current = onRunStatus;
 
   React.useEffect(() => {
     if (!agentId) return;
@@ -176,6 +180,7 @@ export function useAgentStream({
                     queryKey: runKeys.detail(data.runId),
                   });
                 }
+                onRunStatusRef.current?.(data);
               } else if (
                 eventType === "schedule_updated" ||
                 data.type === "schedule_updated"

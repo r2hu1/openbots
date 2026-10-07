@@ -59,6 +59,17 @@ Trigger.dev provides durable agent execution so long-running tasks never get cut
 ### E. Integrations (Composio - Optional)
 - To enable agent access to 200+ external apps (Gmail, Slack, GitHub, Linear, Notion, etc.), get an API key from [Composio](https://app.composio.dev/) (`COMPOSIO_API_KEY`).
 
+### F. Web Push Notifications (Optional)
+OpenBots supports native desktop and mobile Web Push notifications for scheduled tasks and background reminders:
+1. Generate a standard VAPID key pair:
+   ```bash
+   bunx web-push generate-vapid-keys
+   ```
+2. Set the generated public and private keys in `.env`:
+   - `VAPID_SUBJECT="mailto:admin@your-domain.com"`
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY="BL..."`
+   - `VAPID_PRIVATE_KEY="..."`
+
 ---
 
 ## 3. Installation & Configuration
@@ -122,11 +133,19 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 COMPOSIO_API_KEY=""
 UPSTASH_REDIS_REST_URL=""
 UPSTASH_REDIS_REST_TOKEN=""
+
+# ==============================================================================
+# Web Push Notifications (Optional)
+# ==============================================================================
+VAPID_SUBJECT="mailto:admin@your-domain.com"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="BL..."
+VAPID_PRIVATE_KEY="..."
 ```
 
 Also verify or set `apps/web/.env.local`:
 ```ini
 NEXT_PUBLIC_API_URL="http://localhost:3001"
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="BL..."
 ```
 
 ---

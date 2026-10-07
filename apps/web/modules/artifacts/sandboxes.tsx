@@ -260,7 +260,8 @@ export function HtmlSandbox({
   if (fitContent) {
     const width = Math.min(size?.width ?? initialWidth, maxWidth);
 
-    const height = size?.height ?? 1;
+    // Don't collapse to 1px while loading or streaming, maintain minimum comfortable container height
+    const height = size?.height ?? (isStreaming ? 180 : 80);
 
     return (
       <iframe
@@ -274,9 +275,11 @@ export function HtmlSandbox({
           display: "block",
           width: `${width}px`,
           height: `${height}px`,
+          minHeight: isStreaming ? "120px" : undefined,
           maxWidth: "100%",
           border: 0,
           overflow: "hidden",
+          transition: "height 0.15s ease-out",
         }}
       />
     );

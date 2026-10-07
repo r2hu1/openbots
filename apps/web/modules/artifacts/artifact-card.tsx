@@ -199,6 +199,7 @@ function useThumbnailFrame() {
 function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
   const { copied, copy } = useCopy(artifact.content);
   const isStreaming = artifact.isStreaming;
+  const hasContent = artifact.content.trim().length > 0;
 
   return (
     <div
@@ -208,21 +209,35 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
       aria-label={artifact.title}
       className={cn(
         "group/artifact relative inline-block w-full max-w-full align-top transition-all",
+        isStreaming && "min-h-[120px]",
       )}
     >
-      {artifact.content.trim().length > 0 ? (
-        <ArtifactPreview
-          artifact={artifact}
-          fitContent
-          htmlClassName="border-0 bg-transparent"
-          mediaClassName="block w-fit max-w-full border-0 bg-transparent p-0 [&_svg]:block [&_svg]:max-w-full"
-        />
+      {hasContent ? (
+        <div className="relative w-full overflow-hidden rounded-lg">
+          <ArtifactPreview
+            artifact={artifact}
+            fitContent
+            htmlClassName="border-0 bg-transparent"
+            mediaClassName="block w-fit max-w-full border-0 bg-transparent p-0 [&_svg]:block [&_svg]:max-w-full"
+          />
+          {isStreaming && (
+            <div className="pointer-events-none absolute top-2 right-2 z-10 flex items-center gap-1.5 rounded-full border border-primary/20 bg-background/85 px-2 py-0.5 text-[10px] font-medium text-primary shadow-xs backdrop-blur-md">
+              <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+              <span>Live</span>
+            </div>
+          )}
+        </div>
       ) : (
-        <div className="flex min-h-[100px] w-full items-center justify-center rounded-lg border border-dashed border-primary/25 bg-primary/5 p-4 text-xs text-primary">
+        <div className="flex min-h-[120px] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-primary/25 bg-primary/5 p-4 text-xs text-primary">
           <div className="flex items-center gap-2">
             <span className="size-2 animate-ping rounded-full bg-primary" />
-            <span>Generating {artifact.title || "interactive widget"}...</span>
+            <span className="font-medium">
+              Generating {artifact.title || "interactive widget"}...
+            </span>
           </div>
+          <p className="text-[11px] text-muted-foreground opacity-80">
+            Rendering preview live as tokens arrive
+          </p>
         </div>
       )}
 
@@ -323,11 +338,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
           </div>
         )}
 
-        {visible &&
-        base &&
-        scale > 0 &&
-        hasContent &&
-        (!isStreaming || artifact.content.length > 80) ? (
+        {visible && base && scale > 0 && hasContent ? (
           <div
             className="pointer-events-none absolute top-0 left-0 origin-top-left"
             style={{

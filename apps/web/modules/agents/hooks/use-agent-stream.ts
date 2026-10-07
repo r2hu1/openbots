@@ -22,6 +22,7 @@ export interface AgentStreamEvent {
 
 interface UseAgentStreamOptions {
   agentId: string | null;
+  enabled?: boolean;
   onScheduleFired?: (event: AgentStreamEvent) => void;
   onRunCreated?: (event: AgentStreamEvent) => void;
   onRunStatus?: (event: AgentStreamEvent) => void;
@@ -29,6 +30,7 @@ interface UseAgentStreamOptions {
 
 export function useAgentStream({
   agentId,
+  enabled = true,
   onScheduleFired,
   onRunCreated,
   onRunStatus,
@@ -43,7 +45,7 @@ export function useAgentStream({
   onRunStatusRef.current = onRunStatus;
 
   React.useEffect(() => {
-    if (!agentId) return;
+    if (!agentId || !enabled) return;
 
     const abortController = new AbortController();
 
@@ -219,5 +221,5 @@ export function useAgentStream({
       if (reconnectTimer) clearTimeout(reconnectTimer);
       abortController.abort();
     };
-  }, [agentId, queryClient]);
+  }, [agentId, enabled, queryClient]);
 }

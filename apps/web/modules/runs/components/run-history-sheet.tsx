@@ -12,6 +12,7 @@ import {
 import { Spinner } from "@openbots/ui/components/spinner";
 import { IconChevronRight, IconHistory } from "@tabler/icons-react";
 import * as React from "react";
+import { useAgentStream } from "@/modules/agents/hooks/use-agent-stream";
 import { useRunsQuery } from "../queries";
 import { formatDuration, formatTimestamp, getInputText } from "../utils";
 import { RunDetailView } from "./run-detail-view";
@@ -52,6 +53,12 @@ export function RunHistorySheet({
     },
     [onSelectRunId],
   );
+
+  // Connect live SSE stream for real-time run updates when sheet is open
+  useAgentStream({
+    agentId,
+    enabled: open,
+  });
 
   const { data: runs = [], isLoading } = useRunsQuery(agentId, {
     enabled: open,

@@ -62,28 +62,16 @@ export function ConversationTimeline({
     activeRun?.status === "queued" ||
     activeRun?.status === "running";
 
-  // Check if the most recent message in the timeline is already an assistant response matching or completing the run
-  const hasRecentAssistantResponse = React.useMemo(() => {
-    if (!messages || messages.length === 0) return false;
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg?.role !== "assistant") return false;
-
-    // If active run is already finished or output is present, response is finished
-    if (
-      activeRun?.status === "completed" ||
-      activeRun?.status === "failed" ||
-      activeRun?.status === "cancelled"
-    ) {
-      return true;
-    }
-
-    // If message is linked to current run, it is already rendered
-    if (activeRun?.id && lastMsg.id.includes(activeRun.id)) {
-      return true;
-    }
-
-    return false;
-  }, [messages, activeRun]);
+  // Check if this specific active run's output is already rendered in messages
+  const isCurrentRunAlreadyRendered = React.useMemo(() => {
+    if (!activeRun?.id || !messages || messages.length === 0) return false;
+    return messages.some(
+      (m) =>
+        m.role === "assistant" &&
+        (m.id === `opt-assistant-${activeRun.id}` ||
+          m.id.includes(activeRun.id)),
+    );
+  }, [messages, activeRun?.id]);
 
   const topSentinelRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
@@ -387,7 +375,7 @@ export function ConversationTimeline({
               ))}
 
             {/* Live tool execution steps */}
-            {isActiveRunOngoing && activeRunSteps.length > 0 && (
+            {!isLoading && isActiveRunOngoing && activeRunSteps.length > 0 && (
               <MessageScrollerItem key="live-steps">
                 <ConversationLiveStatus
                   agentName={agentName}
@@ -400,7 +388,7 @@ export function ConversationTimeline({
             )}
 
             {/* Assistant message: streaming text if available, or thinking indicator while ongoing */}
-            {streamingText ? (
+            {!isLoading && streamingText ? (
               <MessageScrollerItem
                 key={`streaming-${activeRun?.id || "current"}`}
                 id={`streaming-${activeRun?.id || "current"}`}
@@ -418,7 +406,9 @@ export function ConversationTimeline({
                   onOpenArtifact={onOpenArtifact}
                 />
               </MessageScrollerItem>
-            ) : isActiveRunOngoing && !hasRecentAssistantResponse ? (
+            ) : !isLoading &&
+              isActiveRunOngoing &&
+              !isCurrentRunAlreadyRendered ? (
               <MessageScrollerItem
                 key={`thinking-${activeRun?.id || "current"}`}
                 id={`thinking-${activeRun?.id || "current"}`}

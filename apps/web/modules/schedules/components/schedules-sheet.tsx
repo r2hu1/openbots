@@ -29,6 +29,7 @@ import {
 import { Spinner } from "@openbots/ui/components/spinner";
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { useAgentStream } from "@/modules/agents/hooks/use-agent-stream";
 import { RunDetailView } from "@/modules/runs/components/run-detail-view";
 import { useRunsQuery } from "@/modules/runs/queries";
 import type { RunRecord } from "@/modules/runs/types";
@@ -330,6 +331,12 @@ export function SchedulesSheet({
   open,
   onOpenChange,
 }: SchedulesSheetProps) {
+  // Connect live SSE stream for real-time schedules and runs updates while sheet is open
+  useAgentStream({
+    agentId,
+    enabled: open,
+  });
+
   const { data: schedules = [], isLoading: isLoadingSchedules } =
     useSchedulesQuery(agentId, {
       enabled: open,

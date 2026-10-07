@@ -241,25 +241,6 @@ class AgentEventHub {
     }
     set.add(safeListener);
 
-    try {
-      const redis = getRedis();
-      if (redis) {
-        const channelKey = `agent_events:${agentId}`;
-        redis
-          .lrange(channelKey, 0, -1)
-          .then((items) => {
-            if (items && items.length > 0) {
-              for (const item of items) {
-                const parsed: AgentEvent =
-                  typeof item === "string" ? JSON.parse(item) : item;
-                safeListener(parsed);
-              }
-            }
-          })
-          .catch(() => {});
-      }
-    } catch {}
-
     return () => {
       set?.delete(safeListener);
       if (set && set.size === 0) {

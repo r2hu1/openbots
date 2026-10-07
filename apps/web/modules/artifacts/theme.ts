@@ -1,47 +1,181 @@
-const TAILWIND_BROWSER = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4";
+const TAILWIND_BROWSER = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
 
 const CHART_COMPAT_SCRIPT = String.raw`
 (function () {
   var current;
+
   function cssVar(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
   }
+
   function resolve(value) {
     if (typeof value === "string") {
-      return value.replace(/var\((--[\w-]+)\)/g, function (match, name) {
-        return cssVar(name) || match;
-      });
+      return value.replace(
+        /var\((--[\w-]+)\)/g,
+        function (match, name) {
+          return cssVar(name) || match;
+        }
+      );
     }
-    if (Array.isArray(value)) return value.map(resolve);
-    if (value && Object.getPrototypeOf(value) === Object.prototype) {
+
+    if (Array.isArray(value)) {
+      return value.map(resolve);
+    }
+
+    if (
+      value &&
+      typeof value === "object" &&
+      Object.getPrototypeOf(value) === Object.prototype
+    ) {
       var out = {};
-      for (var key in value) out[key] = resolve(value[key]);
+
+      for (var key in value) {
+        out[key] = resolve(value[key]);
+      }
+
       return out;
     }
+
     return value;
   }
+
+  function getChartColors() {
+    return [
+      cssVar("--chart-1"),
+      cssVar("--chart-2"),
+      cssVar("--chart-3"),
+      cssVar("--chart-4"),
+      cssVar("--chart-5")
+    ].filter(Boolean);
+  }
+
+  function applyTheme(Chart) {
+    try {
+      var colors = getChartColors();
+
+      Chart.defaults.color =
+        cssVar("--foreground") ||
+        cssVar("--muted-foreground");
+
+      Chart.defaults.borderColor =
+        cssVar("--border");
+
+      Chart.defaults.font.family =
+        cssVar("--font-sans") ||
+        "ui-sans-serif, system-ui, sans-serif";
+
+      /*
+       * Chart.js global defaults.
+       */
+      Chart.defaults.elements.line.borderWidth = 2;
+
+      /*
+       * Use chart colors for common elements.
+       */
+      if (colors.length) {
+        Chart.defaults.elements.line.borderColor = colors[0];
+        Chart.defaults.elements.point.backgroundColor = colors[0];
+        Chart.defaults.elements.point.borderColor = colors[0];
+
+        Chart.defaults.elements.bar.backgroundColor = colors[0];
+        Chart.defaults.elements.bar.borderColor = colors[0];
+
+        Chart.defaults.elements.arc.backgroundColor = colors;
+        Chart.defaults.elements.arc.borderColor =
+          cssVar("--background") || "#fff";
+      }
+    } catch (e) {}
+  }
+
+  function applyDatasetColors(config) {
+    var colors = getChartColors();
+
+    if (!colors.length || !config) {
+      return config;
+    }
+
+    var datasets =
+      config.data &&
+      Array.isArray(config.data.datasets)
+        ? config.data.datasets
+        : null;
+
+    if (!datasets) {
+      return config;
+    }
+
+    datasets.forEach(function (dataset, index) {
+      var color = colors[index % colors.length];
+
+      /*
+       * Only provide colors when the user
+       * didn't explicitly specify them.
+       */
+      if (!dataset.backgroundColor) {
+        dataset.backgroundColor = color;
+      }
+
+      if (!dataset.borderColor) {
+        dataset.borderColor = color;
+      }
+
+      /*
+       * Line charts should generally have
+       * transparent fills.
+       */
+      if (
+        config.type === "line" ||
+        config.type === "scatter"
+      ) {
+        if (!dataset.backgroundColor) {
+          dataset.backgroundColor = color;
+        }
+
+        if (!dataset.borderColor) {
+          dataset.borderColor = color;
+        }
+      }
+    });
+
+    return config;
+  }
+
   function wrap(Original) {
     try {
-      Original.defaults.color = cssVar("--muted-foreground");
-      Original.defaults.borderColor = cssVar("--border");
-      Original.defaults.font.family = cssVar("--font-sans");
+      applyTheme(Original);
     } catch (e) {}
+
     function Wrapped(ctx, config) {
-      return new Original(ctx, resolve(config));
+      var resolved = resolve(config);
+      resolved = applyDatasetColors(resolved);
+
+      return new Original(ctx, resolved);
     }
+
     Wrapped.prototype = Original.prototype;
     Object.setPrototypeOf(Wrapped, Original);
+
     return Wrapped;
   }
+
   Object.defineProperty(window, "Chart", {
     configurable: true,
-    get: function () { return current; },
+
+    get: function () {
+      return current;
+    },
+
     set: function (value) {
-      current = value && value.defaults ? wrap(value) : value;
+      current =
+        value && value.defaults
+          ? wrap(value)
+          : value;
     }
   });
 })();
-`;
+`
 
 const AUTO_HEIGHT_SCRIPT = String.raw`
 (function () {
@@ -63,13 +197,13 @@ const AUTO_HEIGHT_SCRIPT = String.raw`
     start();
   }
 })();
-`;
+`
 
 const AUTO_HEIGHT_CSS = `
 html, body { height: auto !important; }
 .min-h-screen, .min-h-dvh, .min-h-svh { min-height: 0 !important; }
 .h-screen, .h-dvh, .h-svh { height: auto !important; }
-`;
+`
 
 const TOKENS_CSS = `
 :root {
@@ -93,11 +227,11 @@ const TOKENS_CSS = `
   --border: rgba(227 226 225);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.785 0.115 274.713);
+  --chart-2: oklch(0.585 0.233 277.117);
+  --chart-3: oklch(0.511 0.262 276.966);
+  --chart-4: oklch(0.457 0.24 277.023);
+  --chart-5: oklch(0.398 0.195 277.366);
   --radius: 0.625rem;
 }
 .dark {
@@ -119,13 +253,18 @@ const TOKENS_CSS = `
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.785 0.115 274.713);
+  --chart-2: oklch(0.585 0.233 277.117);
+  --chart-3: oklch(0.511 0.262 276.966);
+  --chart-4: oklch(0.457 0.24 277.023);
+  --chart-5: oklch(0.398 0.195 277.366);
 }
-`;
+`
 
 const COLOR_SCHEME_CSS = `
 :root { color-scheme: light; }
 .dark { color-scheme: dark; }
-`;
+`
 
 const PLAIN_BASE_CSS = `
 ${COLOR_SCHEME_CSS}
@@ -133,7 +272,7 @@ ${COLOR_SCHEME_CSS}
 html, body { margin: 0; background: transparent; color: var(--foreground); }
 html { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 body { padding: 16px; font-size: 14px; line-height: 1.5; }
-`;
+`
 
 const THEME_CSS = `
 @custom-variant dark (&:is(.dark *));
@@ -182,10 +321,10 @@ const THEME_CSS = `
   }
   button:not(:disabled) { cursor: pointer; }
 }
-`;
+`
 
 interface DesignSystemOptions {
-  autoHeight?: boolean;
+  autoHeight?: boolean
 }
 
 function buildHead(theme: "light" | "dark", autoHeight: boolean) {
@@ -198,31 +337,31 @@ function buildHead(theme: "light" | "dark", autoHeight: boolean) {
     autoHeight ? `<script>${AUTO_HEIGHT_SCRIPT}</script>` : "",
     `<script src="${TAILWIND_BROWSER}"></script>`,
     `<style type="text/tailwindcss">${THEME_CSS}</style>`,
-  ].join("");
+  ].join("")
 }
 
 export function withDesignSystem(
   html: string,
   theme: "light" | "dark" = "light",
-  options: DesignSystemOptions = {},
+  options: DesignSystemOptions = {}
 ) {
-  const head = buildHead(theme, options.autoHeight ?? false);
+  const head = buildHead(theme, options.autoHeight ?? false)
   const cleaned = html
     .replace(/<script[^>]*cdn\.tailwindcss\.com[^>]*><\/script>/gi, "")
-    .replace(/<script[^>]*@tailwindcss\/browser[^>]*><\/script>/gi, "");
+    .replace(/<script[^>]*@tailwindcss\/browser[^>]*><\/script>/gi, "")
 
   if (/<head[^>]*>/i.test(cleaned)) {
-    return cleaned.replace(/<head[^>]*>/i, (match) => `${match}${head}`);
+    return cleaned.replace(/<head[^>]*>/i, (match) => `${match}${head}`)
   }
   if (/<html[^>]*>/i.test(cleaned)) {
     return cleaned.replace(
       /<html[^>]*>/i,
-      (match) => `${match}<head>${head}</head>`,
-    );
+      (match) => `${match}<head>${head}</head>`
+    )
   }
-  return `<!DOCTYPE html><html><head>${head}</head><body>${cleaned}</body></html>`;
+  return `<!DOCTYPE html><html><head>${head}</head><body>${cleaned}</body></html>`
 }
 
 export function svgDocument(svg: string, theme: "light" | "dark" = "light") {
-  return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:100%}body{display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}svg{max-width:100%;max-height:100%;height:auto}</style></head><body>${svg}</body></html>`;
+  return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:100%}body{display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}svg{max-width:100%;max-height:100%;height:auto}</style></head><body>${svg}</body></html>`
 }

@@ -4,7 +4,11 @@ import {
   Client,
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
-import { normalizeTriggerTimezone } from "@openbots/api-contract";
+import {
+  agentEventHub,
+  getDirectRunExecutor,
+  normalizeTriggerTimezone,
+} from "@openbots/api-contract";
 import {
   agentTools,
   connections,
@@ -1486,7 +1490,14 @@ export function createScheduleTool(
         throw new Error("Failed to queue scheduled run");
       }
 
-      // Dispatch delayed task to Trigger.dev
+      // Broadcast scheduled task created in realtime
+      agentEventHub.publish(agentId, {
+        type: "schedule_updated",
+        scheduleId: newRun.id,
+        action: "created",
+      });
+
+      // Dispatch delayed task to Trigger.dev for durable background execution
       try {
         await tasks.trigger(
           "agent-run",
@@ -1502,6 +1513,20 @@ export function createScheduleTool(
           "Could not dispatch delayed Trigger.dev task:",
           triggerErr,
         );
+      }
+
+      // Immediate in-process direct execution timer fallback (runs in API server with 0ms SSE latency)
+      if (computedDelaySeconds <= 3600) {
+        setTimeout(async () => {
+          try {
+            const directExecutor = getDirectRunExecutor();
+            if (directExecutor) {
+              await directExecutor(newRun.id);
+            }
+          } catch {
+            // Concurrency-safe atomic claim inside executeAgentRun guarantees at-most-once execution
+          }
+        }, computedDelaySeconds * 1000);
       }
 
       const durationStr =
@@ -1677,6 +1702,13 @@ export function createRecurringTaskTool(userId: string, agentId: string) {
           triggerErr,
         );
       }
+
+      // Broadcast recurring schedule created in realtime
+      agentEventHub.publish(agentId, {
+        type: "schedule_updated",
+        scheduleId: schedule.id,
+        action: "created",
+      });
 
       return {
         scheduleId: schedule.id,
@@ -2136,6 +2168,11 @@ export function manageScheduleTool(
               // Ignore trigger cancel failure
             }
             const inp = (cancelledRun.input as any) ?? {};
+            agentEventHub.publish(agentId, {
+              type: "schedule_updated",
+              scheduleId: cancelledRun.id,
+              action: "deleted",
+            });
             return {
               success: true,
               type: "delayed_reminder",
@@ -2157,6 +2194,11 @@ export function manageScheduleTool(
                 .del(deletedSchedule.triggerScheduleId)
                 .catch(() => {});
             }
+            agentEventHub.publish(agentId, {
+              type: "schedule_updated",
+              scheduleId: deletedSchedule.id,
+              action: "deleted",
+            });
             return {
               success: true,
               type: "recurring_schedule",
@@ -2208,6 +2250,11 @@ export function manageScheduleTool(
             }
 
             const inp = (matchedRun.input as any) ?? {};
+            agentEventHub.publish(agentId, {
+              type: "schedule_updated",
+              scheduleId: matchedRun.id,
+              action: "deleted",
+            });
             return {
               success: true,
               type: "delayed_reminder",
@@ -2249,6 +2296,11 @@ export function manageScheduleTool(
               .delete(schedules)
               .where(eq(schedules.id, matchedSchedule.id));
 
+            agentEventHub.publish(agentId, {
+              type: "schedule_updated",
+              scheduleId: matchedSchedule.id,
+              action: "deleted",
+            });
             return {
               success: true,
               type: "recurring_schedule",
@@ -2418,6 +2470,12 @@ export function manageScheduleTool(
             .where(eq(runs.id, targetRun.id))
             .returning();
 
+          agentEventHub.publish(agentId, {
+            type: "schedule_updated",
+            scheduleId: targetRun.id,
+            action: "updated",
+          });
+
           return {
             success: true,
             type: "delayed_reminder",
@@ -2449,6 +2507,12 @@ export function manageScheduleTool(
             })
             .where(eq(schedules.id, targetSchedule.id))
             .returning();
+
+          agentEventHub.publish(agentId, {
+            type: "schedule_updated",
+            scheduleId: targetSchedule.id,
+            action: "updated",
+          });
 
           if (
             targetSchedule.triggerScheduleId &&

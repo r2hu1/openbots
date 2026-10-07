@@ -2,6 +2,8 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware } from "../../middleware/auth.js";
+import { db, getRedis, schedules } from "@openbots/db";
+import { and, desc, eq } from "drizzle-orm";
 import { agentEventHub } from "../runs/runs.logic.js";
 import {
   createAgent,
@@ -133,10 +135,28 @@ export const agentsRoute = new Hono<Env>()
         data: JSON.stringify({ agentId: id }),
       });
 
+      // Stream initial active schedules immediately so client is hydrated in real time
+      try {
+        const activeSchedules = await db
+          .select()
+          .from(schedules)
+          .where(and(eq(schedules.agentId, id), eq(schedules.userId, user.id)))
+          .orderBy(desc(schedules.createdAt));
+        await stream.writeSSE({
+          event: "schedules_init",
+          data: JSON.stringify({ schedules: activeSchedules }),
+        });
+      } catch {}
+
       const queue: Array<{ event: string; data: string }> = [];
       let notifyResolver: (() => void) | null = null;
+      let lastSeenSeq = -1;
 
       const unsubscribe = agentEventHub.subscribe(id, (ev) => {
+        if (ev.seq !== undefined) {
+          if (ev.seq <= lastSeenSeq) return;
+          lastSeenSeq = ev.seq;
+        }
         queue.push({
           event: ev.type,
           data: JSON.stringify(ev),
@@ -146,6 +166,15 @@ export const agentsRoute = new Hono<Env>()
           notifyResolver = null;
         }
       });
+
+      let lastRedisLen = 0;
+      try {
+        const redis = getRedis();
+        if (redis) {
+          const channelKey = `agent_events:${id}`;
+          lastRedisLen = (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+        }
+      } catch {}
 
       try {
         while (!stream.aborted) {
@@ -158,7 +187,7 @@ export const agentsRoute = new Hono<Env>()
             continue;
           }
 
-          // Wait for next event or 15s heartbeat
+          // Wait for next local event or 1.5s poll / heartbeat
           await new Promise<void>((resolve) => {
             let timer: any = null;
             const cb = () => {
@@ -167,13 +196,46 @@ export const agentsRoute = new Hono<Env>()
               resolve();
             };
             notifyResolver = cb;
-            timer = setTimeout(async () => {
-              try {
-                await stream.writeSSE({ event: "ping", data: "{}" });
-              } catch {}
-              cb();
-            }, 15000);
+            timer = setTimeout(cb, 1500);
           });
+
+          // Check cross-process events from Redis (dispatched by Trigger.dev or worker processes)
+          try {
+            const redis = getRedis();
+            if (redis) {
+              const channelKey = `agent_events:${id}`;
+              const currentLen =
+                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+              if (currentLen > lastRedisLen) {
+                const items = await redis.lrange(
+                  channelKey,
+                  lastRedisLen,
+                  currentLen - 1,
+                );
+                lastRedisLen = currentLen;
+                if (items && items.length > 0) {
+                  for (const raw of items) {
+                    const parsed =
+                      typeof raw === "string" ? JSON.parse(raw) : raw;
+                    if (parsed.seq !== undefined) {
+                      if (parsed.seq <= lastSeenSeq) continue;
+                      lastSeenSeq = parsed.seq;
+                    }
+                    queue.push({
+                      event: parsed.type,
+                      data:
+                        typeof raw === "string" ? raw : JSON.stringify(raw),
+                    });
+                  }
+                }
+              }
+            }
+          } catch {}
+
+          // Ping heartbeat
+          try {
+            await stream.writeSSE({ event: "ping", data: "{}" });
+          } catch {}
         }
       } finally {
         unsubscribe();

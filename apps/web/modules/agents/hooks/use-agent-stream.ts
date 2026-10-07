@@ -7,7 +7,12 @@ import { runKeys } from "@/modules/runs/queries";
 import { scheduleKeys } from "@/modules/schedules/queries";
 
 export interface AgentStreamEvent {
-  type: "run_created" | "run_status" | "schedule_fired" | "schedule_updated";
+  type:
+    | "run_created"
+    | "run_status"
+    | "schedule_fired"
+    | "schedule_updated"
+    | "schedules_init";
   run?: any;
   runId?: string;
   status?: string;
@@ -18,6 +23,7 @@ export interface AgentStreamEvent {
   name?: string;
   prompt?: string;
   conversationId?: string | null;
+  schedules?: any[];
 }
 
 interface UseAgentStreamOptions {
@@ -169,6 +175,16 @@ export function useAgentStream({
                 // Do not invalidate run query here; live run is handled via SSE stream
                 onRunCreatedRef.current?.(data);
               } else if (
+                eventType === "schedules_init" ||
+                data.type === "schedules_init"
+              ) {
+                if (Array.isArray(data.schedules)) {
+                  queryClient.setQueryData(
+                    scheduleKeys.byAgent(agentId),
+                    data.schedules,
+                  );
+                }
+              } else if (
                 eventType === "run_status" ||
                 data.type === "run_status"
               ) {
@@ -186,6 +202,11 @@ export function useAgentStream({
                       queryKey: runKeys.detail(data.runId),
                     });
                   }
+                  if (data.conversationId) {
+                    queryClient.invalidateQueries({
+                      queryKey: ["conversation", data.conversationId],
+                    });
+                  }
                 }
                 onRunStatusRef.current?.(data);
               } else if (
@@ -196,6 +217,9 @@ export function useAgentStream({
                   queryKey: scheduleKeys.byAgent(agentId),
                 });
                 queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
+                queryClient.invalidateQueries({
+                  queryKey: runKeys.byAgent(agentId),
+                });
               }
             } catch {}
           }

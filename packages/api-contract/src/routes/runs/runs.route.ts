@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import { getRedis } from "@openbots/db";
 import { authMiddleware } from "../../middleware/auth.js";
 import { cancelRun, getRun, listRuns, runEventHub } from "./runs.logic.js";
 
@@ -78,8 +79,13 @@ export const runsRoute = new Hono<Env>()
       const queue: Array<{ event: string; data: string }> = [];
       let notifyResolver: (() => void) | null = null;
       let isDone = false;
+      let lastSeenSeq = -1;
 
       const unsubscribe = runEventHub.subscribe(id, (ev) => {
+        if (ev.seq !== undefined) {
+          if (ev.seq <= lastSeenSeq) return;
+          lastSeenSeq = ev.seq;
+        }
         queue.push({
           event: ev.type,
           data: JSON.stringify(ev),
@@ -98,6 +104,15 @@ export const runsRoute = new Hono<Env>()
           notifyResolver = null;
         }
       });
+
+      let lastRedisLen = 0;
+      try {
+        const redis = getRedis();
+        if (redis) {
+          const channelKey = `run_events:${id}`;
+          lastRedisLen = (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+        }
+      } catch {}
 
       try {
         let lastDbCheck = Date.now();
@@ -119,8 +134,51 @@ export const runsRoute = new Hono<Env>()
             break;
           }
 
-          // Fallback DB check every 3s: if run is already terminal in database, send terminal state and exit
-          if (Date.now() - lastDbCheck > 3_000) {
+          // Check cross-process events from Redis (dispatched by Trigger.dev or worker processes)
+          try {
+            const redis = getRedis();
+            if (redis) {
+              const channelKey = `run_events:${id}`;
+              const currentLen =
+                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+              if (currentLen > lastRedisLen) {
+                const items = await redis.lrange(
+                  channelKey,
+                  lastRedisLen,
+                  currentLen - 1,
+                );
+                lastRedisLen = currentLen;
+                if (items && items.length > 0) {
+                  for (const raw of items) {
+                    const parsed =
+                      typeof raw === "string" ? JSON.parse(raw) : raw;
+                    if (parsed.seq !== undefined) {
+                      if (parsed.seq <= lastSeenSeq) continue;
+                      lastSeenSeq = parsed.seq;
+                    }
+                    queue.push({
+                      event: parsed.type,
+                      data:
+                        typeof raw === "string" ? raw : JSON.stringify(raw),
+                    });
+                    if (
+                      parsed.type === "done" ||
+                      (parsed.type === "status" &&
+                        (parsed.status === "completed" ||
+                          parsed.status === "failed" ||
+                          parsed.status === "cancelled"))
+                    ) {
+                      isDone = true;
+                    }
+                  }
+                  if (queue.length > 0) continue;
+                }
+              }
+            }
+          } catch {}
+
+          // Fallback DB check every 2.5s: if run is already terminal in database, send terminal state and exit
+          if (Date.now() - lastDbCheck > 2_500) {
             lastDbCheck = Date.now();
             const current = await getRun(id, user.id);
             if (

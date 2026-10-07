@@ -108,6 +108,22 @@ export function useAgentExecution({
           setActiveRunId(ev.runId);
         }
       }
+      if (ev.status === "completed" || ev.status === "failed") {
+        if (activeConversationId) {
+          queryClient.invalidateQueries({
+            queryKey: ["conversation", activeConversationId],
+          });
+        }
+        if (ev.conversationId && ev.conversationId !== activeConversationId) {
+          queryClient.invalidateQueries({
+            queryKey: ["conversation", ev.conversationId],
+          });
+        }
+        if (activeRunId === ev.runId) {
+          setActiveRunId(null);
+          setIsOptimisticRunning(false);
+        }
+      }
     },
   });
 

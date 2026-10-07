@@ -146,8 +146,9 @@ export function parseArtifacts(content: string): {
       );
       const mode = rawMode === "inline" ? "inline" : "card";
 
+      const artifactIndex = artifacts.length + 1;
       const artifact: ParsedArtifact = {
-        id: `artifact-streaming-${artifacts.length + 1}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+        id: `artifact-${artifactIndex}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
         type,
         title,
         content: cleanContent,
@@ -190,9 +191,10 @@ export function parseArtifacts(content: string): {
         rawTitle || `Creating ${type.toUpperCase()} Artifact...`
       ).trim();
       const mode = rawMode === "inline" ? "inline" : "card";
+      const artifactIndex = artifacts.length + 1;
 
       const artifact: ParsedArtifact = {
-        id: `artifact-streaming-${artifacts.length + 1}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+        id: `artifact-${artifactIndex}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
         type,
         title,
         content: "",

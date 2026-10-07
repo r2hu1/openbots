@@ -73,6 +73,7 @@ interface HtmlSandboxProps {
   fitContent?: boolean;
   initialWidth?: number;
   maxWidth?: number;
+  isStreaming?: boolean;
 }
 
 export function HtmlSandbox({
@@ -81,11 +82,30 @@ export function HtmlSandbox({
   fitContent = false,
   initialWidth = 760,
   maxWidth = 820,
+  isStreaming = false,
 }: HtmlSandboxProps) {
   const theme = useIframeTheme();
 
+  // Debounce the code during streaming so the iframe doesn't flicker or reload on every single token
+  const [debouncedCode, setDebouncedCode] = React.useState(code);
+
+  React.useEffect(() => {
+    if (!isStreaming) {
+      setDebouncedCode(code);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedCode(code);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [code, isStreaming]);
+
+  const activeCode = isStreaming ? debouncedCode : code;
+
   const srcDoc = React.useMemo(() => {
-    const document = withDesignSystem(code, theme);
+    const document = withDesignSystem(activeCode, theme);
 
     if (!fitContent) {
       return document;
@@ -171,7 +191,7 @@ export function HtmlSandbox({
           setTimeout(sendSize, 100)
           setTimeout(sendSize, 500)
         })()
-      <\/script>
+      </script>
     `;
 
     let result = document;
@@ -189,7 +209,7 @@ export function HtmlSandbox({
     }
 
     return result;
-  }, [code, theme, fitContent]);
+  }, [activeCode, theme, fitContent]);
 
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
 
@@ -287,15 +307,40 @@ export function HtmlSandbox({
 export function SvgSandbox({
   svg,
   className,
+  isStreaming = false,
 }: {
   svg: string;
   className?: string;
+  isStreaming?: boolean;
 }) {
   const theme = useIframeTheme();
 
-  const srcDoc = React.useMemo(() => svgDocument(svg, theme), [svg, theme]);
+  const [debouncedSvg, setDebouncedSvg] = React.useState(svg);
 
-  const aspectRatio = React.useMemo(() => parseViewBoxRatio(svg), [svg]);
+  React.useEffect(() => {
+    if (!isStreaming) {
+      setDebouncedSvg(svg);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedSvg(svg);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [svg, isStreaming]);
+
+  const activeSvg = isStreaming ? debouncedSvg : svg;
+
+  const srcDoc = React.useMemo(
+    () => svgDocument(activeSvg, theme),
+    [activeSvg, theme],
+  );
+
+  const aspectRatio = React.useMemo(
+    () => parseViewBoxRatio(activeSvg),
+    [activeSvg],
+  );
 
   return (
     <div

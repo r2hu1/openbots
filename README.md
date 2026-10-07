@@ -33,25 +33,30 @@ OpenBots gives you an elegant, fast workspace to orchestrate these agents effort
 
 Take a visual tour through everything you can do in OpenBots:
 
-### 1. 🤖 Dedicated Agents with Personalities & Roles
+### 1. Dedicated Agents with Personalities & Roles
 
 Create distinct agents for any purpose. Give each agent their own:
 
 - **System Instructions**: Define their tone, rules, domain knowledge, and exact boundaries.
-- **Model Intelligence**: Select from state-of-the-art reasoning models like Google Gemini 2.5 Flash, Gemini Pro, Anthropic Claude, or OpenAI.
-- **Distinct Avatars**: Auto-generated animated _Blobatars_ give each agent an expressive visual identity.
+- **Model Intelligence**: Select from state-of-the-art reasoning models like Google's Gemini, Anthropic Claude, OpenAI or OpenRouter.
+- **Distinct Avatars**: Auto-generated animated Avatars give each agent an expressive visual identity.
 - **Allowed Tools**: Turn specific tools on or off so agents only have the capabilities they need.
 
-### 2. 💬 Rich Conversational Workspace
+### 2. Rich Conversational Workspace
+
+![Chat](./apps/web/public/preview-chat.png)
 
 Collaborate in a focused, clutter-free chat environment:
 
 - **Streaming Responses**: Clean, jitter-free streaming that renders smoothly as thoughts are formed.
 - **Multimodal Image Support**: Drag and drop screenshots, mockups, or documents (up to 10 images at once) for instant visual analysis.
 - **Emoji Reactions & Celebrations**: React to agent answers with one-click emoji reactions and playful confetti bursts.
+
+![Reactions](./apps/web/public/preview-reactions.png)
+
 - **Thread History & Message Splitting**: Long conversational responses are cleanly structured into digestible thoughts with full search and history.
 
-### 3. 🎯 Human-Readable Activity Stream (Not Raw Debug Logs)
+### 3. Human-Readable Activity Stream (Not Raw Debug Logs)
 
 When autonomous agents think and work, you shouldn't have to decipher walls of raw API JSON:
 
@@ -61,7 +66,11 @@ When autonomous agents think and work, you shouldn't have to decipher walls of r
   - **"Sent the email"** _(to the requested recipient)_
 - Need to look under the hood? Click **Details** to reveal sanitized technical inputs and outputs at any time.
 
-### 4. 🎨 Interactive Artifacts & Sandboxes
+### 4. Interactive Artifacts & Sandboxes
+
+![Artifacts-Inline](./apps/web/public/preview-artifacts-inline.png)
+
+![Artifacts](./apps/web/public/preview-artifacts.png)
 
 When your agent creates code, designs, or diagrams, it doesn't just print raw text — it generates living **Artifacts**:
 
@@ -70,7 +79,9 @@ When your agent creates code, designs, or diagrams, it doesn't just print raw te
 - **Vector SVGs**: Render logos, icons, and illustrations.
 - **Copy & Export**: Switch seamlessly between preview and code with one click.
 
-### 5. ⏰ Durable Background Workflows & Scheduling
+### 5. Durable Background Workflows & Scheduling
+
+![Schedules](./apps/web/public/preview-schedules.png)
 
 Agents don't only react when you prompt them — they can run on their own:
 
@@ -78,7 +89,9 @@ Agents don't only react when you prompt them — they can run on their own:
 - **Recurring Cron Jobs**: Set up automated workflows that run daily, weekly, or hourly (e.g. _"Check GitHub issues every weekday morning"_).
 - **Survives Restarts**: Powered by Trigger.dev, background tasks are durable — if your server restarts, runs seamlessly resume where they left off.
 
-### 6. 🔌 200+ SaaS Integrations via Composio & MCP
+### 6. 200+ SaaS Integrations via Composio & MCP
+
+![Connections](./apps/web/public/preview-connections.png)
 
 Connect your agents to the real world:
 

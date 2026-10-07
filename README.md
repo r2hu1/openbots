@@ -2,9 +2,7 @@
 
 An open-source autonomous multi-agent platform for building, orchestrating, and operating teams of specialized AI agents with durable tool execution, scheduled workflows, and third-party SaaS integrations.
 
-
 https://github.com/user-attachments/assets/bc64f150-2b03-4c32-a173-38765f38f40c
-
 
 ## Overview
 
@@ -24,57 +22,21 @@ OpenBots provides a complete infrastructure stack for deploying autonomous agent
 
 ---
 
-## Architecture
-
-```
-                                  +------------------------------+
-                                  |      Next.js Frontend        |
-                                  |  (React 19 / App Router)     |
-                                  +--------------+---------------+
-                                                 |
-                                     Typed RPC / REST API
-                                                 |
-                                  +--------------v---------------+
-                                  |        Hono API Server       |
-                                  |     (@openbots/api-contract) |
-                                  +--------------+---------------+
-                                                 |
-                 +-------------------------------+-------------------------------+
-                 |                                                               |
-                 v                                                               v
-  +------------------------------+                                +------------------------------+
-  |    Direct Agent Executor     |                                |      Trigger.dev Worker      |
-  |  (In-process fast path)      |                                |  (Durable background runs)   |
-  +--------------+---------------+                                +--------------+---------------+
-                 |                                                               |
-                 +-------------------------------+-------------------------------+
-                                                 |
-                 +-------------------------------+-------------------------------+
-                 |                               |                               |
-                 v                               v                               v
-  +------------------------------+ +---------------------------+ +-------------------------------+
-  |        PostgreSQL DB         | |       Upstash Redis       | |       External Providers        |
-  | (Agents, Runs, Steps, Auth)  | | (Pub/Sub & Event Caching) | | (Google AI, Composio, MCP)    |
-  +------------------------------+ +---------------------------+ +-------------------------------+
-```
-
----
-
 ## Tech Stack
 
-| Domain                            | Technology                                                      |
-| --------------------------------- | --------------------------------------------------------------- |
-| **Frontend Framework**            | Next.js (App Router), React 19, TypeScript                      |
-| **Styling & Components**          | Tailwind CSS v4, Base UI / Radix primitives, `@openbots/ui`     |
-| **Server & Routing**              | Hono, `@hono/zod-validator`, Bun HTTP server                    |
-| **Agent Reasoning Engine**        | Vercel AI SDK (`ai`), Multimodal Image Vision, Google Gemini    |
-| **Background & Scheduling**       | Trigger.dev v4 (durable tasks, delayed schedules, cron jobs)    |
-| **Database & Object Storage**      | PostgreSQL, Supabase Storage, Drizzle ORM, Drizzle Kit          |
-| **Cache & State Synchronization** | Upstash Redis / IORedis                                         |
-| **Authentication**                | Better Auth (session cookies, email/password, RBAC)             |
-| **Interactive UI & Effects**      | Base UI Toasts, canvas-confetti, dynamic visual artifacts       |
-| **Integrations**                  | Composio Platform SDK, Model Context Protocol (MCP)             |
-| **Monorepo Tooling**              | Turborepo, Bun workspaces, Biome (linting & formatting)         |
+| Domain                            | Technology                                                   |
+| --------------------------------- | ------------------------------------------------------------ |
+| **Frontend Framework**            | Next.js (App Router), React 19, TypeScript                   |
+| **Styling & Components**          | Tailwind CSS v4, Base UI / Radix primitives, `@openbots/ui`  |
+| **Server & Routing**              | Hono, `@hono/zod-validator`, Bun HTTP server                 |
+| **Agent Reasoning Engine**        | Vercel AI SDK (`ai`), Multimodal Image Vision, Google Gemini |
+| **Background & Scheduling**       | Trigger.dev v4 (durable tasks, delayed schedules, cron jobs) |
+| **Database & Object Storage**     | PostgreSQL, Supabase Storage, Drizzle ORM, Drizzle Kit       |
+| **Cache & State Synchronization** | Upstash Redis / IORedis                                      |
+| **Authentication**                | Better Auth (session cookies, email/password, RBAC)          |
+| **Interactive UI & Effects**      | Base UI Toasts, canvas-confetti, dynamic visual artifacts    |
+| **Integrations**                  | Composio Platform SDK, Model Context Protocol (MCP)          |
+| **Monorepo Tooling**              | Turborepo, Bun workspaces, Biome (linting & formatting)      |
 
 ---
 

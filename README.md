@@ -12,7 +12,9 @@ OpenBots is an open-source platform where you can build, customize, and collabor
 
 </div>
 
-https://github.com/user-attachments/assets/bc64f150-2b03-4c32-a173-38765f38f40c
+
+https://github.com/user-attachments/assets/e9e70be1-bec4-45a0-b9c4-f64d3890f2e5
+
 
 ---
 

@@ -16,11 +16,13 @@
     "better-auth": "^1.7.0",
     "drizzle-orm": "^0.45.3",
     "hono": "^4.7.11",
+    "web-push": "^3.6.7",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@openbots/typescript-config": "workspace:*",
     "@types/node": "^20",
+    "@types/web-push": "^3.6.4",
     "typescript": "^5"
   },
   "exports": {

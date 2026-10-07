@@ -10,6 +10,7 @@ import { ConnectionsSheet } from "@/modules/connections/components/connections-s
 import { SearchCommandDialog } from "./search-command-dialog";
 import { SettingsSheet } from "./settings-sheet";
 import { WorkspaceSidebar } from "./workspace-sidebar";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -27,6 +28,18 @@ export function DashboardShell({
   const [searchOpen, setSearchOpen] = React.useState(false);
 
   const { data: agents = [], isPending: agentsPending } = useAgentsQuery();
+  const { isSupported, permission, isSubscribed, subscribe } = usePushNotifications();
+
+  // On initial dashboard load, if notifications are supported and permission is still "default", request and subscribe
+  React.useEffect(() => {
+    if (isSupported && permission === "default" && !isSubscribed) {
+      // Delay briefly so initial app hydration and layout render smoothly
+      const timer = setTimeout(() => {
+        subscribe().catch(() => {});
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isSupported, permission, isSubscribed, subscribe]);
 
   // Register global Cmd+K / Ctrl+K keyboard shortcut
   React.useEffect(() => {

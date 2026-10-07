@@ -53,6 +53,7 @@ import {
   User as IconUser,
 } from "reicon-react"
 import { authClient, signOut, useSession } from "@/lib/auth-client"
+import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { cn } from "@/lib/utils"
 
 export type SupportedLlmProvider =
@@ -408,7 +409,87 @@ function GeneralSection() {
           </SettingRow>
         </Panel>
       </div>
+
+      <div>
+        <GroupLabel>Push Notifications</GroupLabel>
+        <PushNotificationSetting />
+      </div>
     </>
+  )
+}
+
+function PushNotificationSetting() {
+  const {
+    isSupported,
+    permission,
+    isSubscribed,
+    isLoading,
+    error,
+    subscribe,
+    unsubscribe,
+    sendTestNotification,
+    isTesting,
+  } = usePushNotifications()
+
+  const handleToggle = async (checked: boolean) => {
+    if (checked) {
+      await subscribe()
+    } else {
+      await unsubscribe()
+    }
+  }
+
+  return (
+    <Panel>
+      <SettingRow
+        title="Push notifications"
+        description={
+          !isSupported
+            ? "Push notifications are not supported in this browser."
+            : permission === "denied"
+              ? "Notification permission was blocked in browser settings."
+              : isSubscribed
+                ? "Active: You'll receive background alerts when scheduled tasks run."
+                : "Get notified when scheduled tasks and background agent runs complete."
+        }
+      >
+        <div className="flex items-center gap-2">
+          {isLoading ? (
+            <Spinner className="size-4" />
+          ) : (
+            <Switch
+              disabled={!isSupported || permission === "denied" || isLoading}
+              checked={isSubscribed}
+              onCheckedChange={handleToggle}
+            />
+          )}
+        </div>
+      </SettingRow>
+
+      {isSubscribed && (
+        <SettingRow
+          title="Send test notification"
+          description="Verify that desktop and lock-screen push alerts arrive on this device."
+        >
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            disabled={isTesting}
+            onClick={() => sendTestNotification()}
+          >
+            {isTesting && <Spinner className="size-3" />}
+            Send test alert
+          </Button>
+        </SettingRow>
+      )}
+
+      {error && (
+        <div className="p-3">
+          <StatusMessage type="error">{error}</StatusMessage>
+        </div>
+      )}
+    </Panel>
   )
 }
 

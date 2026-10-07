@@ -4,6 +4,7 @@ export * from "./auth.js";
 export * from "./connections.js";
 export * from "./conversations.js";
 export * from "./messages.js";
+export * from "./push-subscriptions.js";
 export * from "./run-steps.js";
 export * from "./runs.js";
 export * from "./schedules.js";

@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   transpilePackages: [
@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     "@openbots/api-client",
     "@openbots/api-contract",
   ],
-};
+  output: "standalone",
+}
 
-export default nextConfig;
+export default nextConfig

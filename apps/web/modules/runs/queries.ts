@@ -122,14 +122,8 @@ export function useTriggerAgentRunMutation(
       };
     },
     onSuccess: (data) => {
-      const convId = data.run.conversationId || activeConversationId;
-      if (convId) {
-        queryClient.invalidateQueries({
-          queryKey: ["conversation", convId],
-        });
-      }
-      if (agentId) {
-        queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) });
+      // If a brand new conversation was created on the server, invalidate conversation list so sidebar shows it
+      if (agentId && !activeConversationId && data.run.conversationId) {
         queryClient.invalidateQueries({
           queryKey: ["conversations", agentId],
         });

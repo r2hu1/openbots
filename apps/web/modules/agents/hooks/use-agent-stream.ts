@@ -166,21 +166,26 @@ export function useAgentStream({
                 eventType === "run_created" ||
                 data.type === "run_created"
               ) {
-                queryClient.invalidateQueries({
-                  queryKey: runKeys.byAgent(agentId),
-                });
+                // Do not invalidate run query here; live run is handled via SSE stream
                 onRunCreatedRef.current?.(data);
               } else if (
                 eventType === "run_status" ||
                 data.type === "run_status"
               ) {
-                queryClient.invalidateQueries({
-                  queryKey: runKeys.byAgent(agentId),
-                });
-                if (data.runId) {
+                const status = data.status || data.run?.status;
+                const isTerminal =
+                  status === "completed" ||
+                  status === "failed" ||
+                  status === "cancelled";
+                if (isTerminal) {
                   queryClient.invalidateQueries({
-                    queryKey: runKeys.detail(data.runId),
+                    queryKey: runKeys.byAgent(agentId),
                   });
+                  if (data.runId) {
+                    queryClient.invalidateQueries({
+                      queryKey: runKeys.detail(data.runId),
+                    });
+                  }
                 }
                 onRunStatusRef.current?.(data);
               } else if (

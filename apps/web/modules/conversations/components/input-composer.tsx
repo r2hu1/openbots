@@ -311,10 +311,13 @@ export function InputComposer({
     const prev = el.offsetHeight
     el.style.height = "auto"
     const full = el.scrollHeight
+
     if (!isExpanded && text.length > 0 && (text.includes("\n") || full > 44)) {
       setIsExpanded(true)
     }
+
     el.style.overflowY = full > 240 ? "auto" : "hidden"
+
     // Restore previous height, force reflow, then set the target so the
     // CSS height transition has something to animate from.
     el.style.height = `${prev}px`
@@ -325,8 +328,10 @@ export function InputComposer({
   // Check if user is typing a slash command:
   const slashMatch = React.useMemo(() => {
     if (isDismissed) return null
+
     const match = text.match(/(?:^|\s)\/([a-zA-Z0-9_-]*)$/)
     if (!match) return null
+
     return {
       query: (match[1] ?? "").toLowerCase(),
       startIndex: match.index! + (match[0].startsWith(" ") ? 1 : 0),
@@ -335,8 +340,10 @@ export function InputComposer({
 
   const filteredCommands = React.useMemo(() => {
     if (!slashMatch) return []
+
     const q = slashMatch.query
     if (!q) return SLASH_COMMANDS
+
     return SLASH_COMMANDS.filter(
       (cmd) =>
         cmd.name.toLowerCase().includes(q) ||
@@ -354,9 +361,11 @@ export function InputComposer({
   // Scroll active command into view
   React.useEffect(() => {
     if (!isMenuOpen || !commandListRef.current) return
+
     const activeItem = commandListRef.current.querySelector(
       `[data-index="${selectedIndex}"]`
     ) as HTMLElement | null
+
     if (activeItem) {
       activeItem.scrollIntoView({ block: "nearest" })
     }
@@ -372,7 +381,9 @@ export function InputComposer({
         const newText = `${before}${command.label} `
         setText(newText)
       }
+
       setIsDismissed(false)
+
       requestAnimationFrame(() => {
         const textarea = textareaRef.current
         if (textarea) {
@@ -393,6 +404,7 @@ export function InputComposer({
       if (event.isComposing) return
 
       const target = event.target as HTMLElement | null
+
       if (
         target &&
         (target.tagName === "INPUT" ||
@@ -436,6 +448,7 @@ export function InputComposer({
       }
 
       const remainingSlots = MAX_IMAGES - attachments.length
+
       if (remainingSlots <= 0) {
         toast.add({
           title: "Limit reached",
@@ -446,6 +459,7 @@ export function InputComposer({
       }
 
       const filesToProcess = imageFiles.slice(0, remainingSlots)
+
       if (imageFiles.length > remainingSlots) {
         toast.add({
           title: "Too many files",
@@ -476,7 +490,6 @@ export function InputComposer({
 
         setAttachments((prev) => [...prev, newAttachment])
 
-        // Start upload
         uploadMutation
           .mutateAsync(file)
           .then((res) => {
@@ -495,13 +508,16 @@ export function InputComposer({
           })
           .catch((err) => {
             console.error("Upload error:", err)
+
             const errorMsg =
               err?.message || "Failed to upload image. Please try again."
+
             toast.add({
               title: "Upload failed",
               description: `Could not upload "${file.name}": ${errorMsg}`,
               type: "error",
             })
+
             setAttachments((prev) =>
               prev.map((item) =>
                 item.id === id
@@ -517,9 +533,11 @@ export function InputComposer({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : []
+
     if (files.length > 0) {
       handleProcessFiles(files)
     }
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -529,13 +547,16 @@ export function InputComposer({
   const handleRemoveAttachment = (id: string) => {
     setAttachments((prev) => {
       const item = prev.find((a) => a.id === id)
+
       if (item) {
         URL.revokeObjectURL(item.previewUrl)
+
         // Delete from Supabase storage if it was already uploaded
         if (item.uploadedPath) {
           deleteMutation.mutate(item.uploadedPath)
         }
       }
+
       return prev.filter((a) => a.id !== id)
     })
   }
@@ -546,8 +567,10 @@ export function InputComposer({
     if (!items) return
 
     const files: File[] = []
+
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
+
       if (item && item.kind === "file" && item.type.startsWith("image/")) {
         const file = item.getAsFile()
         if (file) files.push(file)
@@ -565,11 +588,13 @@ export function InputComposer({
 
     const rawText = text.trim()
     let finalPrompt = rawText
+
     if (replyTarget && rawText) {
       const quoted = replyTarget.text
         .split("\n")
         .map((l) => `> ${l}`)
         .join("\n")
+
       finalPrompt = `${quoted}\n\n${rawText}`
     }
 
@@ -583,6 +608,7 @@ export function InputComposer({
     for (const a of attachments) {
       URL.revokeObjectURL(a.previewUrl)
     }
+
     setAttachments([])
     setText("")
     setIsDismissed(false)
@@ -603,6 +629,7 @@ export function InputComposer({
         setSelectedIndex((prev) => (prev + 1) % filteredCommands.length)
         return
       }
+
       if (event.key === "ArrowUp") {
         event.preventDefault()
         setSelectedIndex(
@@ -611,14 +638,19 @@ export function InputComposer({
         )
         return
       }
+
       if (event.key === "Enter" || event.key === "Tab") {
         event.preventDefault()
+
         const selected = filteredCommands[selectedIndex]
+
         if (selected) {
           handleSelectCommand(selected)
         }
+
         return
       }
+
       if (event.key === "Escape") {
         event.preventDefault()
         setIsDismissed(true)
@@ -637,6 +669,7 @@ export function InputComposer({
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(event.target.value)
+
     if (isDismissed) {
       setIsDismissed(false)
     }
@@ -648,7 +681,7 @@ export function InputComposer({
   }
 
   return (
-    <div className="w-full px-3 pb-4">
+    <div className="w-full px-3 pb-3">
       <div className="relative mx-auto max-w-4xl">
         {/* Slash Commands Floating Menu */}
         {isMenuOpen && (
@@ -662,10 +695,12 @@ export function InputComposer({
               Commands
               <Kbd>TAB</Kbd>
             </div>
+
             <div className="max-h-72 w-full space-y-0.5 overflow-y-auto px-1.5 pb-1.5">
               {filteredCommands.map((command, idx) => {
                 const isSelected = idx === selectedIndex
                 const Icon = command.icon
+
                 return (
                   <button
                     key={command.name}
@@ -697,15 +732,18 @@ export function InputComposer({
                       >
                         <Icon className="size-4" />
                       </div>
+
                       <div className="min-w-0 flex-1">
                         <span className="font-medium text-foreground">
                           {command.label}
                         </span>
+
                         <p className="line-clamp-1 text-xs text-muted-foreground">
                           {command.description}
                         </p>
                       </div>
                     </div>
+
                     {command.category && (
                       <span className="shrink-0 text-[10px] font-medium text-muted-foreground/60 uppercase">
                         {command.category}
@@ -726,7 +764,9 @@ export function InputComposer({
         >
           <div
             onClick={handleContainerClick}
-            className="flex cursor-text flex-col overflow-hidden rounded-2xl border border-border/60 bg-card transition-shadow duration-200 focus-within:border-border focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.09)] focus-within:ring-2 focus-within:ring-ring/50"
+            className={cn(
+              "flex cursor-text flex-col overflow-hidden rounded-xl border border-border/60 bg-card transition-shadow duration-200 focus-within:border-border focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.09)] focus-within:ring-2 focus-within:ring-ring/50"
+            )}
           >
             {/* Hidden file input */}
             <input
@@ -741,16 +781,19 @@ export function InputComposer({
 
             {/* Replying banner */}
             {replyTarget && (
-              <div className="mx-3 mt-3 flex animate-in items-center justify-between rounded-xl bg-muted px-3 py-2 text-xs fade-in-0 slide-in-from-bottom-1">
+              <div className="mx-3 mt-2.5 flex animate-in items-center justify-between rounded-lg bg-muted px-2.5 py-1.5 text-xs fade-in-0 slide-in-from-bottom-1">
                 <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                  <ArrowToDownLeft className="size-3.5 shrink-0" />
+                  <ArrowToDownLeft className="size-3 shrink-0" />
+
                   <span className="shrink-0 font-medium text-foreground">
                     Replying to {replyTarget.sender}
                   </span>
+
                   <span className="truncate text-muted-foreground/80">
                     "{replyTarget.text.replace(/\s+/g, " ").slice(0, 80)}"
                   </span>
                 </div>
+
                 {onClearReply && (
                   <Button
                     type="button"
@@ -764,7 +807,7 @@ export function InputComposer({
                     title="Cancel reply"
                     aria-label="Cancel reply"
                   >
-                    <X className="size-3.5" />
+                    <X className="size-3" />
                   </Button>
                 )}
               </div>
@@ -772,28 +815,31 @@ export function InputComposer({
 
             {/* Attachment preview group */}
             {attachments.length > 0 && (
-              <div className="px-3.5 pt-3">
-                <AttachmentGroup className="gap-2">
+              <div className="px-3 pt-2.5">
+                <AttachmentGroup className="gap-1.5">
                   {attachments.map((att) => (
                     <Attachment
                       key={att.id}
                       size="sm"
                       state={att.status}
-                      className="group/item relative overflow-hidden rounded-xl"
+                      className="group/item relative overflow-hidden rounded-lg"
                     >
-                      <AttachmentMedia variant="image" className="size-12!">
+                      <AttachmentMedia variant="image" className="size-10!">
                         <img
                           src={att.previewUrl}
                           alt={att.file.name}
                           className="size-full object-cover"
                         />
                       </AttachmentMedia>
+
                       <AttachmentContent className="max-w-30 truncate">
                         <AttachmentTitle>{att.file.name}</AttachmentTitle>
+
                         <AttachmentDescription>
                           {att.status}
                         </AttachmentDescription>
                       </AttachmentContent>
+
                       <AttachmentActions>
                         <AttachmentAction
                           variant="secondary"
@@ -817,8 +863,8 @@ export function InputComposer({
 
             <div
               className={cn(
-                "relative p-2 transition-[padding] duration-200 ease-out motion-reduce:transition-none",
-                isExpanded ? "pb-12" : "pb-2"
+                "relative p-2.5 transition-[padding] duration-200 ease-out motion-reduce:transition-none",
+                isExpanded ? "pb-10" : "pb-[9px]"
               )}
             >
               {/* Attach */}
@@ -831,7 +877,7 @@ export function InputComposer({
                   fileInputRef.current?.click()
                 }}
                 disabled={disabled || attachments.length >= MAX_IMAGES}
-                className="absolute bottom-3 left-2.5 size-8.5 rounded-full text-muted-foreground transition-transform hover:bg-muted hover:text-foreground active:scale-95"
+                className="absolute bottom-2.5 left-1.5 size-8 rounded-full text-muted-foreground transition-transform hover:bg-muted hover:text-foreground active:scale-95"
                 title={
                   attachments.length >= MAX_IMAGES
                     ? `Maximum ${MAX_IMAGES} images attached`
@@ -839,7 +885,7 @@ export function InputComposer({
                 }
                 aria-label="Attach images"
               >
-                <Plus className="size-[18px]" />
+                <Plus className="size-4" />
               </Button>
 
               <Textarea
@@ -858,8 +904,8 @@ export function InputComposer({
                 disabled={disabled || isActiveRun}
                 rows={1}
                 className={cn(
-                  "block field-sizing-fixed max-h-60 min-h-0 w-full resize-none rounded-none border-0 bg-transparent! py-2 text-[15px] leading-6 shadow-none transition-[height] duration-200 ease-out placeholder:text-muted-foreground/70 focus-visible:ring-0 focus-visible:ring-offset-0 motion-reduce:transition-none",
-                  isExpanded ? "px-2.5" : "px-10"
+                  "block field-sizing-fixed max-h-60 min-h-0 w-full resize-none rounded-none border-0 bg-transparent! py-1.5 text-[14px] leading-5 shadow-none transition-[height] duration-200 ease-out placeholder:text-muted-foreground/70 focus-visible:ring-0 focus-visible:ring-offset-0 motion-reduce:transition-none",
+                  isExpanded ? "px-2.5" : "px-9"
                 )}
               />
 
@@ -870,13 +916,13 @@ export function InputComposer({
                   size="icon"
                   onClick={onCancelRun}
                   disabled={isCancelling}
-                  className="absolute right-2.5 bottom-3 size-8.5 rounded-full transition-transform active:scale-95"
+                  className="absolute right-1.5 bottom-2.5 size-8 rounded-full transition-transform active:scale-95"
                   aria-label="Stop run"
                 >
                   {isCancelling ? (
-                    <Spinner className="size-4" />
+                    <Spinner className="size-3.5" />
                   ) : (
-                    <Stop3 className="size-4" />
+                    <Stop3 className="size-3.5" />
                   )}
                 </Button>
               ) : (
@@ -884,13 +930,13 @@ export function InputComposer({
                   type="submit"
                   size="icon"
                   disabled={!canSubmit}
-                  className="absolute right-2.5 bottom-3 size-8.5 rounded-full transition-[opacity,transform] active:scale-95 disabled:opacity-40"
+                  className="absolute right-1.5 bottom-2.5 size-8 rounded-full transition-[opacity,transform] active:scale-95 disabled:opacity-40"
                   aria-label="Send message"
                 >
                   {isSubmitting || isUploadingAny ? (
-                    <Spinner className="size-4" />
+                    <Spinner className="size-3.5" />
                   ) : (
-                    <ArrowUp className="size-4" />
+                    <ArrowUp className="size-3.5" />
                   )}
                 </Button>
               )}

@@ -5,7 +5,6 @@ import * as React from "react";
 import type { MessageItem } from "@/modules/conversations/types";
 import {
   useCancelRunMutation,
-  useRunDetailQuery,
   useRunsQuery,
   useTriggerAgentRunMutation,
 } from "@/modules/runs/queries";
@@ -114,6 +113,7 @@ export function useAgentExecution({
 
   // Query runs without polling (updates stream via SSE in realtime)
   const { data: runs = [] } = useRunsQuery(agentId, {
+    enabled: Boolean(agentId) && !activeRunId && !isOptimisticRunning,
     refetchInterval: false,
   });
 
@@ -131,11 +131,6 @@ export function useAgentExecution({
       }
     }
   }, [activeRunId, runs, activeConversationId]);
-
-  // Fetch initial run details without polling
-  const { data: activeRunData } = useRunDetailQuery(activeRunId, {
-    refetchInterval: false,
-  });
 
   // Connect live SSE stream for the active run
   const {
@@ -272,7 +267,7 @@ export function useAgentExecution({
     },
   });
 
-  const activeRunStatus = streamStatus || activeRunData?.run?.status;
+  const activeRunStatus = streamStatus;
 
   // Watch for background runs completing for the current conversation and invalidate queries
   const seenCompletedRunIdsRef = React.useRef<Set<string>>(new Set());
@@ -305,9 +300,7 @@ export function useAgentExecution({
       activeRunStatus === "cancelled"
     ) {
       setIsOptimisticRunning(false);
-      if (activeRunData?.run) {
-        setLastTerminalRun(activeRunData.run);
-      } else if (activeRunId && streamingText) {
+      if (activeRunId && streamingText) {
         setLastTerminalRun({
           id: activeRunId,
           userId: "",
@@ -343,7 +336,6 @@ export function useAgentExecution({
     }
   }, [
     activeRunStatus,
-    activeRunData?.run,
     activeRunId,
     activeConversationId,
     agentId,
@@ -422,7 +414,7 @@ export function useAgentExecution({
   }, [activeRunId, cancelRunMutation, resetStream]);
 
   const activeRun = React.useMemo(() => {
-    const base = activeRunData?.run || lastTerminalRun;
+    const base = lastTerminalRun;
     if (!base && activeRunId) {
       return {
         id: activeRunId,
@@ -444,7 +436,6 @@ export function useAgentExecution({
     }
     return base;
   }, [
-    activeRunData?.run,
     lastTerminalRun,
     activeRunId,
     agentId,
@@ -452,10 +443,7 @@ export function useAgentExecution({
     streamStatus,
   ]);
 
-  const activeRunSteps = React.useMemo(() => {
-    if (streamingSteps.length > 0) return streamingSteps;
-    return activeRunData?.steps || [];
-  }, [streamingSteps, activeRunData?.steps]);
+  const activeRunSteps = streamingSteps;
 
   const isActiveRun =
     isOptimisticRunning ||
@@ -474,7 +462,7 @@ export function useAgentExecution({
     optimisticMessages,
     setOptimisticMessages,
     lastTerminalRun,
-    activeRunData,
+    activeRunData: null,
     sendPrompt,
     cancelActiveRun,
     isSubmitting: triggerRunMutation.isPending,

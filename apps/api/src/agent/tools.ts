@@ -4,6 +4,7 @@ import {
   Client,
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
+import { normalizeTriggerTimezone } from "@openbots/api-contract";
 import {
   agentTools,
   connections,
@@ -13,9 +14,9 @@ import {
   schedules,
 } from "@openbots/db";
 import {
+  tasks,
   runs as triggerRuns,
   schedules as triggerSchedules,
-  tasks,
 } from "@trigger.dev/sdk";
 import { jsonSchema, tool } from "ai";
 import { and, desc, eq, inArray, or } from "drizzle-orm";
@@ -1231,6 +1232,8 @@ export function createScheduleTool(
       // 1. Recurring Cron Schedule
       if (type === "recurring" || (cronExpression && !delaySeconds && !runAt)) {
         const cron = cronExpression ?? "0 9 * * *";
+        const normalizedTz = normalizeTriggerTimezone(timezone);
+
         const inserted = await db
           .insert(schedules)
           .values({
@@ -1239,7 +1242,7 @@ export function createScheduleTool(
             name,
             prompt,
             cronExpression: cron,
-            timezone: timezone ?? "UTC",
+            timezone: normalizedTz,
             status: "active",
           })
           .returning();
@@ -1254,7 +1257,7 @@ export function createScheduleTool(
           const triggerSched = await triggerSchedules.create({
             task: "scheduled-agent-task",
             cron,
-            timezone: timezone ?? "UTC",
+            timezone: normalizedTz,
             deduplicationKey: schedule.id,
             externalId: schedule.id,
           });
@@ -1474,6 +1477,8 @@ export function createRecurringTaskTool(userId: string, agentId: string) {
         }
       }
 
+      const normalizedTz = normalizeTriggerTimezone(timezone);
+
       const inserted = await db
         .insert(schedules)
         .values({
@@ -1482,7 +1487,7 @@ export function createRecurringTaskTool(userId: string, agentId: string) {
           name,
           prompt,
           cronExpression: cron,
-          timezone: timezone ?? "UTC",
+          timezone: normalizedTz,
           status: "active",
         })
         .returning();
@@ -1497,7 +1502,7 @@ export function createRecurringTaskTool(userId: string, agentId: string) {
         const triggerSched = await triggerSchedules.create({
           task: "scheduled-agent-task",
           cron,
-          timezone: timezone ?? "UTC",
+          timezone: normalizedTz,
           deduplicationKey: schedule.id,
           externalId: schedule.id,
         });
@@ -2272,7 +2277,9 @@ export function manageScheduleTool(
           const updatedName = newName ?? targetSchedule.name;
           const updatedPrompt = newPrompt ?? targetSchedule.prompt;
           const updatedCron = cronExpression ?? targetSchedule.cronExpression;
-          const updatedTz = timezone ?? targetSchedule.timezone;
+          const updatedTz = timezone
+            ? normalizeTriggerTimezone(timezone)
+            : targetSchedule.timezone;
 
           const [updatedSchedule] = await db
             .update(schedules)

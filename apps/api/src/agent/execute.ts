@@ -965,6 +965,28 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       conversationId: runRecord.conversationId,
     })
 
+    // Also dispatch failure push notification for scheduled tasks so user is informed
+    const scheduleInputObj = runRecord.input as any
+    const isSchedule =
+      runRecord.triggerType === "schedule" ||
+      Boolean(scheduleInputObj?.recurringScheduleId) ||
+      Boolean(scheduleInputObj?.scheduledTaskName)
+
+    if (isSchedule && runRecord.userId) {
+      const scheduledTaskName =
+        scheduleInputObj?.scheduledTaskName || agentRecord?.name || "Scheduled Task"
+      sendUserPushNotification(runRecord.userId, {
+        title: `⚠️ ${scheduledTaskName} (Failed)`,
+        body: safeError || "Scheduled task failed to complete.",
+        url: runRecord.conversationId
+          ? `/agent/${runRecord.agentId}`
+          : `/agent/${runRecord.agentId}?runId=${runRecord.id}`,
+        tag: `schedule-${runRecord.id}`,
+      }).catch((err) => {
+        console.warn("Failed to dispatch scheduled failure push notification:", err)
+      })
+    }
+
     throw new Error(safeError)
   } finally {
     clearTimeout(timeoutId)

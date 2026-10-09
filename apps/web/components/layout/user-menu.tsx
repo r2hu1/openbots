@@ -72,7 +72,7 @@ export function UserMenu({
               />
             }
           >
-            <Avatar className="size-8!" name={name} variant="pixel" />
+            <Avatar className="size-7!" name={name} variant="pixel" />
 
             <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
               <span className="block max-w-20 truncate text-[13px] font-medium">
@@ -92,7 +92,7 @@ export function UserMenu({
             className="min-w-56 rounded-xl"
           >
             <div className="flex items-center gap-2 px-2 py-1.5">
-              <Avatar className="size-8!" name={name} variant="pixel" />
+              <Avatar className="size-7!" name={name} variant="pixel" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{name}</p>
                 <p className="truncate text-xs text-muted-foreground">

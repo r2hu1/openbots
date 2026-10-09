@@ -92,7 +92,7 @@ export function useAgentExecution({
             setActiveRunId(ev.runId);
           }
         } else {
-          // If no conversationId is bound or we are in the default conversation view, attach stream
+          // If no conversationId is explicitly bound, attach stream to the current active chat session
           setActiveRunId(ev.runId);
         }
       }
@@ -117,6 +117,11 @@ export function useAgentExecution({
         if (ev.conversationId && ev.conversationId !== activeConversationId) {
           queryClient.invalidateQueries({
             queryKey: ["conversation", ev.conversationId],
+          });
+        }
+        if (agentId) {
+          queryClient.invalidateQueries({
+            queryKey: ["conversations", agentId],
           });
         }
         if (activeRunId === ev.runId) {
@@ -208,6 +213,9 @@ export function useAgentExecution({
         });
       }
       if (agentId) {
+        queryClient.invalidateQueries({
+          queryKey: ["conversations", agentId],
+        });
         queryClient.invalidateQueries({
           queryKey: ["runs", agentId],
         });

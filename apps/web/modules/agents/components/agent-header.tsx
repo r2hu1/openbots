@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils"
 import type { Agent } from "../types"
 import { DeleteAgentDialog } from "./delete-agent-dialog"
 import { RenameAgentDialog } from "./rename-agent-dialog"
+import { useIsMobile } from "@openbots/ui/hooks/use-mobile"
 
 interface AgentHeaderProps {
   selectedAgent: Agent | null
@@ -67,21 +68,23 @@ export function AgentHeader({
   const [renameOpen, setRenameOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
   const { open } = useSidebar()
+  const isMobile = useIsMobile()
 
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 z-50 flex items-center justify-between p-2 px-3 transition-[left] duration-200",
-        open && "md:left-[var(--sidebar-width)]",
-        !open && "left-[var(--sidebar-width-icon)]"
+        "fixed top-0 right-0 left-0 z-50 flex items-center justify-between p-2 px-3 transition-[left] duration-200",
+        !isMobile && open && "left-[var(--sidebar-width)]",
+        !isMobile && !open && "left-[var(--sidebar-width-icon)]"
       )}
     >
       <div className="flex items-center gap-1.5">
+        <SidebarTrigger className="flex cursor-pointer items-center rounded-full border-0! bg-muted/50 backdrop-blur-sm transition-colors" />
         {selectedAgent ? (
           <>
             <DropdownMenu>
               <DropdownMenuTrigger openOnHover>
-                <div className="flex cursor-pointer items-center rounded-md bg-secondary px-1 pr-1.5 pl-0.5 transition-colors">
+                <div className="flex cursor-pointer items-center rounded-full bg-muted/50 p-1 pr-2.5 backdrop-blur-sm transition-colors">
                   <Blobatar
                     name={selectedAgent.name || selectedAgent.id}
                     className="size-6.5!"
@@ -202,10 +205,10 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenSchedules}
-                className="h-7 gap-1.5 bg-secondary text-xs"
+                className="flex cursor-pointer items-center rounded-full border-0! bg-muted/50 backdrop-blur-sm transition-colors"
                 title="Scheduled Autonomous Tasks"
               >
-                <Calendar2Newicons className="size-3.5" />
+                <Calendar2Newicons className="size-4" />
                 <span className="hidden md:inline">Schedules</span>
               </Button>
             )}
@@ -214,21 +217,21 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenHistory}
-              className="h-7 gap-1.5 bg-secondary text-xs"
+              className="flex cursor-pointer items-center rounded-full border-0! bg-muted/50 backdrop-blur-sm transition-colors"
               title="Execution History"
             >
-              <History2 className="size-3.5" />
-              <span>Runs</span>
+              <History2 className="size-4" />
+              <span className="hidden sm:flex">Runs</span>
             </Button>
 
             <Button
               variant="secondary"
               size="sm"
               onClick={onOpenConfigure}
-              className="size-7 gap-1.5 bg-secondary text-xs"
+              className="flex cursor-pointer items-center rounded-full border-0! bg-muted/50 backdrop-blur-sm transition-colors"
               title="Agent Settings"
             >
-              <Setting className="size-3.5" />
+              <Setting className="size-4" />
             </Button>
           </>
         )}

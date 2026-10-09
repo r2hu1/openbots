@@ -154,16 +154,24 @@ export function useAgentStream({
                   type: "info",
                 });
 
-                // Invalidate runs, schedules, and conversation
+                // Invalidate runs, schedules, and conversations
                 queryClient.invalidateQueries({
                   queryKey: runKeys.byAgent(agentId),
                 });
                 queryClient.invalidateQueries({
                   queryKey: scheduleKeys.byAgent(agentId),
                 });
+                queryClient.invalidateQueries({
+                  queryKey: ["conversations", agentId],
+                });
                 if (data.conversationId) {
                   queryClient.invalidateQueries({
                     queryKey: ["conversation", data.conversationId],
+                  });
+                } else {
+                  // If no conversationId is attached, invalidate all conversation detail queries
+                  queryClient.invalidateQueries({
+                    queryKey: ["conversation"],
                   });
                 }
 
@@ -202,9 +210,16 @@ export function useAgentStream({
                       queryKey: runKeys.detail(data.runId),
                     });
                   }
+                  queryClient.invalidateQueries({
+                    queryKey: ["conversations", agentId],
+                  });
                   if (data.conversationId) {
                     queryClient.invalidateQueries({
                       queryKey: ["conversation", data.conversationId],
+                    });
+                  } else {
+                    queryClient.invalidateQueries({
+                      queryKey: ["conversation"],
                     });
                   }
                 }

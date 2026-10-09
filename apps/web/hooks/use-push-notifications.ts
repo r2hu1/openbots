@@ -47,6 +47,26 @@ export function usePushNotifications() {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       setIsSubscribed(!!sub);
+
+      // If browser already has a subscription and user is signed in, guarantee backend is synced
+      if (sub) {
+        const subJson = sub.toJSON();
+        if (sub.endpoint && subJson.keys?.p256dh && subJson.keys?.auth) {
+          const client = getClient();
+          client.api.notifications.subscribe
+            .$post({
+              json: {
+                endpoint: sub.endpoint,
+                keys: {
+                  p256dh: subJson.keys.p256dh,
+                  auth: subJson.keys.auth,
+                },
+                userAgent: navigator.userAgent,
+              },
+            })
+            .catch(() => {});
+        }
+      }
     } catch (err) {
       console.warn("Failed to check push subscription:", err);
     }

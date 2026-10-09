@@ -1,7 +1,6 @@
-"use client";
+"use client"
 
-import { Avatar, AvatarFallback } from "@openbots/ui/components/avatar";
-import { Button } from "@openbots/ui/components/button";
+import Avatar from "boring-avatars"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,24 +10,15 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@openbots/ui/components/dropdown-menu";
+} from "@openbots/ui/components/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@openbots/ui/components/sidebar";
-import {
-  IconCheck,
-  IconDeviceLaptop,
-  IconLogout,
-  IconMoon,
-  IconPlug,
-  IconSettings,
-  IconSun,
-} from "@tabler/icons-react";
-import { useTheme } from "next-themes";
-import * as React from "react";
+} from "@openbots/ui/components/sidebar"
+import { useTheme } from "next-themes"
+import * as React from "react"
 import {
   Check,
   ChevronDown,
@@ -38,16 +28,16 @@ import {
   Plug2,
   Setting,
   Sun2,
-} from "reicon-react";
-import { SettingsSheet } from "./settings-sheet";
+} from "reicon-react"
+import { SettingsSheet } from "./settings-sheet"
 
 interface UserMenuProps {
-  name: string;
-  email?: string;
-  initials: string;
-  onSettings?: () => void;
-  onConnections?: () => void;
-  onSignOut: () => void;
+  name: string
+  email?: string
+  initials: string
+  onSettings?: () => void
+  onConnections?: () => void
+  onSignOut: () => void
 }
 
 export function UserMenu({
@@ -58,17 +48,17 @@ export function UserMenu({
   onConnections,
   onSignOut,
 }: UserMenuProps) {
-  const { isMobile } = useSidebar();
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const { isMobile } = useSidebar()
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
 
   const handleSettingsClick = () => {
     if (onSettings) {
-      onSettings();
+      onSettings()
     } else {
-      setSettingsOpen(true);
+      setSettingsOpen(true)
     }
-  };
+  }
 
   return (
     <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
@@ -82,11 +72,7 @@ export function UserMenu({
               />
             }
           >
-            <Avatar className="size-8 shrink-0 group-data-[collapsible=icon]:size-8">
-              <AvatarFallback className="bg-sidebar-accent text-xs font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <Avatar className="size-8!" name={name} variant="pixel" />
 
             <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
               <span className="block max-w-20 truncate text-[13px] font-medium">
@@ -106,11 +92,7 @@ export function UserMenu({
             className="min-w-56 rounded-xl"
           >
             <div className="flex items-center gap-2 px-2 py-1.5">
-              <Avatar className="size-8">
-                <AvatarFallback className="bg-sidebar-accent text-xs font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <Avatar className="size-8!" name={name} variant="pixel" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{name}</p>
                 <p className="truncate text-xs text-muted-foreground">
@@ -167,5 +149,5 @@ export function UserMenu({
 
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
     </SidebarMenu>
-  );
+  )
 }

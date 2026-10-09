@@ -419,7 +419,7 @@ export function ConversationTimeline({
                 <ConversationLiveStatus
                   agentName={agentName}
                   activeRun={activeRun}
-                  activeRunSteps={[]}
+                  activeRunSteps={activeRunSteps}
                   isActiveRunOngoing={true}
                   hasStreamingContent={false}
                 />

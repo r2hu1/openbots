@@ -8,13 +8,15 @@ import {
 } from "@openbots/ui/components/marker"
 import {
   Message,
+  MessageAvatar,
   MessageContent,
   MessageFooter,
   MessageGroup,
 } from "@openbots/ui/components/message"
+import { Spinner } from "@openbots/ui/components/spinner"
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
-import { IconAlertCircle, IconPlayerStop } from "@tabler/icons-react"
-import { ExecutionStepsCard } from "@/modules/runs/components/execution-steps-card"
+import { IconAlertCircle, IconCheck, IconPlayerStop } from "@tabler/icons-react"
+import { formatToolStepLabel } from "@/modules/runs/tool-label"
 import type { RunRecord, StepItem } from "@/modules/runs/types"
 
 interface ConversationLiveStatusProps {
@@ -36,18 +38,35 @@ export function ConversationLiveStatus({
     if (activeRunSteps.length === 0 && hasStreamingContent) {
       return null
     }
+
+    // Find the latest active or completed tool step to display minimally
+    const latestToolStep = [...activeRunSteps]
+      .reverse()
+      .find((s) => s.type === "tool" || Boolean(s.toolName))
+
+    const latestToolLabel = latestToolStep
+      ? formatToolStepLabel(
+          latestToolStep.toolName,
+          latestToolStep.status,
+          latestToolStep.toolInput,
+          latestToolStep.toolOutput
+        ).label
+      : null
+
+    const isLatestToolRunning = latestToolStep?.status === "running"
+
     return (
       <div className="space-y-3 py-1">
-        {activeRunSteps.length > 0 && (
-          <ExecutionStepsCard
-            steps={activeRunSteps}
-            isLive={isActiveRunOngoing}
-          />
-        )}
-
         {!hasStreamingContent && (
           <MessageGroup>
             <Message align="start" className="gap-2">
+              <MessageAvatar>
+                <Blobatar
+                  name={agentName}
+                  className="size-6 shrink-0"
+                  blobatar={{ animate: "always" }}
+                />
+              </MessageAvatar>
               <MessageContent>
                 <Bubble variant="secondary" align="start">
                   <BubbleContent className="flex items-center gap-1.5 px-3 py-2 text-foreground">
@@ -58,14 +77,32 @@ export function ConversationLiveStatus({
                 </Bubble>
 
                 <MessageFooter className="gap-px px-0">
-                  <Blobatar
-                    name={agentName}
-                    className="size-6 shrink-0"
-                    blobatar={{ animate: "always" }}
-                  />
-                  <span className="shimmer text-xs font-medium">
-                    {agentName}
-                  </span>
+                  <Marker className="text-xs text-muted-foreground">
+                    {latestToolLabel ? (
+                      <>
+                        <MarkerIcon className="size-3.5 shrink-0">
+                          {isLatestToolRunning ? (
+                            <Spinner className="size-3 text-primary" />
+                          ) : (
+                            <IconCheck className="size-3 text-emerald-500" />
+                          )}
+                        </MarkerIcon>
+                        <MarkerContent
+                          className={
+                            isLatestToolRunning
+                              ? "shimmer font-medium"
+                              : "truncate text-muted-foreground"
+                          }
+                        >
+                          {latestToolLabel}
+                        </MarkerContent>
+                      </>
+                    ) : (
+                      <MarkerContent className="shimmer text-xs">
+                        Thinking...
+                      </MarkerContent>
+                    )}
+                  </Marker>
                 </MessageFooter>
               </MessageContent>
             </Message>

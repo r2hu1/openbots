@@ -417,10 +417,10 @@ export function ConversationMessageItem({
     <ContextMenu>
       <ContextMenuTrigger className="block w-full">
         <MessageGroup className="group">
-          <Message align={isUser ? "end" : "start"} className="gap-2">
+          <Message align={isUser ? "end" : "start"}>
             {!isUser && (
-              <MessageAvatar>
-                <Blobatar name={agentName} className="size-6" />
+              <MessageAvatar className="-mr-0.5 p-0!">
+                <Blobatar name={agentName} className="size-8" />
               </MessageAvatar>
             )}
             <MessageContent>
@@ -653,7 +653,7 @@ export function ConversationMessageItem({
               <MessageFooter
                 className={
                   isUser
-                    ? "-mt-1 items-center gap-1.5 px-0"
+                    ? "-mt-1 items-center gap-2 px-0"
                     : "items-center gap-2 px-0"
                 }
               >
@@ -690,7 +690,7 @@ export function ConversationMessageItem({
                           <IconShare className="size-3" />
                         )}
                       </Button>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="ml-1 text-[10px] text-muted-foreground">
                         {formatMsgTime(message.createdAt)}
                       </span>
                     </div>

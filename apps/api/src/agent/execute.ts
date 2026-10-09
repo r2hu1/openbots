@@ -7,11 +7,21 @@ import {
   runEventHub,
   sendUserPushNotification,
 } from "@openbots/api-contract"
-import { agents, connections, db, messages, runSteps, runs } from "@openbots/db"
+import { agents, connections, db, getRedis, messages, runSteps, runs } from "@openbots/db"
 import { stepCountIs, ToolLoopAgent } from "ai"
 import { and, asc, eq, inArray, ne } from "drizzle-orm"
-import { buildAgentTools } from "./tools.js"
 import { ARTIFACT_PROMPT } from "./artifacts/prompt.js"
+import { buildAgentTools } from "./tools.js"
+
+const activeRunAbortControllers = new Map<string, AbortController>()
+
+export function abortActiveRun(runId: string, reason?: string) {
+  const controller = activeRunAbortControllers.get(runId)
+  if (controller) {
+    controller.abort(reason ? new Error(reason) : undefined)
+    activeRunAbortControllers.delete(runId)
+  }
+}
 
 /**
  * Pre-fetches an image URL using native fetch and returns an AI SDK image part
@@ -292,8 +302,15 @@ export async function executeAgentRun(
     })
   }
 
-  // Set up cooperative AbortController
+  // Set up cooperative AbortController with global registration for cancellation
   const abortController = new AbortController()
+  activeRunAbortControllers.set(runId, abortController)
+
+  // 10 minute absolute wall-clock timeout guard to prevent runaway processes
+  const timeoutId = setTimeout(() => {
+    abortController.abort(new Error("Run execution timed out (maximum 10 minutes exceeded)"))
+  }, 10 * 60 * 1000)
+
   if (options?.signal) {
     if (options.signal.aborted) {
       abortController.abort(options.signal.reason)
@@ -573,127 +590,236 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       status: "running",
     })
 
-    const streamResult = await agent.stream({
-      messages: inputMessages as any,
-      abortSignal: abortController.signal,
-      onStepFinish: async (step) => {
-        // Fast in-memory check first
-        if (abortController.signal.aborted) return
+    const MAX_CONTINUATION_PASSES = 5
+    let finalText = ""
+    let totalStepsCount = 0
+    let aggregatedUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+    }
 
-        // Batch steps to insert in a single DB roundtrip
-        const stepsToInsert: Array<typeof runSteps.$inferInsert> = []
+    let activeInputMessages = [...inputMessages]
 
-        stepsToInsert.push({
-          runId: runRecord.id,
-          stepNumber: currentStepNumber++,
-          type: "model",
-          status: "completed",
-          model: agentRecord.model,
-          output: {
-            text: step.text,
-            finishReason: step.finishReason,
-            usage: step.usage,
-          },
-        })
-
-        if (step.toolResults && step.toolResults.length > 0) {
-          for (const tr of step.toolResults) {
-            stepsToInsert.push({
-              runId: runRecord.id,
-              stepNumber: currentStepNumber++,
-              type: "tool",
-              status: "completed",
-              toolName: tr.toolName,
-              toolCallId: tr.toolCallId,
-              toolInput: ((tr as any).input ?? (tr as any).args ?? null) as any,
-              toolOutput: ((tr as any).output ??
-                (tr as any).result ??
-                null) as any,
-            })
-
-            runEventHub.publish(runRecord.id, {
-              type: "tool_finish",
-              toolName: tr.toolName,
-              toolCallId: tr.toolCallId,
-              stepNumber: currentStepNumber - 1,
-              output: ((tr as any).output ?? (tr as any).result ?? null) as any,
-            })
-          }
-        }
-
-        // Fire-and-track async step insertion without stalling the model generate loop
-        const insertPromise = db
-          .insert(runSteps)
-          .values(stepsToInsert)
-          .catch((err) => {
-            console.warn("Failed to persist step batch:", err)
-          })
-
-        pendingStepPersistTasks.push(insertPromise)
-      },
-    })
-
-    // Consume stream parts and broadcast token deltas & tool events live via SSE
-    let accumulatedStreamText = ""
-    let streamError: any = null
-    for await (const part of streamResult.fullStream) {
+    for (let pass = 0; pass < MAX_CONTINUATION_PASSES; pass++) {
       if (abortController.signal.aborted) break
 
-      if (part.type === "text-delta") {
-        accumulatedStreamText += part.text
-        runEventHub.publish(runRecord.id, {
-          type: "delta",
-          text: part.text,
-        })
-      } else if (part.type === "tool-call") {
-        runEventHub.publish(runRecord.id, {
-          type: "tool_start",
-          toolName: part.toolName,
-          toolCallId: (part as any).toolCallId,
-          stepNumber: currentStepNumber,
-        })
-      } else if (part.type === "tool-result") {
-        runEventHub.publish(runRecord.id, {
-          type: "tool_finish",
-          toolName: (part as any).toolName,
-          toolCallId: (part as any).toolCallId,
-          output: (part as any).result ?? (part as any).output ?? null,
-        })
-      } else if (part.type === "error") {
-        streamError = (part as any).error
-      }
-    }
+      const streamResult = await agent.stream({
+        messages: activeInputMessages as any,
+        abortSignal: abortController.signal,
+        onStepFinish: async (step) => {
+          if (abortController.signal.aborted) return
 
-    let finalText = ""
-    try {
-      finalText = (await streamResult.text)?.trim() || ""
-    } catch (textErr) {
-      if (accumulatedStreamText.trim()) {
-        finalText = accumulatedStreamText.trim()
-      } else if (streamError) {
-        throw streamError
-      } else {
-        throw textErr
-      }
-    }
-    const finalSteps = await streamResult.steps
-    const finalUsage = await streamResult.usage
+          // Periodic check: if run was cancelled over Redis by another worker/replica, abort local execution immediately
+          if (currentStepNumber > 0 && currentStepNumber % 3 === 0) {
+            try {
+              const redis = getRedis()
+              if (redis) {
+                const isCancelled = await redis.get<string>(`run_cancelled:${runRecord.id}`)
+                if (isCancelled) {
+                  abortController.abort(new Error("Run cancelled remotely"))
+                  return
+                }
+              }
+            } catch {
+              // Redis check failure is non-fatal
+            }
+          }
 
-    // If finalText is empty but steps were executed (e.g. maxSteps reached right after tool call),
-    // extract the last text or provide an informative completion summary so it never silently stops
-    if (!finalText && finalSteps && finalSteps.length > 0) {
-      for (let i = finalSteps.length - 1; i >= 0; i--) {
-        const s = finalSteps[i]
+          const stepsToInsert: Array<typeof runSteps.$inferInsert> = []
+
+          stepsToInsert.push({
+            runId: runRecord.id,
+            stepNumber: currentStepNumber++,
+            type: "model",
+            status: "completed",
+            model: agentRecord.model,
+            output: {
+              text: step.text,
+              finishReason: step.finishReason,
+              usage: step.usage,
+            },
+          })
+
+          if (step.toolResults && step.toolResults.length > 0) {
+            for (const tr of step.toolResults) {
+              stepsToInsert.push({
+                runId: runRecord.id,
+                stepNumber: currentStepNumber++,
+                type: "tool",
+                status: "completed",
+                toolName: tr.toolName,
+                toolCallId: tr.toolCallId,
+                toolInput: ((tr as any).input ?? (tr as any).args ?? null) as any,
+                toolOutput: ((tr as any).output ??
+                  (tr as any).result ??
+                  null) as any,
+              })
+
+              runEventHub.publish(runRecord.id, {
+                type: "tool_finish",
+                toolName: tr.toolName,
+                toolCallId: tr.toolCallId,
+                stepNumber: currentStepNumber - 1,
+                output: ((tr as any).output ?? (tr as any).result ?? null) as any,
+              })
+            }
+          }
+
+          const insertPromise = db
+            .insert(runSteps)
+            .values(stepsToInsert)
+            .catch((err) => {
+              console.warn("Failed to persist step batch:", err)
+            })
+
+          pendingStepPersistTasks.push(insertPromise)
+        },
+      })
+
+      // Consume stream parts and broadcast token deltas & tool events live via SSE
+      let accumulatedStreamText = ""
+      let streamError: any = null
+      for await (const part of streamResult.fullStream) {
+        if (abortController.signal.aborted) break
+
+        if (part.type === "text-delta") {
+          accumulatedStreamText += part.text
+          runEventHub.publish(runRecord.id, {
+            type: "delta",
+            text: part.text,
+          })
+        } else if (part.type === "tool-call") {
+          runEventHub.publish(runRecord.id, {
+            type: "tool_start",
+            toolName: part.toolName,
+            toolCallId: (part as any).toolCallId,
+            stepNumber: currentStepNumber,
+          })
+        } else if (part.type === "tool-result") {
+          runEventHub.publish(runRecord.id, {
+            type: "tool_finish",
+            toolName: (part as any).toolName,
+            toolCallId: (part as any).toolCallId,
+            output: (part as any).result ?? (part as any).output ?? null,
+          })
+        } else if (part.type === "error") {
+          streamError = (part as any).error
+        }
+      }
+
+      let passText = ""
+      try {
+        passText = (await streamResult.text)?.trim() || ""
+      } catch (textErr) {
+        if (accumulatedStreamText.trim()) {
+          passText = accumulatedStreamText.trim()
+        } else if (streamError) {
+          throw streamError
+        } else {
+          throw textErr
+        }
+      }
+
+      const passSteps = (await streamResult.steps) ?? []
+      totalStepsCount += passSteps.length
+
+      try {
+        const passUsage = await streamResult.usage
+        if (passUsage) {
+          aggregatedUsage.inputTokens += passUsage.inputTokens ?? 0
+          aggregatedUsage.outputTokens += passUsage.outputTokens ?? 0
+          aggregatedUsage.totalTokens += passUsage.totalTokens ?? 0
+        }
+      } catch {
+        // Ignore usage aggregation failure
+      }
+
+      // Settle background step writes from this pass to prevent unbounded memory growth
+      if (pendingStepPersistTasks.length > 0) {
+        await Promise.allSettled(pendingStepPersistTasks)
+      }
+
+      // Check if this pass produced final text or if it ended after tool calls without concluding
+      if (passText) {
+        finalText = passText
+        break
+      }
+
+      // If passText is empty, inspect response messages to see if tool calls took place
+      const newResponseMessages = await streamResult.responseMessages
+      const hasToolActivity =
+        passSteps.some((s) => s.toolCalls?.length || s.toolResults?.length) ||
+        (newResponseMessages && newResponseMessages.length > 0)
+
+      // Repetitive tool loop detection: check if the exact same tool calls were repeated
+      const recentToolSignatures = passSteps
+        .flatMap((s) => s.toolCalls || [])
+        .map((tc: any) => `${tc.toolName}:${JSON.stringify(tc.input ?? tc.args ?? null)}`)
+
+      const isRepetitiveLoop =
+        recentToolSignatures.length >= 3 &&
+        recentToolSignatures.every((sig) => sig === recentToolSignatures[0])
+
+      if (isRepetitiveLoop) {
+        console.warn(`[Agent Execution] Detected repetitive tool loop for run ${runRecord.id}. Halting continuation.`)
+        finalText = "I encountered repetitive tool execution patterns and concluded the task with the available information."
+        break
+      }
+
+      if (hasToolActivity && pass < MAX_CONTINUATION_PASSES - 1 && !abortController.signal.aborted) {
+        // Step limit was reached mid-execution while running tools!
+        // Sanitize tool results to avoid blowing up context window (truncate huge string outputs over 30k chars)
+        const sanitizedResponseMessages = (newResponseMessages || []).map((msg: any) => {
+          if (msg.role === "tool" && Array.isArray(msg.content)) {
+            return {
+              ...msg,
+              content: msg.content.map((part: any) => {
+                if (part.type === "tool-result" && typeof part.result === "string" && part.result.length > 30000) {
+                  return {
+                    ...part,
+                    result: `${part.result.slice(0, 30000)}\n\n[...output truncated for context limit...]`,
+                  }
+                }
+                return part
+              }),
+            }
+          }
+          return msg
+        })
+
+        // Continue the agent seamlessly with accumulated response messages
+        activeInputMessages = [
+          ...activeInputMessages,
+          ...sanitizedResponseMessages,
+          {
+            role: "user",
+            content:
+              "Please continue executing your task and complete your response based on the above tool results.",
+          },
+        ]
+        continue
+      }
+
+      // If we reach here and still have no finalText, check steps for any text or fallback
+      for (let i = passSteps.length - 1; i >= 0; i--) {
+        const s = passSteps[i]
         if (s?.text && s.text.trim()) {
           finalText = s.text.trim()
           break
         }
       }
 
-      if (!finalText) {
-        finalText =
-          "I finished executing the requested tool actions and reached the step limit."
+      if (!finalText && accumulatedStreamText.trim()) {
+        finalText = accumulatedStreamText.trim()
       }
+
+      break
+    }
+
+    if (!finalText) {
+      finalText =
+        "I finished executing the requested tool actions and reached the step limit."
     }
 
     // Wait for any remaining background step writes before completing
@@ -703,8 +829,8 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
 
     const finalOutput = {
       text: finalText,
-      steps: finalSteps?.length ?? 0,
-      usage: finalUsage,
+      steps: totalStepsCount,
+      usage: aggregatedUsage,
     }
 
     // Parallelize run completion update and assistant message persistence
@@ -841,6 +967,8 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
 
     throw new Error(safeError)
   } finally {
+    clearTimeout(timeoutId)
+    activeRunAbortControllers.delete(runId)
     if (resolvedTools) {
       await resolvedTools.cleanup()
     }

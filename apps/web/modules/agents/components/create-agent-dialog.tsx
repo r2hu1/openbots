@@ -9,7 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@openbots/ui/components/dialog";
-import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@openbots/ui/components/field";
 import { Input } from "@openbots/ui/components/input";
 import {
   NativeSelect,
@@ -224,15 +229,18 @@ export function CreateAgentDialog({
             )}
 
             <Field>
-              <FieldLabel htmlFor="maxSteps">Max Steps</FieldLabel>
+              <FieldLabel htmlFor="maxSteps">Tool calls & step limit</FieldLabel>
               <Input
                 id="maxSteps"
                 type="number"
                 min={1}
-                max={50}
+                max={100}
                 value={maxSteps}
                 onChange={(e) => setMaxSteps(Number(e.target.value))}
               />
+              <FieldDescription className="text-xs">
+                Maximum number of tool execution steps the agent can perform per run (1–100).
+              </FieldDescription>
             </Field>
           </FieldGroup>
 

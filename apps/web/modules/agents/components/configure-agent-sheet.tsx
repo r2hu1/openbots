@@ -2,7 +2,12 @@
 
 import { Badge } from "@openbots/ui/components/badge";
 import { Button } from "@openbots/ui/components/button";
-import { Field, FieldGroup, FieldLabel } from "@openbots/ui/components/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@openbots/ui/components/field";
 import { Input } from "@openbots/ui/components/input";
 import {
   NativeSelect,
@@ -283,15 +288,18 @@ export function ConfigureAgentSheet({
                 )}
 
                 <Field>
-                  <FieldLabel htmlFor="cfg-steps">Max steps</FieldLabel>
+                  <FieldLabel htmlFor="cfg-steps">Tool calls & step limit</FieldLabel>
                   <Input
                     id="cfg-steps"
                     type="number"
                     min={1}
-                    max={50}
+                    max={100}
                     value={maxSteps}
                     onChange={(e) => setMaxSteps(Number(e.target.value))}
                   />
+                  <FieldDescription className="text-xs">
+                    Maximum number of tool execution steps the agent can perform per run (1–100).
+                  </FieldDescription>
                 </Field>
               </FieldGroup>
             </form>

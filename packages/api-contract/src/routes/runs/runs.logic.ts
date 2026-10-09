@@ -54,7 +54,29 @@ export async function cancelRun(runId: string, userId: string) {
     .returning();
 
   if (cancelled) {
-    // Fire-and-forget cancellation to Trigger.dev so the user gets an instant 200 response
+    // 1. Abort local running process immediately if active on this worker
+    try {
+      directRunCanceller?.(runId, "Run cancelled by user");
+    } catch {}
+
+    // 2. Broadcast cancellation event and fast lookup key over Redis so any worker instance running this job aborts
+    try {
+      const redis = getRedis();
+      if (redis) {
+        const channelKey = `run_events:${runId}`;
+        const cancelEvent = {
+          type: "status",
+          status: "cancelled",
+        };
+        const cancelFlagKey = `run_cancelled:${runId}`;
+        await Promise.allSettled([
+          redis.set(cancelFlagKey, "1", { ex: 3600 }),
+          redis.rpush(channelKey, JSON.stringify(cancelEvent)).then(() => redis.expire(channelKey, 3600)),
+        ]);
+      }
+    } catch {}
+
+    // 3. Fire-and-forget cancellation to Trigger.dev for serverless task workers
     triggerRuns.cancel(runId).catch(() => {});
     return { run: cancelled, status: 200 as const };
   }
@@ -291,4 +313,15 @@ export function registerDirectRunExecutor(executor: DirectRunExecutor) {
 
 export function getDirectRunExecutor(): DirectRunExecutor | null {
   return directRunExecutor;
+}
+
+export type DirectRunCanceller = (runId: string, reason?: string) => void;
+let directRunCanceller: DirectRunCanceller | null = null;
+
+export function registerDirectRunCanceller(canceller: DirectRunCanceller) {
+  directRunCanceller = canceller;
+}
+
+export function getDirectRunCanceller(): DirectRunCanceller | null {
+  return directRunCanceller;
 }

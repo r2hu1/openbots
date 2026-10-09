@@ -5,6 +5,7 @@ import {
   agentEventHub,
   getApiKeyForModel,
   runEventHub,
+  sendUserPushNotification,
 } from "@openbots/api-contract"
 import { agents, connections, db, messages, runSteps, runs } from "@openbots/db"
 import { stepCountIs, ToolLoopAgent } from "ai"
@@ -750,27 +751,36 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
     }
 
     // If this run was triggered by a scheduled reminder/cron task, deliver Web Push notification to user
-    if (runRecord.triggerType === "schedule" && runRecord.userId) {
-      const inputObj = runRecord.input as any
+    const scheduleInputObj = runRecord.input as any
+    const isSchedule =
+      runRecord.triggerType === "schedule" ||
+      Boolean(scheduleInputObj?.recurringScheduleId) ||
+      Boolean(scheduleInputObj?.scheduledTaskName)
+
+    if (isSchedule && runRecord.userId) {
       const scheduledTaskName =
-        inputObj?.scheduledTaskName || agentRecord.name || "Scheduled Task"
+        scheduleInputObj?.scheduledTaskName || agentRecord.name || "Scheduled Task"
       const notificationBody =
         finalText.slice(0, 180) ||
-        (typeof inputObj === "string" ? inputObj : inputObj?.prompt) ||
+        (typeof scheduleInputObj === "string" ? scheduleInputObj : scheduleInputObj?.prompt) ||
         "Your scheduled task has completed."
 
-      import("@openbots/api-contract").then(({ sendUserPushNotification }) => {
-        sendUserPushNotification(runRecord.userId, {
+      try {
+        const pushResult = await sendUserPushNotification(runRecord.userId, {
           title: scheduledTaskName,
           body: notificationBody,
           url: runRecord.conversationId
             ? `/agent/${agentRecord.id}`
             : `/agent/${agentRecord.id}?runId=${runRecord.id}`,
           tag: `schedule-${runRecord.id}`,
-        }).catch((err) => {
-          console.warn("Failed to dispatch scheduled push notification:", err)
         })
-      })
+        console.log(
+          `[Push Notification] Dispatched for schedule run ${runRecord.id}:`,
+          pushResult,
+        )
+      } catch (err) {
+        console.warn("Failed to dispatch scheduled push notification:", err)
+      }
     }
 
     return completedRun

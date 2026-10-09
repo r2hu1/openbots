@@ -13,6 +13,9 @@ function ensureVapidConfigured() {
   const privateKey = process.env.VAPID_PRIVATE_KEY;
 
   if (!publicKey || !privateKey) {
+    console.warn(
+      "[Web Push] VAPID keys not configured (missing NEXT_PUBLIC_VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY)",
+    );
     return false;
   }
 
@@ -45,6 +48,7 @@ export async function sendUserPushNotification(
   payload: PushNotificationPayload,
 ) {
   if (!ensureVapidConfigured()) {
+    console.warn("[Web Push] Skipped push delivery: VAPID is not configured");
     return { sent: 0, failed: 0, reason: "VAPID_NOT_CONFIGURED" };
   }
 
@@ -54,6 +58,7 @@ export async function sendUserPushNotification(
     .where(eq(pushSubscriptions.userId, userId));
 
   if (userSubs.length === 0) {
+    console.log(`[Web Push] User ${userId} has 0 registered push subscriptions`);
     return { sent: 0, failed: 0, reason: "NO_SUBSCRIPTIONS" };
   }
 

@@ -1873,12 +1873,14 @@ export function manageScheduleTool(
 ) {
   return tool({
     description:
-      "Manage, inspect, check history, reschedule, modify, or cancel queued/scheduled reminders and recurring tasks. " +
-      "Use this whenever the user asks to: " +
-      "(1) List or check active/pending reminders or schedules (e.g. 'what reminders do I have?', 'show my scheduled tasks'), " +
-      "(2) Check past execution history (e.g. 'did my task run?', 'how many tasks ran?', 'show execution history'), " +
-      "(3) Cancel a reminder or schedule (e.g. 'cancel my tea reminder', 'cancel task 123', 'delete reminder'), " +
-      "(4) Modify or reschedule a reminder or schedule (e.g. 'change my tea reminder to 10 minutes', 'reschedule to 5pm', 'update reminder prompt').",
+      "Manage, inspect, check history, reschedule, modify, or cancel internal OpenBots background agent tasks and recurring cron jobs. " +
+      "Use this when the user specifically asks about their OpenBots automated agent tasks, agent background jobs, or cron reminders. " +
+      "NOTE: If the user asks about their personal schedule, calendar, meetings, or agenda (e.g. 'what's my schedule today?', 'what's on my calendar?'), and a calendar integration (Google Calendar, Outlook) is connected via Composio, prioritize checking their external calendar instead of this tool. " +
+      "Use this tool whenever the user asks to: " +
+      "(1) List or check active/pending OpenBots background agent tasks or agent reminders (e.g. 'what background tasks are running?', 'show my agent scheduled jobs'), " +
+      "(2) Check past agent execution history (e.g. 'did my task run?', 'how many tasks ran?', 'show execution history'), " +
+      "(3) Cancel an agent background task or reminder (e.g. 'cancel my tea reminder', 'cancel task 123', 'delete agent reminder'), " +
+      "(4) Modify or reschedule an agent background task or reminder (e.g. 'change my tea reminder to 10 minutes', 'reschedule agent task to 5pm').",
     inputSchema: z.object({
       action: z
         .enum(["list", "history", "cancel", "modify"])

@@ -529,14 +529,16 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       - Frequency: Accepts presets ('daily', 'hourly', 'weekdays', 'weekly', 'monthly') or 5-field cron strings (e.g. '0 9 * * *').
     - 'create_schedule': Schedules one-off future tasks, delayed reminders, or alarms ('in 15 mins', 'at 5pm tomorrow', 'after 2 hours').
     - 'get_task_history': Inspects the history of scheduled executions (how many tasks ran, execution status, outputs, start/completion times). ALWAYS use this when the user asks 'did my task run?', 'what ran?', or 'show my task history'.
-    - 'manage_schedule': Inspects active tasks (action='list'), checks execution history (action='history'), modifies/reschedules, or cancels existing reminders and recurring schedules.
+    - 'manage_schedule': Inspects internal OpenBots agent tasks (action='list'), checks execution history (action='history'), modifies/reschedules, or cancels existing reminders and recurring schedules.
+    - Note on Schedules vs Calendar: When the user asks "what's my schedule?", "what's on my schedule?", or asks about their day's events/meetings, check their connected external calendar (e.g. Google Calendar via Composio) first if connected, rather than agent background tasks. Use 'manage_schedule' when they refer to agent tasks, reminders, or background jobs.
     - Do NOT ask the user to connect external calendars or messaging apps for reminders unless they explicitly want external notifications.
 
     ## Message Reactions:
     - 'react_to_message': Adds an emoji reaction to the user's message. Use tastefully to celebrate milestones, express gratitude, or acknowledge prompts.
 
     ## External Integrations (Composio & MCP):
-    - When external SaaS apps (Gmail, Slack, GitHub, Linear, Notion, Twitter/X, LinkedIn, Google Docs/Sheets) are connected, use the corresponding provider tools directly.
+    - When external SaaS apps (Google Calendar, Gmail, Slack, GitHub, Linear, Notion, Twitter/X, LinkedIn, Google Docs/Sheets) are connected, use the corresponding provider tools directly.
+    - For questions about meetings, appointments, events, or day schedules, ALWAYS query connected calendar tools (e.g. Google Calendar) first.
     - Do NOT prompt the user to re-authorize connected apps.
     - Prior to actions with public or permanent side effects (sending external emails, publishing public posts, deleting records), verify details with the user unless explicitly commanded to execute directly. Never double-send identical actions.
 

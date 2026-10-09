@@ -60,7 +60,7 @@ export function ConversationLiveStatus({
         {!hasStreamingContent && (
           <MessageGroup>
             <Message align="start" className="gap-2">
-              <MessageAvatar>
+              <MessageAvatar className="-mr-1 p-0!">
                 <Blobatar
                   name={agentName}
                   className="size-6 shrink-0"
@@ -75,37 +75,36 @@ export function ConversationLiveStatus({
                     <span className="size-1.5 animate-bounce rounded-full bg-foreground/60" />
                   </BubbleContent>
                 </Bubble>
-
-                <MessageFooter className="gap-px px-0">
-                  <Marker className="text-xs text-muted-foreground">
-                    {latestToolLabel ? (
-                      <>
-                        <MarkerIcon className="size-3.5 shrink-0">
-                          {isLatestToolRunning ? (
-                            <Spinner className="size-3 text-primary" />
-                          ) : (
-                            <IconCheck className="size-3 text-emerald-500" />
-                          )}
-                        </MarkerIcon>
-                        <MarkerContent
-                          className={
-                            isLatestToolRunning
-                              ? "shimmer font-medium"
-                              : "truncate text-muted-foreground"
-                          }
-                        >
-                          {latestToolLabel}
-                        </MarkerContent>
-                      </>
-                    ) : (
-                      <MarkerContent className="shimmer text-xs">
-                        Thinking...
-                      </MarkerContent>
-                    )}
-                  </Marker>
-                </MessageFooter>
               </MessageContent>
             </Message>
+            <div className="gap-px px-0">
+              <Marker className="text-xs text-muted-foreground">
+                {latestToolLabel ? (
+                  <>
+                    <MarkerIcon className="size-3.5 shrink-0">
+                      {isLatestToolRunning ? (
+                        <Spinner className="size-3 text-primary" />
+                      ) : (
+                        <IconCheck className="size-3" />
+                      )}
+                    </MarkerIcon>
+                    <MarkerContent
+                      className={
+                        isLatestToolRunning
+                          ? "shimmer font-medium"
+                          : "truncate text-muted-foreground"
+                      }
+                    >
+                      {latestToolLabel}
+                    </MarkerContent>
+                  </>
+                ) : (
+                  <MarkerContent className="shimmer text-xs">
+                    Thinking...
+                  </MarkerContent>
+                )}
+              </Marker>
+            </div>
           </MessageGroup>
         )}
       </div>

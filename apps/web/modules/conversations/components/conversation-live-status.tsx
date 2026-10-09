@@ -46,7 +46,7 @@ export function ConversationLiveStatus({
         )}
 
         {!hasStreamingContent && (
-          <MessageGroup className="-mt-6">
+          <MessageGroup>
             <Message align="start" className="gap-2">
               <MessageContent>
                 <Bubble variant="secondary" align="start">

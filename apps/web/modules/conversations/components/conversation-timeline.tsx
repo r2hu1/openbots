@@ -388,7 +388,10 @@ export function ConversationTimeline({
             )}
 
             {/* Assistant message: streaming text if available, or thinking indicator while ongoing */}
-            {!isLoading && streamingText ? (
+            {!isLoading &&
+            isActiveRunOngoing &&
+            !isCurrentRunAlreadyRendered &&
+            streamingText ? (
               <MessageScrollerItem
                 key={`streaming-${activeRun?.id || "current"}`}
                 id={`streaming-${activeRun?.id || "current"}`}

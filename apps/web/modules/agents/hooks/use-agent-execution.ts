@@ -378,6 +378,7 @@ export function useAgentExecution({
     (prompt: string, images?: string[]) => {
       if (!agentId) return;
 
+      resetStream();
       setIsOptimisticRunning(true);
       setLastTerminalRun(null);
       setExecutionError(null);

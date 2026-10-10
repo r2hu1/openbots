@@ -188,7 +188,40 @@ export const agentsRoute = new Hono<Env>()
     const user = c.get("user");
     const id = c.req.param("id");
     const data = c.req.valid("json");
-    const result = await createAgentRun(user.id, id, data);
+
+    // Extract geo and timezone headers if present from edge proxy (Cloudflare, Vercel, AWS CloudFront)
+    const geoCity =
+      c.req.header("cf-ipcity") ||
+      c.req.header("x-vercel-ip-city") ||
+      c.req.header("x-geo-city") ||
+      undefined;
+    const geoRegion =
+      c.req.header("cf-region") ||
+      c.req.header("x-vercel-ip-country-region") ||
+      c.req.header("x-geo-region") ||
+      undefined;
+    const geoCountry =
+      c.req.header("cf-ipcountry") ||
+      c.req.header("x-vercel-ip-country") ||
+      c.req.header("x-geo-country") ||
+      undefined;
+    const geoTimezone =
+      c.req.header("cf-timezone") ||
+      c.req.header("x-vercel-ip-timezone") ||
+      undefined;
+
+    const enrichedClientContext = {
+      ...data.clientContext,
+      timezone: data.clientContext?.timezone || geoTimezone,
+      city: data.clientContext?.city || geoCity,
+      region: data.clientContext?.region || geoRegion,
+      country: data.clientContext?.country || geoCountry,
+    };
+
+    const result = await createAgentRun(user.id, id, {
+      ...data,
+      clientContext: enrichedClientContext,
+    });
     if ("error" in result) {
       return c.json({ error: result.error }, result.status);
     }

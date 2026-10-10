@@ -27,6 +27,16 @@ export const createAgentRunSchema = z.object({
   images: z.array(z.string().url()).max(10).optional(),
   input: z.any().optional(),
   conversationId: z.string().uuid().optional(),
+  clientContext: z
+    .object({
+      timezone: z.string().optional(),
+      localTime: z.string().optional(),
+      locale: z.string().optional(),
+      city: z.string().optional(),
+      region: z.string().optional(),
+      country: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type CreateAgentRunInput = z.infer<typeof createAgentRunSchema>;

@@ -126,7 +126,8 @@ export type RunEvent =
   | { seq?: number; type: "done"; status: string; output?: any };
 
 class RunEventHub {
-  publish(runId: string, event: RunEvent): void {
+  publishBatch(runId: string, events: RunEvent[]): void {
+    if (!events.length) return;
     const redis = getRedis();
     if (!redis) return;
 
@@ -134,21 +135,28 @@ class RunEventHub {
     const seqKey = `run_events_seq:${runId}`;
 
     redis
-      .incr(seqKey)
-      .then((seq) => {
-        const eventWithSeq: RunEvent = {
-          ...event,
-          seq,
-        };
-        const serialized = JSON.stringify(eventWithSeq);
-        return Promise.allSettled([
-          redis.expire(seqKey, 3600),
-          redis.rpush(channelKey, serialized).then(() => redis.expire(channelKey, 3600)),
-        ]);
+      .incrby(seqKey, events.length)
+      .then((endSeq) => {
+        const startSeq = endSeq - events.length + 1;
+        const serialized = events.map((event, idx) =>
+          JSON.stringify({
+            ...event,
+            seq: startSeq + idx,
+          }),
+        );
+        const pipeline = redis.pipeline();
+        pipeline.rpush(channelKey, ...serialized);
+        pipeline.expire(channelKey, 3600);
+        pipeline.expire(seqKey, 3600);
+        return pipeline.exec();
       })
       .catch((err) => {
-        console.error("Failed to publish run event to Redis:", err);
+        console.error("Failed to publish batch run events to Redis:", err);
       });
+  }
+
+  publish(runId: string, event: RunEvent): void {
+    this.publishBatch(runId, [event]);
   }
 }
 
@@ -207,10 +215,11 @@ class AgentEventHub {
           seq,
         };
         const serialized = JSON.stringify(eventWithSeq);
-        return Promise.allSettled([
-          redis.expire(seqKey, 1800),
-          redis.rpush(channelKey, serialized).then(() => redis.expire(channelKey, 1800)),
-        ]);
+        const pipeline = redis.pipeline();
+        pipeline.rpush(channelKey, serialized);
+        pipeline.expire(channelKey, 1800);
+        pipeline.expire(seqKey, 1800);
+        return pipeline.exec();
       })
       .catch((err) => {
         console.error("Failed to publish user event to Redis:", err);
@@ -232,10 +241,11 @@ class AgentEventHub {
             seq,
           };
           const serialized = JSON.stringify(eventWithSeq);
-          return Promise.allSettled([
-            redis.expire(seqKey, 1800),
-            redis.rpush(channelKey, serialized).then(() => redis.expire(channelKey, 1800)),
-          ]);
+          const pipeline = redis.pipeline();
+          pipeline.rpush(channelKey, serialized);
+          pipeline.expire(channelKey, 1800);
+          pipeline.expire(seqKey, 1800);
+          return pipeline.exec();
         })
         .catch((err) => {
           console.error("Failed to publish agent event to Redis:", err);

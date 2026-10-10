@@ -611,7 +611,7 @@ export function SchedulesSheet({
           if (!isOpen) setSelectedRun(null)
         }}
       >
-        <DialogContent>
+        <DialogContent className={"max-w-lg!"}>
           <DialogHeader>
             <DialogTitle>
               {((selectedRun?.input ?? {}) as QueuedInput).scheduledTaskName ||

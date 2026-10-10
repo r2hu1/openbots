@@ -100,6 +100,14 @@ export function useTriggerAgentRunMutation(
       conversationId?: string | null;
     }) => {
       if (!agentId) throw new Error("No agent selected");
+      const timezone =
+        typeof Intl !== "undefined"
+          ? Intl.DateTimeFormat().resolvedOptions().timeZone
+          : undefined;
+      const locale =
+        typeof navigator !== "undefined" ? navigator.language : undefined;
+      const now = new Date();
+      const localTime = now.toString();
       const client = getClient();
       const res = await client.api.agents[":id"].runs.$post({
         param: { id: agentId },
@@ -107,6 +115,11 @@ export function useTriggerAgentRunMutation(
           prompt,
           images: images && images.length > 0 ? images : undefined,
           conversationId: conversationId || undefined,
+          clientContext: {
+            timezone,
+            localTime,
+            locale,
+          },
         },
       });
 

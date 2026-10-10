@@ -298,6 +298,18 @@ export async function createAgentRun(
     ...(data.images && data.images.length > 0 ? { images: data.images } : {}),
   };
 
+  const runInput = hasUserMessage
+    ? {
+        ...userContent,
+        ...(data.clientContext ? { clientContext: data.clientContext } : {}),
+      }
+    : typeof data.input === "object" && data.input !== null
+      ? {
+          ...data.input,
+          ...(data.clientContext ? { clientContext: data.clientContext } : {}),
+        }
+      : (data.input ?? (data.clientContext ? { clientContext: data.clientContext } : null));
+
   // Parallelize run and user message insertion
   const [[run]] = await Promise.all([
     db
@@ -308,7 +320,7 @@ export async function createAgentRun(
         conversationId,
         status: "queued",
         triggerType: "manual",
-        input: hasUserMessage ? userContent : (data.input ?? null),
+        input: runInput,
       })
       .returning(),
     conversationId && hasUserMessage

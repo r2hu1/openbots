@@ -510,8 +510,43 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
 - DO NOT ask the user if they did it yet or thank them for reminding you. You are the one reminding the user.
 - DO NOT reschedule or recreate this reminder unless explicitly requested.`
       : ""
+    const clientContext =
+      inputObj?.clientContext ||
+      (typeof runRecord.input === "object" && runRecord.input !== null
+        ? (runRecord.input as any).clientContext
+        : undefined)
 
-    const systemInstructions = `${agentRecord.instructions || "You are an AI assistant."}${scheduledExecutionInstruction}
+    // Compute ground-truth current time and user environment
+    const now = new Date()
+    const userTimezone = clientContext?.timezone || "UTC"
+    let userFormattedTime = ""
+    try {
+      userFormattedTime = new Intl.DateTimeFormat("en-US", {
+        timeZone: userTimezone,
+        dateStyle: "full",
+        timeStyle: "long",
+      }).format(now)
+    } catch {
+      userFormattedTime = now.toUTCString()
+    }
+
+    const locationParts = [
+      clientContext?.city,
+      clientContext?.region,
+      clientContext?.country,
+    ].filter(Boolean)
+    const userLocationStr =
+      locationParts.length > 0 ? locationParts.join(", ") : undefined
+
+    const userEnvironmentInstruction = `
+## CURRENT USER ENVIRONMENT & TEMPORAL CONTEXT:
+- Current Local Time: ${userFormattedTime}
+- Timezone: ${userTimezone}
+- ISO Timestamp: ${now.toISOString()}
+${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext?.locale ? `- User Locale: ${clientContext.locale}\n` : ""}
+- CRITICAL: Use this EXACT current date, time, year, and timezone whenever the user refers to "today", "now", "tomorrow", "tonight", "this morning", "next week", or asks to schedule reminders/timers. DO NOT guess the date, time, or location, and NEVER assume an outdated year.`
+
+    const systemInstructions = `${agentRecord.instructions || "You are an AI assistant."}${userEnvironmentInstruction}${scheduledExecutionInstruction}
 
     ## Core Identity & Autonomous Capabilities:
     You are an autonomous AI coworker capable of doing real work, not just chatting. You can write code, run shell commands, research the live web, generate interactive diagrams and UI artifacts, schedule future reminders, operate recurring background tasks (cron jobs), and integrate with SaaS applications.
@@ -688,16 +723,32 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       // Consume stream parts and broadcast token deltas & tool events live via SSE
       let accumulatedStreamText = ""
       let streamError: any = null
+      let pendingDeltaBuffer = ""
+      let lastFlushTime = Date.now()
+
+      const flushDeltas = () => {
+        if (pendingDeltaBuffer) {
+          runEventHub.publish(runRecord.id, {
+            type: "delta",
+            text: pendingDeltaBuffer,
+          })
+          pendingDeltaBuffer = ""
+          lastFlushTime = Date.now()
+        }
+      }
+
       for await (const part of streamResult.fullStream) {
         if (abortController.signal.aborted) break
 
         if (part.type === "text-delta") {
           accumulatedStreamText += part.text
-          runEventHub.publish(runRecord.id, {
-            type: "delta",
-            text: part.text,
-          })
+          pendingDeltaBuffer += part.text
+          // Flush every 40ms or when buffer reaches reasonable chunk size to provide buttery smooth streaming
+          if (Date.now() - lastFlushTime >= 40 || pendingDeltaBuffer.length >= 30) {
+            flushDeltas()
+          }
         } else if (part.type === "tool-call") {
+          flushDeltas()
           runEventHub.publish(runRecord.id, {
             type: "tool_start",
             toolName: part.toolName,
@@ -705,6 +756,7 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
             stepNumber: currentStepNumber,
           })
         } else if (part.type === "tool-result") {
+          flushDeltas()
           runEventHub.publish(runRecord.id, {
             type: "tool_finish",
             toolName: (part as any).toolName,
@@ -712,9 +764,11 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
             output: (part as any).result ?? (part as any).output ?? null,
           })
         } else if (part.type === "error") {
+          flushDeltas()
           streamError = (part as any).error
         }
       }
+      flushDeltas()
 
       let passText = ""
       try {

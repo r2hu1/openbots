@@ -81,7 +81,7 @@ export function AgentHeader({
     >
       <div className="flex items-center gap-1.5">
         {isMobile && (
-          <SidebarTrigger className="flex cursor-pointer items-center rounded-full border-0! bg-muted backdrop-blur-sm transition-colors" />
+          <SidebarTrigger className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-muted text-xs font-medium text-foreground backdrop-blur-sm transition-colors" />
         )}
         {selectedAgent ? (
           <>
@@ -208,7 +208,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenSchedules}
-                className="flex cursor-pointer items-center rounded-full border-0! bg-muted backdrop-blur-sm transition-colors"
+                className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-muted text-xs font-medium text-foreground backdrop-blur-sm transition-colors"
                 title="Scheduled Autonomous Tasks"
               >
                 <Calendar2Newicons className="size-4" />
@@ -220,7 +220,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenHistory}
-              className="flex cursor-pointer items-center rounded-full border-0! bg-muted backdrop-blur-sm transition-colors"
+              className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-muted text-xs font-medium text-foreground backdrop-blur-sm transition-colors"
               title="Execution History"
             >
               <History2 className="size-4" />
@@ -231,7 +231,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenConfigure}
-              className="flex cursor-pointer items-center rounded-full border-0! bg-muted backdrop-blur-sm transition-colors"
+              className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-muted text-xs font-medium text-foreground backdrop-blur-sm transition-colors"
               title="Agent Settings"
             >
               <Setting className="size-4" />

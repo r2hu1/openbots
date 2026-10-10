@@ -93,6 +93,7 @@ export const runsRoute = new Hono<Env>()
         let lastDbCheck = Date.now();
         let lastPing = Date.now();
         while (!stream.aborted) {
+          let hadNewEvents = false;
           if (queue.length > 0) {
             const item = queue.shift()!;
             await stream.writeSSE({
@@ -124,6 +125,7 @@ export const runsRoute = new Hono<Env>()
                 );
                 lastRedisLen = currentLen;
                 if (items && items.length > 0) {
+                  hadNewEvents = true;
                   for (const raw of items) {
                     const parsed =
                       typeof raw === "string" ? JSON.parse(raw) : raw;
@@ -193,8 +195,9 @@ export const runsRoute = new Hono<Env>()
           }
 
           if (queue.length === 0 && !isDone) {
-            // Poll Redis every 300ms for sub-second updates across instances
-            await new Promise<void>((resolve) => setTimeout(resolve, 300));
+            // Poll Redis with low latency (50ms) during active runs, adaptively backing off
+            const waitMs = hadNewEvents ? 30 : 60;
+            await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
           }
         }
       } finally {

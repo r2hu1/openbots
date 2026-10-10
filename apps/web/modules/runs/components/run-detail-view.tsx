@@ -1,35 +1,35 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { IconArrowLeft, IconPlayerStop } from "@tabler/icons-react";
-import { Markdown } from "@/components/shared/markdown";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRunStream } from "../hooks/use-run-stream";
-import { runKeys, useCancelRunMutation, useRunDetailQuery } from "../queries";
+import { Button } from "@openbots/ui/components/button"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { IconArrowLeft, IconPlayerStop } from "@tabler/icons-react"
+import { Markdown } from "@/components/shared/markdown"
+import { useQueryClient } from "@tanstack/react-query"
+import { useRunStream } from "../hooks/use-run-stream"
+import { runKeys, useCancelRunMutation, useRunDetailQuery } from "../queries"
 import {
   formatDuration,
   formatTimestamp,
   getInputText,
   getOutputText,
-} from "../utils";
-import { ExecutionStepsCard } from "./execution-steps-card";
-import { RunStatusBadge } from "./run-status-badge";
+} from "../utils"
+import { ExecutionStepsCard } from "./execution-steps-card"
+import { RunStatusBadge } from "./run-status-badge"
 
 interface RunDetailViewProps {
-  runId: string;
-  agentId: string | null;
-  onBack: () => void;
+  runId: string
+  agentId: string | null
+  onBack: () => void
 }
 
 export function RunDetailView({ runId, agentId, onBack }: RunDetailViewProps) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   const { data, isLoading } = useRunDetailQuery(runId, {
     refetchInterval: false,
-  });
+  })
 
   const isRunning =
-    data?.run?.status === "queued" || data?.run?.status === "running";
+    data?.run?.status === "queued" || data?.run?.status === "running"
 
   const {
     streamingText,
@@ -38,9 +38,9 @@ export function RunDetailView({ runId, agentId, onBack }: RunDetailViewProps) {
   } = useRunStream({
     runId: isRunning ? runId : null,
     onDone: () => {
-      queryClient.invalidateQueries({ queryKey: runKeys.detail(runId) });
+      queryClient.invalidateQueries({ queryKey: runKeys.detail(runId) })
       if (agentId) {
-        queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) });
+        queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) })
       }
     },
     onStatus: (st) => {
@@ -49,45 +49,35 @@ export function RunDetailView({ runId, agentId, onBack }: RunDetailViewProps) {
         st.status === "failed" ||
         st.status === "cancelled"
       ) {
-        queryClient.invalidateQueries({ queryKey: runKeys.detail(runId) });
+        queryClient.invalidateQueries({ queryKey: runKeys.detail(runId) })
         if (agentId) {
-          queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) });
+          queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) })
         }
       }
     },
-  });
+  })
 
-  const cancelMutation = useCancelRunMutation(agentId);
+  const cancelMutation = useCancelRunMutation(agentId)
 
   if (isLoading || !data) {
     return (
       <div className="flex h-48 items-center justify-center">
         <Spinner className="size-5" />
       </div>
-    );
+    )
   }
 
-  const { run, steps } = data;
-  const currentStatus = streamStatus || run.status;
+  const { run, steps } = data
+  const currentStatus = streamStatus || run.status
   const activeIsRunning =
-    currentStatus === "queued" || currentStatus === "running";
-  const inputText = getInputText(run.input);
-  const outputText = streamingText || getOutputText(run.output);
-  const displaySteps = streamingSteps.length > 0 ? streamingSteps : steps;
+    currentStatus === "queued" || currentStatus === "running"
+  const inputText = getInputText(run.input)
+  const outputText = streamingText || getOutputText(run.output)
+  const displaySteps = streamingSteps.length > 0 ? streamingSteps : steps
 
   return (
     <div className="space-y-4 pb-4">
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={onBack}
-          className="-ml-1 gap-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <IconArrowLeft className="size-3.5" />
-          All runs
-        </Button>
-
         {isRunning && (
           <Button
             size="xs"
@@ -176,5 +166,5 @@ export function RunDetailView({ runId, agentId, onBack }: RunDetailViewProps) {
         </div>
       )}
     </div>
-  );
+  )
 }

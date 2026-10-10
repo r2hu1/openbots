@@ -73,18 +73,21 @@ export function AgentHeader({
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 left-0 z-50 flex items-center justify-between p-2 px-3 transition-[left] duration-200",
+        "fixed top-0 right-0 left-0 z-50 flex items-center justify-between bg-background px-3 pt-2 pb-1 transition-[left] duration-200",
+        "after:pointer-events-none after:absolute after:top-full after:right-0 after:left-0 after:h-6 after:bg-linear-to-b after:from-background after:to-transparent",
         !isMobile && open && "left-[var(--sidebar-width)]",
         !isMobile && !open && "left-[var(--sidebar-width-icon)]"
       )}
     >
       <div className="flex items-center gap-1.5">
-        <SidebarTrigger className="flex cursor-pointer items-center rounded-full border-0! bg-muted/50 backdrop-blur-sm transition-colors" />
+        {isMobile && (
+          <SidebarTrigger className="flex cursor-pointer items-center rounded-full border-0! bg-muted backdrop-blur-sm transition-colors" />
+        )}
         {selectedAgent ? (
           <>
             <DropdownMenu>
               <DropdownMenuTrigger openOnHover>
-                <div className="flex cursor-pointer items-center rounded-full bg-muted/50 p-1 pr-2.5 backdrop-blur-sm transition-colors">
+                <div className="flex cursor-pointer items-center rounded-full bg-muted py-0.5 pr-1.5 pl-1 backdrop-blur-sm transition-colors">
                   <Blobatar
                     name={selectedAgent.name || selectedAgent.id}
                     className="size-6.5!"
@@ -205,7 +208,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenSchedules}
-                className="flex cursor-pointer items-center rounded-full border-0! bg-muted/50 backdrop-blur-sm transition-colors"
+                className="flex cursor-pointer items-center rounded-full border-0! bg-muted backdrop-blur-sm transition-colors"
                 title="Scheduled Autonomous Tasks"
               >
                 <Calendar2Newicons className="size-4" />
@@ -217,7 +220,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenHistory}
-              className="flex cursor-pointer items-center rounded-full border-0! bg-muted/50 backdrop-blur-sm transition-colors"
+              className="flex cursor-pointer items-center rounded-full border-0! bg-muted backdrop-blur-sm transition-colors"
               title="Execution History"
             >
               <History2 className="size-4" />
@@ -228,7 +231,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenConfigure}
-              className="flex cursor-pointer items-center rounded-full border-0! bg-muted/50 backdrop-blur-sm transition-colors"
+              className="flex cursor-pointer items-center rounded-full border-0! bg-muted backdrop-blur-sm transition-colors"
               title="Agent Settings"
             >
               <Setting className="size-4" />

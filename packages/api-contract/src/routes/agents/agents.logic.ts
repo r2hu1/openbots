@@ -153,6 +153,14 @@ export const ALL_INTERNAL_TOOLS = [
   "currency_converter",
   "dns_lookup",
   "react_to_message",
+  "browser_navigate",
+  "browser_click",
+  "browser_type",
+  "browser_screenshot",
+  "browser_extract_content",
+  "browser_scroll",
+  "browser_evaluate",
+  "browser_close",
 ] as const;
 
 export async function getAgentTools(agentId: string, userId: string) {

@@ -19,6 +19,12 @@
       "skillPath": "skills/biomejs/SKILL.md",
       "computedHash": "547c94e012fdcb9b23994e46ca788c27ab42620f8c92d041ca86d1ae62f717b1"
     },
+    "browserbase-sdk": {
+      "source": "thatjuan/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/deprecated/browserbase-sdk/SKILL.md",
+      "computedHash": "fad15fcfde4c6d4317145d1ea2c94fae005fba0605721abdee5054dd7b81d9ab"
+    },
     "composio": {
       "source": "ComposioHQ/composio",
       "sourceType": "github",

@@ -34,6 +34,22 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
     "Fetches live global foreign exchange rates and converts currency amounts.",
   dns_lookup:
     "Performs DNS record lookups (A, AAAA, MX, TXT, CNAME, NS) via Google Public DNS.",
+  browser_navigate:
+    "Opens and navigates to any URL in a full real cloud browser powered by Browserbase.",
+  browser_click:
+    "Clicks buttons, links, dropdowns, and interactive elements on the web page.",
+  browser_type:
+    "Fills forms and types inputs, search queries, and credentials in the browser.",
+  browser_screenshot:
+    "Captures full visual screenshots and live view sessions of web pages.",
+  browser_extract_content:
+    "Extracts structured article text, clean HTML, and links from the web page.",
+  browser_scroll:
+    "Scrolls web pages up or down to reveal dynamic lazy-loaded contents.",
+  browser_evaluate:
+    "Runs custom JavaScript directly in the active browser tab context.",
+  browser_close:
+    "Releases and closes the cloud browser session once browsing is complete.",
 };
 
 export const DEFAULT_MODELS = [

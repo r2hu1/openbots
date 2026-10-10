@@ -579,7 +579,7 @@ export function InputComposer({
 
   return (
     <div className="w-full px-3 pb-3">
-      <div className="relative mx-auto max-w-4xl">
+      <div className="relative mx-auto max-w-[870px]">
         {/* Slash Commands Floating Menu */}
         {isMenuOpen && (
           <div

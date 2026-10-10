@@ -84,7 +84,7 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
     }),
     execute: async ({ selector, timeoutMs }) => {
       try {
-        const { page } = await getConn();
+        const { page, session } = await getConn();
         await page.waitForSelector(selector, {
           state: "visible",
           timeout: timeoutMs,
@@ -98,6 +98,8 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
           message: `Clicked element '${selector}'`,
           currentUrl: page.url(),
           title: await page.title(),
+          sessionId: session.sessionId,
+          liveViewUrl: session.liveDebuggerFullscreenUrl,
         };
       } catch (err: any) {
         return {
@@ -128,7 +130,7 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
     }),
     execute: async ({ selector, text, pressEnter, clearFirst }) => {
       try {
-        const { page } = await getConn();
+        const { page, session } = await getConn();
         await page.waitForSelector(selector, { state: "visible", timeout: 10000 });
         if (clearFirst) {
           await page.fill(selector, "");
@@ -143,6 +145,9 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
           success: true,
           message: `Typed into '${selector}'`,
           currentUrl: page.url(),
+          title: await page.title(),
+          sessionId: session.sessionId,
+          liveViewUrl: session.liveDebuggerFullscreenUrl,
         };
       } catch (err: any) {
         return {
@@ -179,6 +184,7 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
           url: page.url(),
           title: await page.title(),
           screenshotDataUrl: dataUrl,
+          sessionId: session.sessionId,
           liveViewUrl: session.liveDebuggerFullscreenUrl,
         };
       } catch (err: any) {
@@ -202,18 +208,17 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
       maxChars: z
         .number()
         .default(12000)
-        .describe("Maximum character length to return to fit model context"),
+        .describe("Maximum character length to fit model context"),
     }),
     execute: async ({ selector, maxChars }) => {
       try {
-        const { page } = await getConn();
+        const { page, session } = await getConn();
         let content: string;
         if (selector) {
           const el = await page.$(selector);
           content = el ? ((await el.innerText()) || "") : "";
         } else {
           content = await page.evaluate(() => {
-            // Remove noise tags
             const clone = document.body.cloneNode(true) as HTMLElement;
             clone.querySelectorAll("script, style, noscript, svg").forEach((n) => n.remove());
             return clone.innerText || "";
@@ -231,6 +236,8 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
           url: page.url(),
           title: await page.title(),
           content: truncated,
+          sessionId: session.sessionId,
+          liveViewUrl: session.liveDebuggerFullscreenUrl,
         };
       } catch (err: any) {
         return {
@@ -254,7 +261,7 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
     }),
     execute: async ({ direction, pixels }) => {
       try {
-        const { page } = await getConn();
+        const { page, session } = await getConn();
         const delta = direction === "down" ? pixels : -pixels;
         await page.evaluate((d) => window.scrollBy({ top: d, behavior: "smooth" }), delta);
         await page.waitForTimeout(500);
@@ -262,6 +269,10 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
         return {
           success: true,
           message: `Scrolled ${direction} by ${pixels}px`,
+          url: page.url(),
+          title: await page.title(),
+          sessionId: session.sessionId,
+          liveViewUrl: session.liveDebuggerFullscreenUrl,
         };
       } catch (err: any) {
         return {
@@ -285,7 +296,7 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
     }),
     execute: async ({ script }) => {
       try {
-        const { page } = await getConn();
+        const { page, session } = await getConn();
         const result = await page.evaluate((code) => {
           return window.eval(code);
         }, script);
@@ -293,6 +304,10 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
         return {
           success: true,
           result,
+          url: page.url(),
+          title: await page.title(),
+          sessionId: session.sessionId,
+          liveViewUrl: session.liveDebuggerFullscreenUrl,
         };
       } catch (err: any) {
         return {

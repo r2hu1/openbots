@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@browserbasehq/sdk": "^2.21.0",
     "@composio/core": "^0.22.0",
     "@hono/zod-validator": "^0.5.0",
     "@openbots/db": "workspace:*",
@@ -16,6 +17,7 @@
     "better-auth": "^1.7.0",
     "drizzle-orm": "^0.45.3",
     "hono": "^4.7.11",
+    "playwright-core": "^1.64.0",
     "web-push": "^3.6.7",
     "zod": "^4.6.5"
   },

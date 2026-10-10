@@ -59,7 +59,7 @@ export function useReconciledMessages({
 
         if (!hasResponseAlready) {
           result.push({
-            id: `opt-assistant-${activeRun.id}`,
+            id: `run-asst-${activeRun.id}`,
             conversationId: activeConversationId || "temp",
             role: "assistant",
             content: { text: completedOutputText },

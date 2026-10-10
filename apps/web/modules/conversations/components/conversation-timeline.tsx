@@ -70,7 +70,12 @@ export function ConversationTimeline({
 
     return messages.some((m) => {
       if (m.role !== "assistant") return false
-      if (activeRun.id && (m.id === `opt-assistant-${activeRun.id}` || m.id.includes(activeRun.id))) {
+      if (
+        activeRun.id &&
+        (m.id === `run-asst-${activeRun.id}` ||
+          m.id === `opt-assistant-${activeRun.id}` ||
+          m.id.includes(activeRun.id))
+      ) {
         return true
       }
       if (outputText) {
@@ -126,9 +131,9 @@ export function ConversationTimeline({
     onLoadOlderMessages()
   }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages])
 
-  // Preserve scroll position when messages prepend
+  // Preserve scroll position when older messages prepend
   React.useLayoutEffect(() => {
-    if (prevScrollHeightRef.current !== null) {
+    if (prevScrollHeightRef.current !== null && !isLoadingOlder) {
       const viewport =
         viewportRef.current ||
         topSentinelRef.current?.closest<HTMLElement>(
@@ -144,7 +149,7 @@ export function ConversationTimeline({
       prevScrollHeightRef.current = null
       prevScrollTopRef.current = null
     }
-  }, [messages.length])
+  }, [messages.length, isLoadingOlder])
 
   // IntersectionObserver to auto-fetch when scrolling near the top
   React.useEffect(() => {
@@ -311,9 +316,9 @@ export function ConversationTimeline({
         <MessageScrollerViewport
           ref={viewportRef}
           onScroll={handleScroll}
-          className="border-none! px-4 py-6 outline-none!"
+          className="border-none outline-none"
         >
-          <MessageScrollerContent className="mx-auto max-w-4xl space-y-6">
+          <MessageScrollerContent className="mx-auto max-w-4xl space-y-6 px-4 py-6">
             <div
               ref={topSentinelRef}
               className="pointer-events-none h-1 w-full"
@@ -322,26 +327,23 @@ export function ConversationTimeline({
             {hasOlderMessages && (
               <div className="flex min-h-8 justify-center py-2">
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={onLoadOlderMessages}
                   disabled={isLoadingOlder}
+                  className="gap-2 text-xs"
                 >
-                  <Marker>
-                    <MarkerContent className="flex shimmer items-center gap-2">
-                      {isLoadingOlder ? (
-                        <>
-                          <Spinner className="size-3.5" />
-                          <span>Loading older messages...</span>
-                        </>
-                      ) : (
-                        <>
-                          <IconChevronUp className="size-3.5" />
-                          <span>Load older messages</span>
-                        </>
-                      )}
-                    </MarkerContent>
-                  </Marker>
+                  {isLoadingOlder ? (
+                    <>
+                      <Spinner className="size-3.5" />
+                      <span className="shimmer">Loading older messages...</span>
+                    </>
+                  ) : (
+                    <>
+                      <IconChevronUp className="size-3.5" />
+                      <span>Load older messages</span>
+                    </>
+                  )}
                 </Button>
               </div>
             )}
@@ -351,25 +353,23 @@ export function ConversationTimeline({
                 <Spinner className="mx-auto size-6" />
               </div>
             ) : messages.length === 0 && !activeRun && !executionError ? (
-              <MessageScrollerItem>
-                <div className="mx-auto max-w-lg py-20 text-center">
-                  <div className="flex items-center justify-center">
-                    <Blobatar
-                      name={agentName}
-                      alt={agentName}
-                      className="size-14!"
-                      blobatar={{ animate: "always" }}
-                    />
-                  </div>
-                  <h3 className="font-heading text-base font-medium text-foreground">
-                    Ready to chat with {agentName}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Send a task or query below. The agent will execute tool
-                    steps as needed and return the verified output.
-                  </p>
+              <div className="mx-auto max-w-lg py-20 text-center">
+                <div className="flex items-center justify-center">
+                  <Blobatar
+                    name={agentName}
+                    alt={agentName}
+                    className="size-14!"
+                    blobatar={{ animate: "always" }}
+                  />
                 </div>
-              </MessageScrollerItem>
+                <h3 className="font-heading text-base font-medium text-foreground">
+                  Ready to chat with {agentName}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Send a task or query below. The agent will execute tool
+                  steps as needed and return the verified output.
+                </p>
+              </div>
             ) : null}
 
             {!isLoading &&
@@ -431,12 +431,14 @@ export function ConversationTimeline({
             !isCurrentRunAlreadyRendered &&
             streamingText ? (
               <MessageScrollerItem
-                key={`streaming-${activeRun?.id || "current"}`}
-                id={`streaming-${activeRun?.id || "current"}`}
+                key={`run-asst-${activeRun?.id || "current"}`}
+                id={`run-asst-${activeRun?.id || "current"}`}
+                data-message-id={`run-asst-${activeRun?.id || "current"}`}
+                messageId={`run-asst-${activeRun?.id || "current"}`}
               >
                 <ConversationMessageItem
                   message={{
-                    id: `streaming-${activeRun?.id || "current"}`,
+                    id: `run-asst-${activeRun?.id || "current"}`,
                     conversationId: activeRun?.conversationId || "current",
                     role: "assistant",
                     content: { text: streamingText },

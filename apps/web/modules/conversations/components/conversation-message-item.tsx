@@ -102,7 +102,7 @@ interface ConversationMessageItemProps {
 // and React component remounts
 const seenReactionsByMsg = new Map<string, Set<string>>()
 
-export function ConversationMessageItem({
+export const ConversationMessageItem = React.memo(function ConversationMessageItem({
   message,
   agentName,
   onOpenArtifact,
@@ -433,14 +433,13 @@ export function ConversationMessageItem({
   return (
     <ContextMenu>
       <ContextMenuTrigger className="block w-full">
-        <MessageGroup className="group">
-          <Message align={isUser ? "end" : "start"}>
-            {!isUser && (
-              <MessageAvatar className="-mr-0.5 p-0!">
-                <Blobatar name={agentName} className="size-8" />
-              </MessageAvatar>
-            )}
-            <MessageContent>
+        <Message align={isUser ? "end" : "start"}>
+          {!isUser && (
+            <MessageAvatar className="-mr-0.5">
+              <Blobatar name={agentName} className="size-8" />
+            </MessageAvatar>
+          )}
+          <MessageContent>
               <div
                 ref={bubbleRef}
                 onMouseUp={handleMouseUp}
@@ -480,16 +479,11 @@ export function ConversationMessageItem({
                             size="sm"
                             state="done"
                             orientation="vertical"
-                            className="size-fit! p-px!"
                           >
-                            <AttachmentMedia
-                              variant="image"
-                              className="size-14!"
-                            >
+                            <AttachmentMedia variant="image">
                               <img
                                 src={imgUrl}
                                 alt={`Attachment ${idx + 1}`}
-                                className="size-full rounded-xl object-cover"
                                 loading="lazy"
                               />
                             </AttachmentMedia>
@@ -497,13 +491,13 @@ export function ConversationMessageItem({
                         ))}
                       </AttachmentGroup>
                     )}
-                    {text ? (
+                    {text && (
                       <Bubble
                         variant="default"
                         align="end"
                         className="relative"
                       >
-                        <BubbleContent className="p-1.5 px-2.5 text-sm whitespace-pre-wrap text-foreground">
+                        <BubbleContent className="whitespace-pre-wrap">
                           {text}
                         </BubbleContent>
                         {reactions.length > 0 && (
@@ -535,35 +529,6 @@ export function ConversationMessageItem({
                           </BubbleReactions>
                         )}
                       </Bubble>
-                    ) : (
-                      reactions.length > 0 && (
-                        <BubbleReactions side="bottom" align="end">
-                          {reactions.map((emoji, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                const rect =
-                                  e.currentTarget.getBoundingClientRect()
-                                fireEmojiConfetti(emoji, {
-                                  x:
-                                    (rect.left + rect.width / 2) /
-                                    window.innerWidth,
-                                  y:
-                                    (rect.top + rect.height / 2) /
-                                    window.innerHeight,
-                                })
-                              }}
-                              title={`Reacted by ${agentName} (click for confetti)`}
-                              aria-label={`Reaction ${emoji}`}
-                              className="cursor-pointer px-1 py-px transition-transform hover:scale-125 active:scale-95"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </BubbleReactions>
-                      )
                     )}
                   </div>
                 ) : (
@@ -667,16 +632,10 @@ export function ConversationMessageItem({
                 )}
               </div>
 
-              <MessageFooter
-                className={
-                  isUser
-                    ? "-mt-1 items-center gap-2 px-0"
-                    : "items-center gap-2 px-0"
-                }
-              >
+              <MessageFooter className="items-center gap-2 px-0">
                 {isUser ? (
                   <>
-                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex items-center gap-0.5 opacity-80 md:opacity-0 transition-opacity md:group-hover:opacity-100 focus-within:opacity-100">
                       <Button
                         type="button"
                         variant="ghost"
@@ -714,7 +673,7 @@ export function ConversationMessageItem({
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex items-center gap-0.5 opacity-80 md:opacity-0 transition-opacity md:group-hover:opacity-100 focus-within:opacity-100">
                       <span className="mr-1 text-[10px] text-muted-foreground">
                         {formatMsgTime(message.createdAt)}
                       </span>
@@ -799,7 +758,6 @@ export function ConversationMessageItem({
               </MessageFooter>
             </MessageContent>
           </Message>
-        </MessageGroup>
       </ContextMenuTrigger>
 
       <ContextMenuContent className="w-48">
@@ -867,4 +825,4 @@ export function ConversationMessageItem({
       </ContextMenuContent>
     </ContextMenu>
   )
-}
+})

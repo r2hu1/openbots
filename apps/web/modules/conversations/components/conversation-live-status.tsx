@@ -56,58 +56,49 @@ export function ConversationLiveStatus({
     const isLatestToolRunning = latestToolStep?.status === "running"
 
     return (
-      <div className="space-y-3 py-1">
-        <MessageGroup>
+      <Message align="start" className="gap-2">
+        {!hasStreamingContent && (
+          <MessageAvatar className="-mr-0.5">
+            <Blobatar
+              name={agentName}
+              className="size-8"
+              blobatar={{ animate: "always" }}
+            />
+          </MessageAvatar>
+        )}
+        <MessageContent className="gap-2">
           {!hasStreamingContent && (
-            <Message align="start" className="gap-2">
-              <MessageAvatar className="-mr-1 p-0!">
-                <Blobatar
-                  name={agentName}
-                  className="size-8!"
-                  blobatar={{ animate: "always" }}
-                />
-              </MessageAvatar>
-              <MessageContent>
-                <Bubble variant="secondary" align="start">
-                  <BubbleContent className="flex items-center gap-1.5 text-foreground">
-                    <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
-                    <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
-                    <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60" />
-                  </BubbleContent>
-                </Bubble>
-              </MessageContent>
-            </Message>
+            <Bubble variant="secondary" align="start">
+              <BubbleContent className="flex items-center gap-2 py-3">
+                <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
+                <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
+                <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60" />
+              </BubbleContent>
+            </Bubble>
           )}
-          <div className="gap-px px-0">
+
+          {latestToolLabel && (
             <Marker className="text-xs text-muted-foreground">
-              {latestToolLabel ? (
-                <>
-                  <MarkerIcon className="size-3.5 shrink-0">
-                    {isLatestToolRunning ? (
-                      <Spinner className="size-3 text-primary" />
-                    ) : (
-                      <IconCheck className="size-3" />
-                    )}
-                  </MarkerIcon>
-                  <MarkerContent
-                    className={
-                      isLatestToolRunning
-                        ? "shimmer font-medium"
-                        : "truncate text-muted-foreground"
-                    }
-                  >
-                    {latestToolLabel}
-                  </MarkerContent>
-                </>
-              ) : !hasStreamingContent ? (
-                <MarkerContent className="shimmer text-xs">
-                  Thinking...
-                </MarkerContent>
-              ) : null}
+              <MarkerIcon>
+                {isLatestToolRunning ? (
+                  <Spinner className="size-3 text-primary" />
+                ) : (
+                  <IconCheck className="size-3" />
+                )}
+              </MarkerIcon>
+              <MarkerContent
+                className={
+                  isLatestToolRunning
+                    ? "shimmer font-medium"
+                    : "truncate text-muted-foreground"
+                }
+              >
+                {latestToolLabel}
+              </MarkerContent>
             </Marker>
-          </div>
-        </MessageGroup>
-      </div>
+          )}
+        </MessageContent>
+      </Message>
     )
   }
 
@@ -118,11 +109,11 @@ export function ConversationLiveStatus({
     return (
       <div className="py-1">
         {activeRun.status === "failed" && activeRun.error && (
-          <Marker className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+          <Marker variant="border" className="text-xs text-destructive">
             <MarkerIcon>
               <IconAlertCircle className="size-4 shrink-0 text-destructive" />
             </MarkerIcon>
-            <MarkerContent className="font-mono text-[11px] leading-relaxed">
+            <MarkerContent className="font-mono text-xs leading-relaxed">
               {activeRun.error}
             </MarkerContent>
           </Marker>

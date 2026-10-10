@@ -6,8 +6,10 @@ import {
 } from "@modelcontextprotocol/client";
 import {
   agentEventHub,
+  createBrowserbaseTools,
   getDirectRunExecutor,
   normalizeTriggerTimezone,
+  releaseBrowserSession,
 } from "@openbots/api-contract";
 import {
   agentTools,
@@ -2777,9 +2779,15 @@ export async function buildAgentTools(params: {
     }
   }
 
+  // Initialize Browserbase tools suite if any browser tools are enabled or if BROWSERBASE_API_KEY is present
+  const browserContextKey = conversationId || agentId || userId;
+  const browserTools = createBrowserbaseTools(browserContextKey);
+
   for (const config of configuredTools) {
     if (config.provider === "internal") {
-      const found = internalTools[config.toolName];
+      const found =
+        internalTools[config.toolName] ||
+        (browserTools as Record<string, any>)[config.toolName];
       if (found) {
         activeTools[config.toolName] = found;
       }

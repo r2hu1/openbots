@@ -74,11 +74,78 @@ export function formatToolStepLabel(
     };
   }
 
-  // 3. Fetch web page / read url
+  // 3. Browserbase Cloud Browser Tools
+  if (normalized === "browser_navigate") {
+    const url = typeof inputObj?.url === "string" ? inputObj.url : null;
+    const host = url ? tryExtractHostname(url) : null;
+    if (isRunning) {
+      return {
+        label: host ? `Navigating browser to ${host}...` : "Navigating browser...",
+        detail: url ?? undefined,
+      };
+    }
+    if (isFailed) {
+      return {
+        label: `Failed to navigate browser to ${host || "URL"}`,
+        detail: url ?? undefined,
+      };
+    }
+    return {
+      label: host ? `Navigated browser to ${host}` : "Navigated browser",
+      detail: url ?? undefined,
+    };
+  }
+
+  if (normalized === "browser_click") {
+    const selector = typeof inputObj?.selector === "string" ? inputObj.selector : null;
+    if (isRunning) return { label: `Clicking element "${selector ?? "target"}"...`, detail: selector ?? undefined };
+    if (isFailed) return { label: `Failed to click element`, detail: selector ?? undefined };
+    return { label: `Clicked element "${selector ?? "target"}"`, detail: selector ?? undefined };
+  }
+
+  if (normalized === "browser_type") {
+    const text = typeof inputObj?.text === "string" ? inputObj.text : null;
+    const selector = typeof inputObj?.selector === "string" ? inputObj.selector : null;
+    if (isRunning) return { label: text ? `Typing "${truncateText(text, 24)}"...` : "Typing in browser...", detail: selector ?? undefined };
+    if (isFailed) return { label: "Failed to type in browser", detail: selector ?? undefined };
+    return { label: text ? `Typed "${truncateText(text, 24)}"` : "Typed text in browser", detail: selector ?? undefined };
+  }
+
+  if (normalized === "browser_screenshot") {
+    if (isRunning) return { label: "Capturing browser screenshot..." };
+    if (isFailed) return { label: "Failed to take screenshot" };
+    return { label: "Captured browser screenshot" };
+  }
+
+  if (normalized === "browser_extract_content") {
+    if (isRunning) return { label: "Extracting page content from browser..." };
+    if (isFailed) return { label: "Failed to extract page content" };
+    return { label: "Extracted page content" };
+  }
+
+  if (normalized === "browser_scroll") {
+    const dir = inputObj?.direction === "up" ? "up" : "down";
+    if (isRunning) return { label: `Scrolling page ${dir}...` };
+    if (isFailed) return { label: "Failed to scroll page" };
+    return { label: `Scrolled page ${dir}` };
+  }
+
+  if (normalized === "browser_evaluate") {
+    if (isRunning) return { label: "Evaluating JavaScript in browser..." };
+    if (isFailed) return { label: "Failed to run JavaScript in browser" };
+    return { label: "Evaluated script in browser" };
+  }
+
+  if (normalized === "browser_close") {
+    if (isRunning) return { label: "Closing browser session..." };
+    if (isFailed) return { label: "Failed to close browser" };
+    return { label: "Closed browser session" };
+  }
+
+  // 4. Fetch web page / read url
   if (
     normalized === "fetch_web_page" ||
     normalized === "fetch_page" ||
-    normalized.includes("browser") ||
     normalized.includes("read_url")
   ) {
     const url = typeof inputObj?.url === "string" ? inputObj.url : null;

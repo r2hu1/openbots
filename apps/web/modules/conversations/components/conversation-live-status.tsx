@@ -70,9 +70,9 @@ export function ConversationLiveStatus({
               <MessageContent>
                 <Bubble variant="secondary" align="start">
                   <BubbleContent className="flex items-center gap-1.5 text-foreground">
-                    <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
-                    <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
-                    <span className="size-1.5 animate-bounce rounded-full bg-foreground/60" />
+                    <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
+                    <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
+                    <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60" />
                   </BubbleContent>
                 </Bubble>
               </MessageContent>

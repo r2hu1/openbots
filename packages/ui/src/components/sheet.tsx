@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
-import { Button } from "@openbots/ui/components/button";
-import { cn } from "cn";
-import * as React from "react";
-import { ChevronLeft, X as XIcon } from "reicon-react";
+import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
+import { Button } from "@openbots/ui/components/button"
+import { cn } from "cn"
+import * as React from "react"
+import { ChevronLeft, X as XIcon } from "reicon-react"
 
 /* -------------------------------------------------------------------------- */
 /*  Back button support                                                       */
@@ -15,75 +15,75 @@ import { ChevronLeft, X as XIcon } from "reicon-react";
 /*  only closes the top-most one.                                             */
 /* -------------------------------------------------------------------------- */
 
-const SHEET_HISTORY_KEY = "__sheetOpen";
+const SHEET_HISTORY_KEY = "__sheetOpen"
 
-type HistoryEntry = { id: string; close: () => void };
+type HistoryEntry = { id: string; close: () => void }
 
-const historyStack: HistoryEntry[] = [];
+const historyStack: HistoryEntry[] = []
 // Number of popstate events caused by our own history.back() calls.
-let skipPops = 0;
-let listening = false;
+let skipPops = 0
+let listening = false
 
 function handlePopState() {
   if (skipPops > 0) {
-    skipPops--;
-    return;
+    skipPops--
+    return
   }
   // Device back: the entry is already gone, so just close the top sheet.
-  historyStack.pop()?.close();
+  historyStack.pop()?.close()
 }
 
 function acquireHistoryEntry(id: string, close: () => void) {
   if (!listening) {
-    window.addEventListener("popstate", handlePopState);
-    listening = true;
+    window.addEventListener("popstate", handlePopState)
+    listening = true
   }
-  historyStack.push({ id, close });
+  historyStack.push({ id, close })
   // Spread the current state so routers (e.g. Next.js) keep their own data.
   window.history.pushState(
     { ...window.history.state, [SHEET_HISTORY_KEY]: id },
-    "",
-  );
+    ""
+  )
 }
 
 function releaseHistoryEntry(id: string) {
-  const index = historyStack.findIndex((entry) => entry.id === id);
+  const index = historyStack.findIndex((entry) => entry.id === id)
   // Not in the stack: closed by the back button, entry already consumed.
-  if (index === -1) return;
+  if (index === -1) return
 
-  const wasTop = index === historyStack.length - 1;
-  historyStack.splice(index, 1);
+  const wasTop = index === historyStack.length - 1
+  historyStack.splice(index, 1)
 
   // Closed from the UI (X button, overlay, Escape, programmatically).
   // Remove our extra entry, but only if it is still the current one, so we
   // never undo a navigation the user made while the sheet was open.
   if (wasTop && window.history.state?.[SHEET_HISTORY_KEY] === id) {
-    skipPops++;
-    window.history.back();
+    skipPops++
+    window.history.back()
   }
 }
 
 function useCloseOnBack(open: boolean, enabled: boolean, close: () => void) {
-  const id = React.useId();
-  const closeRef = React.useRef(close);
+  const id = React.useId()
+  const closeRef = React.useRef(close)
 
   React.useEffect(() => {
-    closeRef.current = close;
-  });
+    closeRef.current = close
+  })
 
   React.useEffect(() => {
-    if (!enabled || !open) return;
-    acquireHistoryEntry(id, () => closeRef.current());
-    return () => releaseHistoryEntry(id);
-  }, [enabled, open, id]);
+    if (!enabled || !open) return
+    acquireHistoryEntry(id, () => closeRef.current())
+    return () => releaseHistoryEntry(id)
+  }, [enabled, open, id])
 }
 
 /* -------------------------------------------------------------------------- */
 
 type SheetRootProps = SheetPrimitive.Root.Props & {
   /** Close the sheet when the user presses back. Default: true. */
-  closeOnBack?: boolean;
-};
+  closeOnBack?: boolean
+}
 
 function Sheet({
   open: openProp,
@@ -94,30 +94,30 @@ function Sheet({
 }: SheetRootProps) {
   // We always render the primitive as controlled so we know the open state
   // in both controlled and uncontrolled usage.
-  const [openState, setOpenState] = React.useState(defaultOpen);
-  const isControlled = openProp !== undefined;
-  const open = isControlled ? openProp : openState;
+  const [openState, setOpenState] = React.useState(defaultOpen)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? openProp : openState
 
   const handleOpenChange = React.useCallback<
     NonNullable<SheetPrimitive.Root.Props["onOpenChange"]>
   >(
     (next, eventDetails) => {
-      if (!isControlled) setOpenState(next);
-      onOpenChange?.(next, eventDetails);
+      if (!isControlled) setOpenState(next)
+      onOpenChange?.(next, eventDetails)
     },
-    [isControlled, onOpenChange],
-  );
+    [isControlled, onOpenChange]
+  )
 
   useCloseOnBack(open, closeOnBack, () => {
-    if (!isControlled) setOpenState(false);
+    if (!isControlled) setOpenState(false)
     // There is no Base UI event for a history pop, so no details are passed.
     onOpenChange?.(
       false,
       undefined as unknown as Parameters<
         NonNullable<SheetPrimitive.Root.Props["onOpenChange"]>
-      >[1],
-    );
-  });
+      >[1]
+    )
+  })
 
   return (
     <SheetPrimitive.Root
@@ -126,19 +126,19 @@ function Sheet({
       onOpenChange={handleOpenChange}
       {...props}
     />
-  );
+  )
 }
 
 function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
+  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
 }
 
 function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />;
+  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
 }
 
 function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
-  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
+  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
 function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
@@ -147,11 +147,11 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
       data-slot="sheet-overlay"
       className={cn(
         "fixed inset-0 z-50 bg-black/10 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
-        className,
+        className
       )}
       {...props}
     />
-  );
+  )
 }
 
 function SheetContent({
@@ -161,8 +161,8 @@ function SheetContent({
   showCloseButton = true,
   ...props
 }: SheetPrimitive.Popup.Props & {
-  side?: "top" | "right" | "bottom" | "left";
-  showCloseButton?: boolean;
+  side?: "top" | "right" | "bottom" | "left"
+  showCloseButton?: boolean
 }) {
   return (
     <SheetPortal className={"dark"}>
@@ -185,7 +185,7 @@ function SheetContent({
           // right
           "data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-full data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=right]:sm:inset-y-3 data-[side=right]:sm:right-3 data-[side=right]:sm:h-auto data-[side=right]:sm:w-auto data-[side=right]:sm:max-w-sm",
 
-          className,
+          className
         )}
         {...props}
       >
@@ -200,7 +200,7 @@ function SheetContent({
               />
             }
           >
-            <XIcon className="hidden sm:flex" />
+            <XIcon className="hidden size-3.5 sm:flex" />
             <ChevronLeft className="flex size-3.5 sm:hidden" />
             <span className="sr-only">Close</span>
             <span className="sm:hidden">Back</span>
@@ -208,7 +208,7 @@ function SheetContent({
         )}
       </SheetPrimitive.Popup>
     </SheetPortal>
-  );
+  )
 }
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -218,7 +218,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex flex-col gap-1.5 p-4", className)}
       {...props}
     />
-  );
+  )
 }
 
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
@@ -228,7 +228,7 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("mt-auto flex flex-col gap-2 p-4", className)}
       {...props}
     />
-  );
+  )
 }
 
 function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
@@ -238,7 +238,7 @@ function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
       className={cn("font-heading font-medium text-foreground", className)}
       {...props}
     />
-  );
+  )
 }
 
 function SheetDescription({
@@ -251,7 +251,7 @@ function SheetDescription({
       className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
-  );
+  )
 }
 
 export {
@@ -263,4 +263,4 @@ export {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-};
+}

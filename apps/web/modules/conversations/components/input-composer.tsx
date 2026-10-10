@@ -667,7 +667,7 @@ export function InputComposer({
           <div
             onClick={handleContainerClick}
             className={cn(
-              "flex cursor-text flex-col overflow-hidden rounded-xl border border-border/60 bg-card transition-shadow duration-200 focus-within:border-border focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.09)] focus-within:ring-2 focus-within:ring-ring/50"
+              "flex cursor-text flex-col overflow-hidden rounded-2xl border border-border/60 bg-card transition-shadow duration-200 focus-within:border-foreground/20 focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.09)] focus-within:ring-3 focus-within:ring-border"
             )}
           >
             {/* Hidden file input */}
@@ -766,7 +766,7 @@ export function InputComposer({
             <div
               className={cn(
                 "relative p-2.5 transition-[padding] duration-200 ease-out motion-reduce:transition-none",
-                isExpanded ? "pb-10" : "pb-2.5"
+                isExpanded ? "pb-10" : "pb-[9px]"
               )}
             >
               {/* Attach */}

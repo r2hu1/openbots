@@ -14,6 +14,7 @@
     "@hono/zod-validator": "^0.5.0",
     "@openbots/db": "workspace:*",
     "@trigger.dev/sdk": "^4.6.0",
+    "ai": "^7.0.0",
     "better-auth": "^1.7.0",
     "drizzle-orm": "^0.45.3",
     "hono": "^4.7.11",

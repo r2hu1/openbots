@@ -109,6 +109,9 @@ export function useAgentExecution({
         }
       }
       if (ev.status === "completed" || ev.status === "failed") {
+        if (ev.runId) {
+          dismissedRunIds.current.add(ev.runId);
+        }
         if (activeConversationId) {
           queryClient.invalidateQueries({
             queryKey: ["conversation", activeConversationId],

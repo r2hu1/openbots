@@ -191,7 +191,7 @@ export function WorkspaceSidebar({
                             </span>
                           </span>
                         </SidebarMenuButton>
-                        {isRunning && (
+                        {isRunning && !pathname.includes(agent.id) && (
                           <SidebarMenuAction>
                             <span className="relative flex gap-px">
                               <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/80 [animation-delay:-0.3s]" />

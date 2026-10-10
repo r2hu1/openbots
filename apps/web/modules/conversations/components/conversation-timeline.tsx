@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
-import { Marker, MarkerContent } from "@openbots/ui/components/marker";
+import { Button } from "@openbots/ui/components/button"
+import { Marker, MarkerContent } from "@openbots/ui/components/marker"
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -9,35 +9,35 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
-} from "@openbots/ui/components/message-scroller";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { Blobatar } from "@openbots/ui/components/ui/blobatar";
-import { IconAlertCircle, IconChevronUp, IconX } from "@tabler/icons-react";
-import * as React from "react";
-import type { ParsedArtifact } from "@/modules/artifacts/parser";
-import type { RunRecord, StepItem } from "@/modules/runs/types";
-import type { MessageItem, ReplyTarget } from "../types";
-import { ConversationLiveStatus } from "./conversation-live-status";
-import { ConversationMessageItem } from "./conversation-message-item";
+} from "@openbots/ui/components/message-scroller"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
+import { IconAlertCircle, IconChevronUp, IconX } from "@tabler/icons-react"
+import * as React from "react"
+import type { ParsedArtifact } from "@/modules/artifacts/parser"
+import type { RunRecord, StepItem } from "@/modules/runs/types"
+import type { MessageItem, ReplyTarget } from "../types"
+import { ConversationLiveStatus } from "./conversation-live-status"
+import { ConversationMessageItem } from "./conversation-message-item"
 
 interface ConversationTimelineProps {
-  messages: MessageItem[];
-  activeRun: RunRecord | null;
-  activeRunSteps: StepItem[];
-  onCancelRun?: () => void;
-  isCancelling?: boolean;
-  agentName: string;
-  isOptimisticRunning?: boolean;
-  isLoading?: boolean;
-  onOpenArtifact?: (artifact: ParsedArtifact) => void;
-  hasOlderMessages?: boolean;
-  isLoadingOlder?: boolean;
-  onLoadOlderMessages?: () => void;
-  executionError?: string | null;
-  onDismissError?: () => void;
-  onReply?: (target: ReplyTarget) => void;
-  onReact?: (messageId: string, emoji: string) => void;
-  streamingText?: string | null;
+  messages: MessageItem[]
+  activeRun: RunRecord | null
+  activeRunSteps: StepItem[]
+  onCancelRun?: () => void
+  isCancelling?: boolean
+  agentName: string
+  isOptimisticRunning?: boolean
+  isLoading?: boolean
+  onOpenArtifact?: (artifact: ParsedArtifact) => void
+  hasOlderMessages?: boolean
+  isLoadingOlder?: boolean
+  onLoadOlderMessages?: () => void
+  executionError?: string | null
+  onDismissError?: () => void
+  onReply?: (target: ReplyTarget) => void
+  onReact?: (messageId: string, emoji: string) => void
+  streamingText?: string | null
 }
 
 export function ConversationTimeline({
@@ -57,32 +57,48 @@ export function ConversationTimeline({
   onReact,
   streamingText,
 }: ConversationTimelineProps) {
+  // Check if this specific active run's output is already rendered in messages
+  const isCurrentRunAlreadyRendered = React.useMemo(() => {
+    if (!activeRun || !messages || messages.length === 0) return false
+    const outputText =
+      activeRun.output &&
+      typeof activeRun.output === "object" &&
+      "text" in activeRun.output &&
+      typeof (activeRun.output as { text: unknown }).text === "string"
+        ? (activeRun.output as { text: string }).text.trim()
+        : null
+
+    return messages.some((m) => {
+      if (m.role !== "assistant") return false
+      if (activeRun.id && (m.id === `opt-assistant-${activeRun.id}` || m.id.includes(activeRun.id))) {
+        return true
+      }
+      if (outputText) {
+        const text =
+          typeof m.content === "string"
+            ? m.content
+            : (m.content as any)?.text || ""
+        if (text.trim() === outputText) return true
+      }
+      return false
+    })
+  }, [messages, activeRun])
+
   const isActiveRunOngoing =
     isOptimisticRunning ||
     activeRun?.status === "queued" ||
     activeRun?.status === "running";
 
-  // Check if this specific active run's output is already rendered in messages
-  const isCurrentRunAlreadyRendered = React.useMemo(() => {
-    if (!activeRun?.id || !messages || messages.length === 0) return false;
-    return messages.some(
-      (m) =>
-        m.role === "assistant" &&
-        (m.id === `opt-assistant-${activeRun.id}` ||
-          m.id.includes(activeRun.id)),
-    );
-  }, [messages, activeRun?.id]);
-
-  const topSentinelRef = React.useRef<HTMLDivElement>(null);
-  const viewportRef = React.useRef<HTMLDivElement>(null);
-  const isFetchingOlderRef = React.useRef(false);
-  const prevScrollHeightRef = React.useRef<number | null>(null);
-  const prevScrollTopRef = React.useRef<number | null>(null);
+  const topSentinelRef = React.useRef<HTMLDivElement>(null)
+  const viewportRef = React.useRef<HTMLDivElement>(null)
+  const isFetchingOlderRef = React.useRef(false)
+  const prevScrollHeightRef = React.useRef<number | null>(null)
+  const prevScrollTopRef = React.useRef<number | null>(null)
 
   // Track fetching state
   React.useEffect(() => {
-    isFetchingOlderRef.current = isLoadingOlder;
-  }, [isLoadingOlder]);
+    isFetchingOlderRef.current = isLoadingOlder
+  }, [isLoadingOlder])
 
   // Trigger loading older messages safely
   const triggerLoadOlder = React.useCallback(() => {
@@ -92,23 +108,23 @@ export function ConversationTimeline({
       isFetchingOlderRef.current ||
       !onLoadOlderMessages
     ) {
-      return;
+      return
     }
 
     const viewport =
       viewportRef.current ||
       topSentinelRef.current?.closest<HTMLElement>(
-        "[data-slot='message-scroller-viewport']",
-      );
+        "[data-slot='message-scroller-viewport']"
+      )
 
     if (viewport) {
-      prevScrollHeightRef.current = viewport.scrollHeight;
-      prevScrollTopRef.current = viewport.scrollTop;
+      prevScrollHeightRef.current = viewport.scrollHeight
+      prevScrollTopRef.current = viewport.scrollTop
     }
 
-    isFetchingOlderRef.current = true;
-    onLoadOlderMessages();
-  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages]);
+    isFetchingOlderRef.current = true
+    onLoadOlderMessages()
+  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages])
 
   // Preserve scroll position when messages prepend
   React.useLayoutEffect(() => {
@@ -116,63 +132,63 @@ export function ConversationTimeline({
       const viewport =
         viewportRef.current ||
         topSentinelRef.current?.closest<HTMLElement>(
-          "[data-slot='message-scroller-viewport']",
-        );
+          "[data-slot='message-scroller-viewport']"
+        )
 
       if (viewport) {
-        const heightDiff = viewport.scrollHeight - prevScrollHeightRef.current;
+        const heightDiff = viewport.scrollHeight - prevScrollHeightRef.current
         if (heightDiff > 0 && prevScrollTopRef.current !== null) {
-          viewport.scrollTop = prevScrollTopRef.current + heightDiff;
+          viewport.scrollTop = prevScrollTopRef.current + heightDiff
         }
       }
-      prevScrollHeightRef.current = null;
-      prevScrollTopRef.current = null;
+      prevScrollHeightRef.current = null
+      prevScrollTopRef.current = null
     }
-  }, [messages.length]);
+  }, [messages.length])
 
   // IntersectionObserver to auto-fetch when scrolling near the top
   React.useEffect(() => {
-    if (!hasOlderMessages || isLoadingOlder || !onLoadOlderMessages) return;
+    if (!hasOlderMessages || isLoadingOlder || !onLoadOlderMessages) return
 
-    const sentinel = topSentinelRef.current;
-    if (!sentinel) return;
+    const sentinel = topSentinelRef.current
+    if (!sentinel) return
 
     const scrollContainer =
       sentinel.closest<HTMLElement>(
-        "[data-slot='message-scroller-viewport']",
-      ) || sentinel.parentElement;
+        "[data-slot='message-scroller-viewport']"
+      ) || sentinel.parentElement
 
-    if (!scrollContainer) return;
+    if (!scrollContainer) return
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const entry = entries[0];
+        const entry = entries[0]
         // Only trigger if sentinel is intersecting AND the user has scrolled (scrollTop is not 0 due to empty list)
         if (
           entry?.isIntersecting &&
           scrollContainer.scrollTop <= 80 &&
           scrollContainer.scrollHeight > scrollContainer.clientHeight
         ) {
-          triggerLoadOlder();
+          triggerLoadOlder()
         }
       },
       {
         root: scrollContainer,
         rootMargin: "100px 0px 0px 0px",
         threshold: 0.1,
-      },
-    );
+      }
+    )
 
-    observer.observe(sentinel);
+    observer.observe(sentinel)
 
     return () => {
-      observer.disconnect();
-    };
-  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages, triggerLoadOlder]);
+      observer.disconnect()
+    }
+  }, [hasOlderMessages, isLoadingOlder, onLoadOlderMessages, triggerLoadOlder])
 
   // Also attach onScroll on viewport as a resilient fallback
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
+    const target = e.currentTarget
     if (
       hasOlderMessages &&
       !isLoadingOlder &&
@@ -180,91 +196,91 @@ export function ConversationTimeline({
       target.scrollTop <= 60 &&
       target.scrollHeight > target.clientHeight
     ) {
-      triggerLoadOlder();
+      triggerLoadOlder()
     }
-  };
+  }
 
   // Scroll to targeted message if URL hash is present (e.g., #message-123)
   // If the message is older and not loaded yet, fetch older pages until it appears
-  const targetMessageIdRef = React.useRef<string | null>(null);
+  const targetMessageIdRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return
 
     const updateTargetFromHash = () => {
-      const hash = window.location.hash;
+      const hash = window.location.hash
       if (hash && hash.startsWith("#message-")) {
-        targetMessageIdRef.current = hash.slice(1); // "message-<id>"
+        targetMessageIdRef.current = hash.slice(1) // "message-<id>"
       }
-    };
+    }
 
     const handleNavigate = (event: Event) => {
       const customEvent = event as CustomEvent<{
-        messageId?: string;
-      }>;
+        messageId?: string
+      }>
       if (customEvent.detail?.messageId) {
-        targetMessageIdRef.current = `message-${customEvent.detail.messageId}`;
+        targetMessageIdRef.current = `message-${customEvent.detail.messageId}`
       }
-    };
+    }
 
-    updateTargetFromHash();
-    window.addEventListener("hashchange", updateTargetFromHash);
-    window.addEventListener("openbots:navigate-message", handleNavigate);
+    updateTargetFromHash()
+    window.addEventListener("hashchange", updateTargetFromHash)
+    window.addEventListener("openbots:navigate-message", handleNavigate)
 
     return () => {
-      window.removeEventListener("hashchange", updateTargetFromHash);
-      window.removeEventListener("openbots:navigate-message", handleNavigate);
-    };
-  }, []);
+      window.removeEventListener("hashchange", updateTargetFromHash)
+      window.removeEventListener("openbots:navigate-message", handleNavigate)
+    }
+  }, [])
 
   React.useEffect(() => {
-    if (isLoading) return;
-    const targetId = targetMessageIdRef.current;
-    if (!targetId) return;
+    if (isLoading) return
+    const targetId = targetMessageIdRef.current
+    if (!targetId) return
 
-    const el = document.getElementById(targetId);
+    const el = document.getElementById(targetId)
     if (el) {
       const viewport =
         viewportRef.current ||
         topSentinelRef.current?.closest<HTMLElement>(
-          "[data-slot='message-scroller-viewport']",
-        );
+          "[data-slot='message-scroller-viewport']"
+        )
 
       if (viewport) {
         // Calculate exact target scrollTop so element is centered in the scrollable viewport
-        const viewportRect = viewport.getBoundingClientRect();
-        const elRect = el.getBoundingClientRect();
-        const relativeTop = elRect.top - viewportRect.top;
+        const viewportRect = viewport.getBoundingClientRect()
+        const elRect = el.getBoundingClientRect()
+        const relativeTop = elRect.top - viewportRect.top
         const targetScrollTop =
           viewport.scrollTop +
           relativeTop -
-          (viewport.clientHeight - elRect.height) / 2;
+          (viewport.clientHeight - elRect.height) / 2
 
         viewport.scrollTo({
           top: Math.max(0, targetScrollTop),
           behavior: "smooth",
-        });
+        })
       } else {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
       }
 
       el.classList.add(
         "ring-2",
         "ring-primary/50",
         "rounded-xl",
-        "transition-all",
-      );
+        "transition-all"
+      )
       setTimeout(() => {
-        el.classList.remove("ring-2", "ring-primary/50");
-      }, 2500);
-      targetMessageIdRef.current = null;
+        el.classList.remove("ring-2", "ring-primary/50")
+      }, 2500)
+      targetMessageIdRef.current = null
 
       // Clean up URL query parameters (?conversationId=...) and hash (#message-...)
       if (typeof window !== "undefined" && window.history.replaceState) {
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState(null, "", cleanUrl);
+        const cleanUrl = window.location.pathname
+        window.history.replaceState(null, "", cleanUrl)
       }
-      return;
+      return
     }
 
     // Message element not yet loaded in DOM
@@ -275,10 +291,10 @@ export function ConversationTimeline({
       !isFetchingOlderRef.current &&
       onLoadOlderMessages
     ) {
-      triggerLoadOlder();
+      triggerLoadOlder()
     } else if (!hasOlderMessages && !isLoadingOlder) {
       // Reached the earliest message and still not found, clear target
-      targetMessageIdRef.current = null;
+      targetMessageIdRef.current = null
     }
   }, [
     isLoading,
@@ -287,7 +303,7 @@ export function ConversationTimeline({
     isLoadingOlder,
     onLoadOlderMessages,
     triggerLoadOlder,
-  ]);
+  ])
 
   return (
     <MessageScrollerProvider defaultScrollPosition="end" autoScroll>
@@ -476,5 +492,5 @@ export function ConversationTimeline({
         <MessageScrollerButton variant="outline" />
       </MessageScroller>
     </MessageScrollerProvider>
-  );
+  )
 }

@@ -68,7 +68,7 @@ export function ConversationLiveStatus({
         )}
         <MessageContent className="gap-2">
           <Bubble variant="secondary" align="start">
-            <BubbleContent className="py-3">
+            <BubbleContent>
               {!hasStreamingContent && !latestToolLabel && (
                 <span className="shimmer">Thinking...</span>
               )}
@@ -77,9 +77,9 @@ export function ConversationLiveStatus({
                 <Marker className="text-xs text-muted-foreground">
                   <MarkerIcon className="flex items-center justify-center">
                     {isLatestToolRunning ? (
-                      <Spinner className="size-4 text-primary" />
+                      <Spinner className="size-3.5" />
                     ) : (
-                      <IconCheck className="size-4" />
+                      <IconCheck className="size-3.5" />
                     )}
                   </MarkerIcon>
                   <MarkerContent

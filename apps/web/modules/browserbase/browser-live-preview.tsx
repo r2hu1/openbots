@@ -36,6 +36,10 @@ export function BrowserLivePreview({
 
   React.useEffect(() => {
     setIsLoading(true)
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 6000)
+    return () => clearTimeout(timer)
   }, [liveViewUrl, iframeKey])
 
   if (!isOpen || !liveViewUrl) {
@@ -92,19 +96,17 @@ export function BrowserLivePreview({
             <IconRefresh className="size-3.5" />
           </Button>
 
-          {currentUrl && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={() =>
-                window.open(currentUrl, "_blank", "noopener,noreferrer")
-              }
-              title="Open current page in new tab"
-              aria-label="Open in new tab"
-            >
-              <IconExternalLink className="size-3.5" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() =>
+              window.open(liveViewUrl, "_blank", "noopener,noreferrer")
+            }
+            title="Open Live View in full window"
+            aria-label="Open Live View in full window"
+          >
+            <IconExternalLink className="size-3.5" />
+          </Button>
 
           <Button
             variant="ghost"
@@ -135,7 +137,7 @@ export function BrowserLivePreview({
       {/* Live Interactive Iframe */}
       <div className="relative flex-1 overflow-hidden bg-black/5 dark:bg-black/40">
         {isLoading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-xs">
+          <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-xs">
             <Spinner className="size-5 text-primary" />
             <span className="animate-pulse text-xs text-muted-foreground">
               Connecting to Browserbase live session...
@@ -146,9 +148,9 @@ export function BrowserLivePreview({
         <iframe
           key={iframeKey}
           src={liveViewUrl}
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-          allow="clipboard-read; clipboard-write"
-          className="h-full w-full border-0"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock allow-downloads"
+          allow="clipboard-read; clipboard-write; autoplay; fullscreen"
+          className="relative z-0 h-full w-full border-0"
           onLoad={() => setIsLoading(false)}
         />
       </div>

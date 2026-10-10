@@ -102,12 +102,18 @@ interface ChatPaneProps {
   agentId: string;
   agentName: string;
   onOpenArtifact: (artifact: ParsedArtifact) => void;
+  onBrowserStateChange?: (state: {
+    isActive: boolean;
+    isOpen: boolean;
+    toggle: () => void;
+  }) => void;
 }
 
 const ChatPane = React.memo(function ChatPane({
   agentId,
   agentName,
   onOpenArtifact,
+  onBrowserStateChange,
 }: ChatPaneProps) {
   const [selectedConversationId, setSelectedConversationId] = React.useState<
     string | null
@@ -303,9 +309,20 @@ const ChatPane = React.memo(function ChatPane({
     }
   }, [liveBrowserData?.liveViewUrl]);
 
-  const isLivePreviewOpen = Boolean(
-    liveBrowserData?.liveViewUrl && !previewManuallyClosed,
-  );
+  const hasLiveBrowser = Boolean(liveBrowserData?.liveViewUrl);
+  const isLivePreviewOpen = Boolean(hasLiveBrowser && !previewManuallyClosed);
+
+  const toggleBrowser = React.useCallback(() => {
+    setPreviewManuallyClosed((prev) => !prev);
+  }, []);
+
+  React.useEffect(() => {
+    onBrowserStateChange?.({
+      isActive: hasLiveBrowser,
+      isOpen: isLivePreviewOpen,
+      toggle: toggleBrowser,
+    });
+  }, [hasLiveBrowser, isLivePreviewOpen, toggleBrowser, onBrowserStateChange]);
 
   return (
     <div className="flex flex-1 flex-row overflow-hidden">
@@ -434,6 +451,16 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   const artifactMounted =
     useMountedOnce(Boolean(selectedArtifact)) || idleReady;
 
+  const [browserState, setBrowserState] = React.useState<{
+    isActive: boolean;
+    isOpen: boolean;
+    toggle: () => void;
+  }>({
+    isActive: false,
+    isOpen: false,
+    toggle: () => {},
+  });
+
   return (
     <>
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
@@ -443,6 +470,9 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
           onOpenHistory={openHistory}
           onOpenConnections={openConnections}
           onOpenSchedules={openSchedules}
+          isBrowserActive={browserState.isActive}
+          isBrowserOpen={browserState.isOpen}
+          onToggleBrowser={browserState.toggle}
         />
 
         <main className="flex flex-1 flex-col overflow-hidden">
@@ -464,6 +494,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
               agentId={selectedAgent.id}
               agentName={selectedAgent.name}
               onOpenArtifact={openArtifact}
+              onBrowserStateChange={setBrowserState}
             />
           )}
         </main>

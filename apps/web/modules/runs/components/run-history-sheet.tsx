@@ -60,7 +60,11 @@ export function RunHistorySheet({
     enabled: open,
   })
 
-  const { data: runs = [], isLoading } = useRunsQuery(agentId, {
+  const {
+    data: runs = [],
+    isLoading,
+    refetch,
+  } = useRunsQuery(agentId, {
     enabled: open,
     refetchInterval: false,
   })
@@ -69,6 +73,7 @@ export function RunHistorySheet({
     if (!open) {
       handleSelectRun(null)
     }
+    refetch()
   }, [open, handleSelectRun])
 
   return (

@@ -86,12 +86,21 @@ export async function acquireBrowserSession(
 
   let liveDebuggerUrl: string | undefined;
   let liveDebuggerFullscreenUrl: string | undefined;
-  try {
-    const debug = await bb.sessions.debug(session.id);
-    liveDebuggerUrl = debug.debuggerUrl;
-    liveDebuggerFullscreenUrl = debug.debuggerFullscreenUrl;
-  } catch {
-    // If not ready immediately, fallback to standard Browserbase live URL format
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const debug = await bb.sessions.debug(session.id);
+      if (debug.debuggerFullscreenUrl) {
+        liveDebuggerUrl = debug.debuggerUrl;
+        liveDebuggerFullscreenUrl = debug.debuggerFullscreenUrl;
+        break;
+      }
+    } catch {
+      // Small pause before retry
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+
+  if (!liveDebuggerFullscreenUrl) {
     liveDebuggerFullscreenUrl = `https://www.browserbase.com/sessions/${session.id}`;
   }
 

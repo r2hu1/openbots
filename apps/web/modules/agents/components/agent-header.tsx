@@ -25,6 +25,7 @@ import {
   IconPlug,
   IconSettings,
   IconTrash,
+  IconWorld,
 } from "@tabler/icons-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
@@ -52,6 +53,9 @@ interface AgentHeaderProps {
   onOpenSchedules?: () => void
   onAgentRenamed?: (updatedAgent: Agent) => void
   onAgentDeleted?: (deletedId: string) => void
+  isBrowserActive?: boolean
+  isBrowserOpen?: boolean
+  onToggleBrowser?: () => void
 }
 
 export function AgentHeader({
@@ -62,6 +66,9 @@ export function AgentHeader({
   onOpenSchedules,
   onAgentRenamed,
   onAgentDeleted,
+  isBrowserActive,
+  isBrowserOpen,
+  onToggleBrowser,
 }: AgentHeaderProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -203,6 +210,28 @@ export function AgentHeader({
       <div className="flex items-center gap-1.5 sm:gap-2">
         {selectedAgent && (
           <>
+            {isBrowserActive && onToggleBrowser && (
+              <Button
+                variant={isBrowserOpen ? "default" : "secondary"}
+                size="sm"
+                onClick={onToggleBrowser}
+                className={cn(
+                  "flex cursor-pointer items-center gap-1.5 rounded-full border-0! text-xs font-medium backdrop-blur-sm transition-all",
+                  isBrowserOpen
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-secondary/80 text-foreground hover:bg-secondary"
+                )}
+                title={isBrowserOpen ? "Hide Live Cloud Browser" : "Show Live Cloud Browser"}
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                <IconWorld className="size-3.5" />
+                <span className="hidden sm:inline">Browser</span>
+              </Button>
+            )}
+
             {onOpenSchedules && (
               <Button
                 variant="secondary"

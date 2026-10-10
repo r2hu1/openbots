@@ -63,13 +63,13 @@ export function ConversationLiveStatus({
               <MessageAvatar className="-mr-1 p-0!">
                 <Blobatar
                   name={agentName}
-                  className="size-6 shrink-0"
+                  className="size-8!"
                   blobatar={{ animate: "always" }}
                 />
               </MessageAvatar>
               <MessageContent>
                 <Bubble variant="secondary" align="start">
-                  <BubbleContent className="flex items-center gap-1.5 px-3 py-2 text-foreground">
+                  <BubbleContent className="flex items-center gap-1.5 text-foreground">
                     <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
                     <span className="size-1.5 animate-bounce rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
                     <span className="size-1.5 animate-bounce rounded-full bg-foreground/60" />

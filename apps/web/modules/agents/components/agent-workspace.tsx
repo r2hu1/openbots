@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@openbots/ui/components/resizable";
 import { SidebarInset } from "@openbots/ui/components/sidebar";
 import { useHotkey } from "@openbots/ui/hooks/use-hotkey";
 import { IconPlus } from "@tabler/icons-react";
@@ -22,6 +27,7 @@ import {
   useToggleMessageReactionMutation,
 } from "@/modules/conversations/queries";
 import type { ReplyTarget } from "@/modules/conversations/types";
+import { useHitlResponseMutation } from "@/modules/runs/queries";
 
 const ConfigureAgentSheet = dynamic(
   () =>
@@ -297,8 +303,23 @@ const ChatPane = React.memo(function ChatPane({
       }
     }
 
+    // 3. Check conversation-level active browser session from server / Redis
+    const conversationActiveBrowser =
+      conversationInfiniteData?.pages?.[0]?.activeBrowser;
+    if (
+      conversationActiveBrowser?.liveDebuggerFullscreenUrl ||
+      conversationActiveBrowser?.liveDebuggerUrl
+    ) {
+      return {
+        liveViewUrl: (conversationActiveBrowser.liveDebuggerFullscreenUrl ||
+          conversationActiveBrowser.liveDebuggerUrl) as string,
+        currentUrl: undefined,
+        title: undefined,
+      };
+    }
+
     return null;
-  }, [activeRunSteps, messages]);
+  }, [activeRunSteps, messages, conversationInfiniteData?.pages]);
 
   const [previewManuallyClosed, setPreviewManuallyClosed] = React.useState(false);
 
@@ -324,52 +345,148 @@ const ChatPane = React.memo(function ChatPane({
     });
   }, [hasLiveBrowser, isLivePreviewOpen, toggleBrowser, onBrowserStateChange]);
 
+  const hitlMutation = useHitlResponseMutation();
+
+  // Detect if active run is paused waiting for user input via browser_wait_for_user
+  const activeHitlPrompt = React.useMemo(() => {
+    if (!activeRun?.id) return null;
+    const pendingStep = [...activeRunSteps].reverse().find(
+      (s) =>
+        s.toolName === "browser_wait_for_user" &&
+        s.status === "running"
+    );
+    if (!pendingStep) return null;
+
+    const input = (pendingStep.toolInput || {}) as Record<string, any>;
+    const instruction =
+      (typeof input.instruction === "string" ? input.instruction : null) ||
+      (typeof input.message === "string" ? input.message : null) ||
+      "Please complete the action in the browser.";
+
+    return {
+      runId: activeRun.id,
+      instruction,
+    };
+  }, [activeRun?.id, activeRunSteps]);
+
+  // If there is an active HITL request, ensure browser panel is open
+  React.useEffect(() => {
+    if (activeHitlPrompt && hasLiveBrowser) {
+      setPreviewManuallyClosed(false);
+    }
+  }, [activeHitlPrompt, hasLiveBrowser]);
+
+  const handleHitlResponse = React.useCallback(
+    (runId: string, action: "completed" | "skipped") => {
+      hitlMutation.mutate({
+        runId,
+        action,
+        contextKey: activeConversationId || agentId,
+      });
+    },
+    [hitlMutation, activeConversationId, agentId]
+  );
+
   return (
-    <div className="flex flex-1 flex-row overflow-hidden">
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <MemoTimeline
-          messages={messages}
-          activeRun={activeRun}
-          activeRunSteps={activeRunSteps}
-          onCancelRun={cancelActiveRun}
-          isCancelling={isCancelling}
-          agentName={agentName}
-          isOptimisticRunning={isOptimisticRunning}
-          isLoading={isChatLoading}
-          onOpenArtifact={onOpenArtifact}
-          hasOlderMessages={!!hasOlderMessages}
-          isLoadingOlder={isLoadingOlder}
-          onLoadOlderMessages={() => {
-            if (hasOlderMessages && !isLoadingOlder) {
-              fetchNextPage();
-            }
-          }}
-          executionError={executionError}
-          onDismissError={clearExecutionError}
-          onReply={setReplyTarget}
-          onReact={handleToggleReaction}
-          streamingText={streamingText}
-        />
+    <div className="flex flex-1 overflow-hidden">
+      {isLivePreviewOpen ? (
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="h-full w-full"
+        >
+          {/* Main Chat Panel */}
+          <ResizablePanel defaultSize={60} minSize={35} className="flex flex-col min-w-0">
+            <MemoTimeline
+              messages={messages}
+              activeRun={activeRun}
+              activeRunSteps={activeRunSteps}
+              onCancelRun={cancelActiveRun}
+              isCancelling={isCancelling}
+              agentName={agentName}
+              isOptimisticRunning={isOptimisticRunning}
+              isLoading={isChatLoading}
+              onOpenArtifact={onOpenArtifact}
+              hasOlderMessages={!!hasOlderMessages}
+              isLoadingOlder={isLoadingOlder}
+              onLoadOlderMessages={() => {
+                if (hasOlderMessages && !isLoadingOlder) {
+                  fetchNextPage();
+                }
+              }}
+              executionError={executionError}
+              onDismissError={clearExecutionError}
+              onReply={setReplyTarget}
+              onReact={handleToggleReaction}
+              streamingText={streamingText}
+            />
 
-        <MemoComposer
-          onSend={sendPrompt}
-          isSubmitting={isSubmitting}
-          isActiveRun={isActiveRun}
-          onCancelRun={cancelActiveRun}
-          isCancelling={isCancelling}
-          placeholder={placeholder}
-          replyTarget={replyTarget}
-          onClearReply={() => setReplyTarget(null)}
-        />
-      </div>
+            <MemoComposer
+              onSend={sendPrompt}
+              isSubmitting={isSubmitting}
+              isActiveRun={isActiveRun}
+              onCancelRun={cancelActiveRun}
+              isCancelling={isCancelling}
+              placeholder={placeholder}
+              replyTarget={replyTarget}
+              onClearReply={() => setReplyTarget(null)}
+            />
+          </ResizablePanel>
 
-      <BrowserLivePreview
-        isOpen={isLivePreviewOpen}
-        liveViewUrl={liveBrowserData?.liveViewUrl ?? null}
-        currentUrl={liveBrowserData?.currentUrl}
-        title={liveBrowserData?.title}
-        onClose={() => setPreviewManuallyClosed(true)}
-      />
+          {/* Resizable Separator Handle */}
+          <ResizableHandle withHandle className="bg-border/60 hover:bg-primary/40 transition-colors" />
+
+          {/* Browser Live Preview Panel */}
+          <ResizablePanel defaultSize={40} minSize={25} className="flex flex-col min-w-0">
+            <BrowserLivePreview
+              isOpen={isLivePreviewOpen}
+              liveViewUrl={liveBrowserData?.liveViewUrl ?? null}
+              currentUrl={liveBrowserData?.currentUrl}
+              title={liveBrowserData?.title}
+              onClose={() => setPreviewManuallyClosed(true)}
+              hitlPrompt={activeHitlPrompt}
+              onHitlResponse={handleHitlResponse}
+              isSubmittingHitl={hitlMutation.isPending}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+          <MemoTimeline
+            messages={messages}
+            activeRun={activeRun}
+            activeRunSteps={activeRunSteps}
+            onCancelRun={cancelActiveRun}
+            isCancelling={isCancelling}
+            agentName={agentName}
+            isOptimisticRunning={isOptimisticRunning}
+            isLoading={isChatLoading}
+            onOpenArtifact={onOpenArtifact}
+            hasOlderMessages={!!hasOlderMessages}
+            isLoadingOlder={isLoadingOlder}
+            onLoadOlderMessages={() => {
+              if (hasOlderMessages && !isLoadingOlder) {
+                fetchNextPage();
+              }
+            }}
+            executionError={executionError}
+            onDismissError={clearExecutionError}
+            onReply={setReplyTarget}
+            onReact={handleToggleReaction}
+            streamingText={streamingText}
+          />
+
+          <MemoComposer
+            onSend={sendPrompt}
+            isSubmitting={isSubmitting}
+            isActiveRun={isActiveRun}
+            onCancelRun={cancelActiveRun}
+            isCancelling={isCancelling}
+            placeholder={placeholder}
+            replyTarget={replyTarget}
+            onClearReply={() => setReplyTarget(null)}
+          />
+        </div>
+      )}
     </div>
   );
 });

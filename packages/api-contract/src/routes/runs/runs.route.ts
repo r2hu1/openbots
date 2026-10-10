@@ -1,8 +1,10 @@
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { getRedis } from "@openbots/db";
 import { authMiddleware } from "../../middleware/auth.js";
 import { cancelRun, getRun, listRuns, runEventHub } from "./runs.logic.js";
+import { hitlSchema } from "./runs.schema.js";
 
 type Env = {
   Variables: {
@@ -213,4 +215,34 @@ export const runsRoute = new Hono<Env>()
       return c.json({ error: result.error }, result.status);
     }
     return c.json({ run: result.run });
+  })
+  .post("/:id/hitl", zValidator("json", hitlSchema), async (c) => {
+    const user = c.get("user");
+    const id = c.req.param("id");
+    const body = c.req.valid("json");
+
+    const runData = await getRun(id, user.id);
+    if (!runData) {
+      return c.json({ error: "Run not found" }, 404);
+    }
+
+    const redis = getRedis();
+    let effectiveContextKey = body.contextKey;
+    if (!effectiveContextKey && redis) {
+      effectiveContextKey = (await redis.get<string>(`hitl:pending:run:${id}`)) || undefined;
+    }
+    if (!effectiveContextKey) {
+      effectiveContextKey = runData.run.conversationId || runData.run.agentId || user.id;
+    }
+
+    const { submitHumanInteractionResponse } = await import(
+      "../../browserbase/session.js"
+    );
+
+    const ok = await submitHumanInteractionResponse(effectiveContextKey, {
+      action: body.action || "completed",
+      notes: body.notes,
+    });
+
+    return c.json({ success: ok, contextKey: effectiveContextKey });
   });

@@ -1,6 +1,8 @@
 import { getBrowserbaseClient, getBrowserbaseProjectId } from "./client.js";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
 
+import { getRedis } from "@openbots/db";
+
 export interface BrowserbaseSessionInfo {
   sessionId: string;
   connectUrl: string;
@@ -16,8 +18,137 @@ export interface ActiveBrowserConnection {
   lastUsedAt: number;
 }
 
-// Global active connections map keyed by runId or conversationId or sessionId
-// Allows multi-step agent actions within the same run to share the live browser page.
+export interface HumanInteractionRequest {
+  id: string;
+  runId?: string;
+  contextKey: string;
+  instruction: string;
+  url?: string;
+  title?: string;
+  liveViewUrl?: string;
+  createdAt: number;
+  timeoutSeconds: number;
+}
+
+export interface HumanInteractionResponse {
+  action: "completed" | "skipped";
+  notes?: string;
+  respondedAt?: number;
+}
+
+/**
+ * Persist pending human interaction in Redis.
+ */
+export async function setPendingHumanInteraction(
+  contextKey: string,
+  request: HumanInteractionRequest,
+): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+
+  const key = `hitl:pending:${contextKey}`;
+  const runKey = request.runId ? `hitl:pending:run:${request.runId}` : null;
+  const ttl = Math.max(request.timeoutSeconds + 60, 300);
+
+  const payload = JSON.stringify(request);
+  const pipeline = redis.pipeline();
+  pipeline.set(key, payload, { ex: ttl });
+  if (runKey) {
+    pipeline.set(runKey, contextKey, { ex: ttl });
+  }
+  await pipeline.exec();
+}
+
+/**
+ * Get pending human interaction from Redis.
+ */
+export async function getPendingHumanInteraction(
+  contextKey: string,
+): Promise<HumanInteractionRequest | null> {
+  const redis = getRedis();
+  if (!redis) return null;
+
+  try {
+    const data = await redis.get<string>(`hitl:pending:${contextKey}`);
+    if (!data) return null;
+    return typeof data === "string" ? JSON.parse(data) : (data as HumanInteractionRequest);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Record user's human interaction response in Redis.
+ */
+export async function submitHumanInteractionResponse(
+  contextKey: string,
+  response: HumanInteractionResponse,
+): Promise<boolean> {
+  const redis = getRedis();
+  if (!redis) return false;
+
+  const responseKey = `hitl:response:${contextKey}`;
+  const pendingKey = `hitl:pending:${contextKey}`;
+
+  const payload = JSON.stringify({
+    ...response,
+    respondedAt: Date.now(),
+  });
+
+  const pipeline = redis.pipeline();
+  pipeline.set(responseKey, payload, { ex: 300 });
+  pipeline.del(pendingKey);
+  await pipeline.exec();
+
+  return true;
+}
+
+/**
+ * Poll Redis for user's response or until timeout.
+ */
+export async function waitForHumanInteractionResponse(
+  contextKey: string,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<HumanInteractionResponse | null> {
+  const redis = getRedis();
+  const startTime = Date.now();
+  const pollInterval = 600;
+
+  while (Date.now() - startTime < timeoutMs) {
+    if (signal?.aborted) {
+      return { action: "skipped", notes: "Execution aborted" };
+    }
+
+    if (redis) {
+      try {
+        const responseData = await redis.get<string>(`hitl:response:${contextKey}`);
+        if (responseData) {
+          const parsed =
+            typeof responseData === "string"
+              ? JSON.parse(responseData)
+              : (responseData as HumanInteractionResponse);
+          // Clean up response key
+          await redis.del(`hitl:response:${contextKey}`).catch(() => {});
+          return parsed;
+        }
+      } catch (err) {
+        console.warn("Error checking Redis HITL response:", err);
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, pollInterval));
+  }
+
+  // Timeout reached: clean up pending key
+  if (redis) {
+    await redis.del(`hitl:pending:${contextKey}`).catch(() => {});
+  }
+
+  return null;
+}
+
+// In-process CDP connection pool (Playwright Browser instances cannot be stored in Redis because CDP websockets are in-memory node objects)
 const activeConnections = new Map<string, ActiveBrowserConnection>();
 
 export interface AcquireBrowserOptions {
@@ -28,6 +159,7 @@ export interface AcquireBrowserOptions {
   recordSession?: boolean;
   logSession?: boolean;
   viewport?: { width: number; height: number };
+  region?: "us-west-2" | "us-east-1" | "eu-central-1" | "ap-southeast-1";
 }
 
 /**
@@ -66,9 +198,14 @@ export async function acquireBrowserSession(
   }
 
   const projectId = getBrowserbaseProjectId();
+  const configuredRegion =
+    options.region ||
+    (process.env.BROWSERBASE_REGION as any) ||
+    undefined;
 
   const session = await bb.sessions.create({
     ...(projectId ? { projectId } : {}),
+    ...(configuredRegion ? { region: configuredRegion } : {}),
     keepAlive: true,
     browserSettings: {
       viewport: options.viewport ?? { width: 1280, height: 800 },
@@ -118,7 +255,42 @@ export async function acquireBrowserSession(
   };
 
   activeConnections.set(key, conn);
+
+  // Store active session metadata in Redis with 1 hour TTL so UI & cross-turn execution persist
+  const redis = getRedis();
+  if (redis) {
+    await redis.set(
+      `browser:session:${key}`,
+      JSON.stringify(conn.session),
+      { ex: 3600 }
+    ).catch(() => {});
+  }
+
   return conn;
+}
+
+/**
+ * Get active browser session info for a given contextKey (from in-process map or Redis).
+ */
+export async function getActiveBrowserSessionInfo(
+  key: string
+): Promise<BrowserbaseSessionInfo | null> {
+  const inMemory = activeConnections.get(key);
+  if (inMemory && inMemory.browser.isConnected()) {
+    return inMemory.session;
+  }
+
+  const redis = getRedis();
+  if (redis) {
+    try {
+      const data = await redis.get<string>(`browser:session:${key}`);
+      if (data) {
+        return typeof data === "string" ? JSON.parse(data) : (data as BrowserbaseSessionInfo);
+      }
+    } catch {}
+  }
+
+  return null;
 }
 
 /**
@@ -126,24 +298,28 @@ export async function acquireBrowserSession(
  */
 export async function releaseBrowserSession(key: string): Promise<void> {
   const conn = activeConnections.get(key);
-  if (!conn) return;
+  if (conn) {
+    activeConnections.delete(key);
+    try {
+      if (conn.browser.isConnected()) {
+        await conn.browser.close().catch(() => {});
+      }
+    } catch {}
 
-  activeConnections.delete(key);
-
-  try {
-    if (conn.browser.isConnected()) {
-      await conn.browser.close().catch(() => {});
+    const bb = getBrowserbaseClient();
+    if (bb && conn.session.sessionId) {
+      const projectId = getBrowserbaseProjectId();
+      await bb.sessions
+        .update(conn.session.sessionId, {
+          ...(projectId ? { projectId } : {}),
+          status: "REQUEST_RELEASE",
+        })
+        .catch(() => {});
     }
-  } catch {}
+  }
 
-  const bb = getBrowserbaseClient();
-  if (bb && conn.session.sessionId) {
-    const projectId = getBrowserbaseProjectId();
-    await bb.sessions
-      .update(conn.session.sessionId, {
-        ...(projectId ? { projectId } : {}),
-        status: "REQUEST_RELEASE",
-      })
-      .catch(() => {});
+  const redis = getRedis();
+  if (redis) {
+    await redis.del(`browser:session:${key}`).catch(() => {});
   }
 }

@@ -433,7 +433,7 @@ export const ConversationMessageItem = React.memo(function ConversationMessageIt
   return (
     <ContextMenu>
       <ContextMenuTrigger className="block w-full">
-        <Message align={isUser ? "end" : "start"}>
+        <Message align={isUser ? "end" : "start"} className="group">
           {!isUser && (
             <MessageAvatar className="-mr-0.5">
               <Blobatar name={agentName} className="size-8" />
@@ -635,7 +635,7 @@ export const ConversationMessageItem = React.memo(function ConversationMessageIt
               <MessageFooter className="items-center gap-2 px-0">
                 {isUser ? (
                   <>
-                    <div className="flex items-center gap-0.5 opacity-80 md:opacity-0 transition-opacity md:group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex items-center gap-0.5 opacity-80 md:opacity-0 transition-opacity md:group-hover/message:opacity-100 md:group-hover:opacity-100 focus-within:opacity-100">
                       <Button
                         type="button"
                         variant="ghost"
@@ -673,7 +673,7 @@ export const ConversationMessageItem = React.memo(function ConversationMessageIt
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-0.5 opacity-80 md:opacity-0 transition-opacity md:group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex items-center gap-0.5 opacity-80 md:opacity-0 transition-opacity md:group-hover/message:opacity-100 md:group-hover:opacity-100 focus-within:opacity-100">
                       <span className="mr-1 text-[10px] text-muted-foreground">
                         {formatMsgTime(message.createdAt)}
                       </span>

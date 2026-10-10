@@ -585,8 +585,12 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
       - 'browser_extract_content': Extracts structured text, links, and content from the rendered DOM.
       - 'browser_scroll': Scrolls the page up or down to load infinite scroll or lazy content.
       - 'browser_evaluate': Executes custom JavaScript in the browser tab console.
-      - 'browser_close': Releases the cloud browser session once all browsing actions are finished.
-    - The live browser session streams directly to the user's chat interface in real time so they can watch your browsing live.
+      - 'browser_close': Releases and shuts down the cloud browser. DO NOT call this automatically at the end of a response! Always leave the cloud browser OPEN so the user can interact, view the results, complete purchases, or give follow-up instructions. Only call 'browser_close' if the user explicitly asks to close the browser.
+    - Human in the Loop (HITL):
+      - Cloud browser sessions persist across conversation turns in the same chat.
+      - When you need user action (login, 2FA, CAPTCHA, credit card checkout, picking an address), call 'browser_wait_for_user' with a friendly prompt explaining what the user should do in the live browser preview on the right.
+      - Even after your turn finishes, the user can continue clicking, typing, and navigating directly inside the browser pane. Your next message will continue with the updated browser state.
+    - The live browser session streams directly to the user's chat interface in real time so they can watch your browsing live and interact at any time.
 
     ## Web Research & Live Intelligence:
     - 'web_search': Queries live public web results with DuckDuckGo for breaking news, docs, live data, and technical answers.

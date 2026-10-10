@@ -73,6 +73,7 @@ export function useInfiniteConversationDetailQuery(
           conversation: null,
           messages: [],
           pagination: { nextCursor: null, hasMore: false, limit: 50 },
+          activeBrowser: null,
         };
       }
       const client = getClient();
@@ -85,6 +86,7 @@ export function useInfiniteConversationDetailQuery(
           conversation: null,
           messages: [],
           pagination: { nextCursor: null, hasMore: false, limit: 50 },
+          activeBrowser: null,
         };
       }
       return (await res.json()) as {
@@ -95,6 +97,12 @@ export function useInfiniteConversationDetailQuery(
           hasMore: boolean;
           limit: number;
         };
+        activeBrowser?: {
+          sessionId: string;
+          connectUrl: string;
+          liveDebuggerUrl?: string;
+          liveDebuggerFullscreenUrl?: string;
+        } | null;
       };
     },
     initialPageParam: undefined as string | undefined,

@@ -33,6 +33,7 @@ import * as React from "react"
 import {
   Calendar2Newicons,
   ChevronDown,
+  Display,
   Edit,
   History2,
   Plug2,
@@ -221,14 +222,14 @@ export function AgentHeader({
                     ? "bg-primary text-primary-foreground shadow-xs"
                     : "bg-secondary/80 text-foreground hover:bg-secondary"
                 )}
-                title={isBrowserOpen ? "Hide Live Cloud Browser" : "Show Live Cloud Browser"}
+                title={
+                  isBrowserOpen
+                    ? "Hide Live Cloud Browser"
+                    : "Show Live Cloud Browser"
+                }
               >
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                <IconWorld className="size-3.5" />
-                <span className="hidden sm:inline">Browser</span>
+                <Display className="size-3.5" />
+                <span className="hidden sm:inline">Desktop</span>
               </Button>
             )}
 

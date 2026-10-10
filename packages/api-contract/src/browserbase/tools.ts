@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
   acquireBrowserSession,
   releaseBrowserSession,
+  setPendingHumanInteraction,
+  waitForHumanInteractionResponse,
   type ActiveBrowserConnection,
 } from "./session.js";
 
@@ -321,12 +323,12 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
   // 8. Wait for User Interaction / Human-in-the-Loop
   const browserWaitForUser = tool({
     description:
-      "Pauses execution and waits for the user to complete a manual action directly in the live browser preview (such as logging in, solving a CAPTCHA, approving 2FA, or clicking an authorization button). Once the user completes the action or timeout elapses, returns the resulting page state.",
+      "Pauses execution and waits for the user to complete a manual action directly in the live browser preview (such as logging in, solving a CAPTCHA, approving 2FA, or clicking an authorization button). Returns immediately when the user clicks 'I'm Done' in the UI or when the selector appears.",
     inputSchema: z.object({
       instruction: z
         .string()
         .describe(
-          "Clear explanation instructing the user what action to take in the live browser window (e.g. 'Please sign in with your GitHub credentials in the browser on the right', 'Please solve the CAPTCHA')",
+          "Clear explanation instructing the user what action to take in the live browser window (e.g. 'Please sign in with your credentials in the browser on the right', 'Please solve the CAPTCHA')",
         ),
       waitForSelector: z
         .string()
@@ -336,33 +338,67 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
         ),
       timeoutSeconds: z
         .number()
-        .default(60)
-        .describe("Maximum seconds to wait for user interaction before proceeding (up to 180s)"),
+        .default(120)
+        .describe("Maximum seconds to wait for user interaction before proceeding (up to 300s)"),
     }),
     execute: async ({ instruction, waitForSelector, timeoutSeconds }) => {
       try {
         const { page, session } = await getConn();
-        const timeoutMs = Math.min(Math.max(timeoutSeconds, 5), 180) * 1000;
+        const timeoutMs = Math.min(Math.max(timeoutSeconds, 10), 300) * 1000;
+        const currentUrl = page.url();
+        const pageTitle = await page.title();
 
+        const requestId = `hitl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        await setPendingHumanInteraction(contextKey, {
+          id: requestId,
+          contextKey,
+          instruction,
+          url: currentUrl,
+          title: pageTitle,
+          liveViewUrl: session.liveDebuggerFullscreenUrl,
+          createdAt: Date.now(),
+          timeoutSeconds,
+        });
+
+        // Race between user clicking "Done/Continue" in the UI (via Redis) AND selector appearing on the page
+        const hitlPromise = waitForHumanInteractionResponse(contextKey, timeoutMs);
+
+        let selectorPromise: Promise<{ found: boolean }> = new Promise(() => {});
         if (waitForSelector) {
-          try {
-            await page.waitForSelector(waitForSelector, {
+          selectorPromise = page
+            .waitForSelector(waitForSelector, {
               state: "visible",
               timeout: timeoutMs,
-            });
-          } catch {
-            // If selector not found in time, return current state
-          }
+            })
+            .then(() => ({ found: true }))
+            .catch(() => ({ found: false }));
+        }
+
+        const raceWinner = await Promise.race([
+          hitlPromise.then((res) => ({ type: "hitl" as const, res })),
+          selectorPromise.then((res) => ({ type: "selector" as const, res })),
+        ]);
+
+        const finalUrl = page.url();
+        const finalTitle = await page.title();
+
+        let resolutionNote = "";
+        if (raceWinner.type === "hitl" && raceWinner.res) {
+          resolutionNote =
+            raceWinner.res.action === "skipped"
+              ? "User skipped interaction."
+              : `User confirmed completion in UI${raceWinner.res.notes ? `: ${raceWinner.res.notes}` : "."}`;
+        } else if (raceWinner.type === "selector" && raceWinner.res.found) {
+          resolutionNote = `Detected completion signal element "${waitForSelector}".`;
         } else {
-          // Wait for page to navigate or settle after human action
-          await page.waitForTimeout(Math.min(timeoutMs, 15000));
+          resolutionNote = "Wait timeout elapsed; continuing with current page state.";
         }
 
         return {
           success: true,
-          message: `User completed manual action: "${instruction}"`,
-          url: page.url(),
-          title: await page.title(),
+          message: `User interaction step completed: "${instruction}". ${resolutionNote}`,
+          url: finalUrl,
+          title: finalTitle,
           sessionId: session.sessionId,
           liveViewUrl: session.liveDebuggerFullscreenUrl,
         };
@@ -378,7 +414,7 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
   // 9. Close Browser Session
   const browserClose = tool({
     description:
-      "Closes the active cloud browser session when navigation and browsing tasks are finished.",
+      "Explicitly releases and terminates the cloud browser session. ONLY call this if the user specifically instructs you to close/terminate the browser session. Do NOT call this at the end of regular tasks, so the user can continue viewing or interacting with the page.",
     inputSchema: z.object({}),
     execute: async () => {
       try {

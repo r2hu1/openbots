@@ -33,4 +33,10 @@ export type ConversationResponse = {
   conversation: Conversation;
   messages: MessageItem[];
   pagination?: ConversationPagination;
+  activeBrowser?: {
+    sessionId: string;
+    connectUrl: string;
+    liveDebuggerUrl?: string;
+    liveDebuggerFullscreenUrl?: string;
+  } | null;
 };

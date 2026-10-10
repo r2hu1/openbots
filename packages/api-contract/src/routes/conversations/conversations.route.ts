@@ -104,5 +104,11 @@ export const conversationsRoute = new Hono<Env>()
     if (!result) {
       return c.json({ error: "Conversation not found" }, 404);
     }
-    return c.json(result);
+
+    const { getActiveBrowserSessionInfo } = await import(
+      "../../browserbase/session.js"
+    );
+    const activeBrowser = await getActiveBrowserSessionInfo(id).catch(() => null);
+
+    return c.json({ ...result, activeBrowser });
   });

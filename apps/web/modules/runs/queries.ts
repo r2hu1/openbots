@@ -146,3 +146,41 @@ export function useTriggerAgentRunMutation(
     },
   });
 }
+
+export function useHitlResponseMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      runId,
+      action = "completed",
+      notes,
+      contextKey,
+    }: {
+      runId: string;
+      action?: "completed" | "skipped";
+      notes?: string;
+      contextKey?: string;
+    }) => {
+      const client = getClient();
+      const res = await client.api.runs[":id"].hitl.$post({
+        param: { id: runId },
+        json: {
+          action,
+          notes,
+          contextKey,
+        },
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data?.error || "Failed to submit user interaction");
+      }
+
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: runKeys.detail(variables.runId) });
+    },
+  });
+}

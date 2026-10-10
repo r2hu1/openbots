@@ -200,7 +200,12 @@ export function InputComposer({
     const el = textareaRef.current
     if (!el) return
 
-    if (text.length === 0 && isExpanded) setIsExpanded(false)
+    if (text.length === 0) {
+      if (isExpanded) setIsExpanded(false)
+      el.style.height = "32px"
+      el.style.overflowY = "hidden"
+      return
+    }
 
     const prev = el.offsetHeight
     el.style.height = "auto"
@@ -216,7 +221,7 @@ export function InputComposer({
     // CSS height transition has something to animate from.
     el.style.height = `${prev}px`
     void el.offsetHeight
-    el.style.height = `${Math.min(full, 240)}px`
+    el.style.height = `${Math.min(Math.max(full, 32), 240)}px`
   }, [text, isExpanded])
 
   // Check if user is typing a slash command:

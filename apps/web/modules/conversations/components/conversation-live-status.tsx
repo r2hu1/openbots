@@ -70,16 +70,20 @@ export function ConversationLiveStatus({
           <Bubble variant="secondary" align="start">
             <BubbleContent>
               {!hasStreamingContent && !latestToolLabel && (
-                <span className="shimmer">Thinking...</span>
+                <Marker className="text-xs text-muted-foreground">
+                  <MarkerContent className={"shimmer font-medium"}>
+                    Thinking...
+                  </MarkerContent>
+                </Marker>
               )}
 
               {latestToolLabel && (
                 <Marker className="text-xs text-muted-foreground">
                   <MarkerIcon className="flex items-center justify-center">
                     {isLatestToolRunning ? (
-                      <Spinner className="size-3.5" />
+                      <Spinner className="size-3" />
                     ) : (
-                      <IconCheck className="size-3.5" />
+                      <IconCheck className="size-3" />
                     )}
                   </MarkerIcon>
                   <MarkerContent

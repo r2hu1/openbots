@@ -170,7 +170,9 @@ export function ConversationMessageItem({
           const rect = bubbleRef.current?.getBoundingClientRect()
           const origin = rect
             ? {
-                x: (isUser ? rect.right - 40 : rect.left + 40) / window.innerWidth,
+                x:
+                  (isUser ? rect.right - 40 : rect.left + 40) /
+                  window.innerWidth,
                 y: (rect.bottom - 10) / window.innerHeight,
               }
             : isUser
@@ -753,7 +755,7 @@ export function ConversationMessageItem({
                                     window.innerHeight,
                                 })
                               }}
-                              className="cursor-pointer px-1.5 py-1 text-base transition-transform hover:scale-125"
+                              className="cursor-pointer text-base transition-transform"
                             >
                               {emoji}
                             </DropdownMenuItem>
@@ -818,7 +820,7 @@ export function ConversationMessageItem({
                       y: (rect.top + rect.height / 2) / window.innerHeight,
                     })
                   }}
-                  className="cursor-pointer px-1.5 py-1 text-base transition-transform hover:scale-125"
+                  className="cursor-pointer text-base"
                 >
                   {emoji}
                 </ContextMenuItem>

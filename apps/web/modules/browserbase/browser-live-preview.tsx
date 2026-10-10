@@ -14,6 +14,7 @@ import {
 } from "@tabler/icons-react"
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { Check, Display, Hand } from "reicon-react"
 
 export interface HitlPromptData {
   instruction: string
@@ -22,6 +23,7 @@ export interface HitlPromptData {
 }
 
 interface BrowserLivePreviewProps {
+  agentName?: string
   liveViewUrl: string | null
   currentUrl?: string | null
   title?: string | null
@@ -34,6 +36,7 @@ interface BrowserLivePreviewProps {
 }
 
 export function BrowserLivePreview({
+  agentName,
   liveViewUrl,
   currentUrl,
   title,
@@ -75,15 +78,12 @@ export function BrowserLivePreview({
       )}
     >
       {/* Browser Bar Header */}
-      <div className="mt-10 flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border/80 bg-muted/30 px-3 py-1.5 select-none">
+      <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border/80 bg-muted/30 px-3 py-1.5 pl-4 select-none">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            <span className="text-[11px] font-medium tracking-wide text-muted-foreground/90 uppercase">
-              Live Browser
+          <div className="flex shrink-0 items-center gap-2">
+            <Display className="size-3" />
+            <span className="text-[11px] font-medium tracking-wide capitalize">
+              {agentName}'s View
             </span>
           </div>
 
@@ -154,44 +154,44 @@ export function BrowserLivePreview({
 
       {/* Human in the Loop (HITL) Alert Banner */}
       {hitlPrompt && (
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-500/10 px-3.5 py-2 transition-all">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-primary px-3 py-1.5 text-primary-foreground transition-all">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400">
-              <IconHandClick className="size-3.5 animate-bounce" />
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-full">
+              <Hand className="size-3.5 animate-pulse" />
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="text-[11px] font-semibold tracking-wider text-amber-600 uppercase dark:text-amber-400">
+              <span className="text-[11px] font-semibold tracking-wider">
                 Your Input Needed
               </span>
               <span className="truncate text-xs font-medium text-foreground">
-                {hitlPrompt.instruction}
+                {hitlPrompt?.instruction}
               </span>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="xs"
               disabled={isSubmittingHitl}
               onClick={() => onHitlResponse?.(hitlPrompt.runId, "skipped")}
-              className="h-7 border-amber-500/30 text-xs text-muted-foreground hover:bg-amber-500/10"
+              className="h-7 text-xs"
             >
               Skip
             </Button>
             <Button
-              variant="default"
+              variant="secondary"
               size="xs"
               disabled={isSubmittingHitl}
               onClick={() => onHitlResponse?.(hitlPrompt.runId, "completed")}
-              className="h-7 gap-1 bg-amber-600 text-xs font-medium text-white shadow-xs hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
+              className="h-7 gap-1 text-xs"
             >
               {isSubmittingHitl ? (
                 <Spinner className="size-3" />
               ) : (
-                <IconCheck className="size-3" />
+                <Check className="size-3" />
               )}
-              I&apos;m Done (Continue)
+              I&apos;m Done
             </Button>
           </div>
         </div>
@@ -203,18 +203,18 @@ export function BrowserLivePreview({
           <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-xs">
             <Spinner className="size-5 text-primary" />
             <span className="animate-pulse text-xs text-muted-foreground">
-              Connecting to Browserbase live session...
+              Connecting to live browser session...
             </span>
           </div>
         )}
 
-        <div className="relative flex h-full max-h-[85vh] w-full max-w-5xl items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-background shadow-md">
+        <div className="relative flex aspect-[16/10] h-auto max-h-full w-full max-w-5xl items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-background shadow-xs">
           <iframe
             key={iframeKey}
             src={liveViewUrl}
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock allow-downloads"
             allow="clipboard-read; clipboard-write; autoplay; fullscreen"
-            className="relative z-0 h-full w-full border-0"
+            className="relative z-0 size-full border-0"
             onLoad={() => setIsLoading(false)}
           />
         </div>

@@ -57,6 +57,7 @@ interface AgentHeaderProps {
   isBrowserActive?: boolean
   isBrowserOpen?: boolean
   onToggleBrowser?: () => void
+  className?: string
 }
 
 export function AgentHeader({
@@ -70,6 +71,7 @@ export function AgentHeader({
   isBrowserActive,
   isBrowserOpen,
   onToggleBrowser,
+  className,
 }: AgentHeaderProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -81,10 +83,9 @@ export function AgentHeader({
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 left-0 z-50 flex items-center justify-between bg-background px-3 pt-2 pb-1 transition-[left] duration-200",
-        "after:pointer-events-none after:absolute after:top-full after:right-0 after:left-0 after:h-6 after:bg-linear-to-b after:from-background after:to-transparent",
-        !isMobile && open && "left-[var(--sidebar-width)]",
-        !isMobile && !open && "left-[var(--sidebar-width-icon)]"
+        "sticky top-0 z-40 flex w-full shrink-0 items-center justify-between bg-background px-3 pt-2 pb-1.5",
+        "after:pointer-events-none after:absolute after:top-full after:right-0 after:left-0 after:h-4 after:bg-linear-to-b after:from-background after:to-transparent",
+        className
       )}
     >
       <div className="flex items-center gap-1.5">
@@ -216,12 +217,7 @@ export function AgentHeader({
                 variant={isBrowserOpen ? "default" : "secondary"}
                 size="sm"
                 onClick={onToggleBrowser}
-                className={cn(
-                  "flex cursor-pointer items-center gap-1.5 rounded-full border-0! text-xs font-medium backdrop-blur-sm transition-all",
-                  isBrowserOpen
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "bg-secondary/80 text-foreground hover:bg-secondary"
-                )}
+                className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! text-xs font-medium backdrop-blur-sm transition-all"
                 title={
                   isBrowserOpen
                     ? "Hide Live Cloud Browser"

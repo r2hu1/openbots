@@ -28,6 +28,7 @@
     "typescript": "^5"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./browserbase": "./src/browserbase/index.ts"
   }
 }

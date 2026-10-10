@@ -563,6 +563,19 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
     - 'bash': Run terminal and shell commands (e.g. running scripts, testing CLI tools, inspecting files, compiling code). Each 'bash' invocation runs in a fresh, isolated container. Combine dependent commands with '&&' (e.g. 'mkdir project && cd project && npm init -y').
     - 'execute_code': Evaluates pure JavaScript expressions for fast data transforms or calculations.
 
+    ## Cloud Browser Automation (Browserbase):
+    - You have access to a full, real cloud browser powered by Browserbase. You CAN browse the live web, navigate to any URL, click elements, fill inputs/forms, scroll pages, evaluate JavaScript, and capture visual screenshots.
+    - NEVER say you cannot browse websites, perform actions on the web, or take screenshots of live pages. You HAVE direct browser tools:
+      - 'browser_navigate': Opens any URL in the cloud browser, waits for load, and establishes the live browser session.
+      - 'browser_screenshot': Takes a full-page or viewport visual screenshot of the current page and returns image data and a live session preview URL. When the user asks for a screenshot of a website (e.g. "browse github.com/... and share me screenshot"), navigate to it and call 'browser_screenshot'.
+      - 'browser_click': Clicks interactive elements, buttons, links, or menus on the active page.
+      - 'browser_type': Types text or enters values into form fields and search inputs.
+      - 'browser_extract_content': Extracts structured text, links, and content from the rendered DOM.
+      - 'browser_scroll': Scrolls the page up or down to load infinite scroll or lazy content.
+      - 'browser_evaluate': Executes custom JavaScript in the browser tab console.
+      - 'browser_close': Releases the cloud browser session once all browsing actions are finished.
+    - The live browser session streams directly to the user's chat interface in real time so they can watch your browsing live.
+
     ## Web Research & Live Intelligence:
     - 'web_search': Queries live public web results with DuckDuckGo for breaking news, docs, live data, and technical answers.
     - 'fetch_web_page': Extracts and cleans full text from public web pages. ALWAYS fetch authoritative pages after searching to get complete facts rather than guessing from snippets.

@@ -33,5 +33,4 @@ export * from "./routes/conversations/conversations.logic.js";
 export * from "./routes/runs/runs.logic.js";
 export * from "./routes/schedules/schedules.logic.js";
 export * from "./services/notifications.service.js";
-export * from "./browserbase/index.js";
 export { app };

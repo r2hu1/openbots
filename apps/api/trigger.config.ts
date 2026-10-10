@@ -18,6 +18,7 @@ export default defineConfig({
   },
   dirs: ["./src/trigger"],
   build: {
+    external: ["playwright-core", "chromium-bidi"],
     extensions: [
       aptGet({ packages: ["git", "curl", "jq", "python3", "ripgrep"] }),
     ],

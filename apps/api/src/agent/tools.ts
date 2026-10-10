@@ -6,11 +6,13 @@ import {
 } from "@modelcontextprotocol/client";
 import {
   agentEventHub,
-  createBrowserbaseTools,
   getDirectRunExecutor,
   normalizeTriggerTimezone,
-  releaseBrowserSession,
 } from "@openbots/api-contract";
+import {
+  createBrowserbaseTools,
+  releaseBrowserSession,
+} from "@openbots/api-contract/browserbase";
 import {
   agentTools,
   connections,
@@ -2783,15 +2785,33 @@ export async function buildAgentTools(params: {
   const browserContextKey = conversationId || agentId || userId;
   const browserTools = createBrowserbaseTools(browserContextKey);
 
-  for (const config of configuredTools) {
-    if (config.provider === "internal") {
-      const found =
-        internalTools[config.toolName] ||
-        (browserTools as Record<string, any>)[config.toolName];
-      if (found) {
-        activeTools[config.toolName] = found;
-      }
-    } else if (config.provider === "mcp") {
+  // Map explicitly configured tool states (disabled=false overrides default)
+  const allConfigs = await db
+    .select()
+    .from(agentTools)
+    .where(eq(agentTools.agentId, agentId));
+  const toolStateMap = new Map(allConfigs.map((t) => [t.toolName, t]));
+
+  // 1. Mount all standard internal tools (enabled by default unless explicitly disabled=false)
+  for (const [name, toolInstance] of Object.entries(internalTools)) {
+    const cfg = toolStateMap.get(name);
+    if (!cfg || cfg.enabled) {
+      activeTools[name] = toolInstance;
+    }
+  }
+
+  // 2. Mount all browser automation tools (enabled by default unless explicitly disabled=false)
+  for (const [name, toolInstance] of Object.entries(browserTools)) {
+    const cfg = toolStateMap.get(name);
+    if (!cfg || cfg.enabled) {
+      activeTools[name] = toolInstance;
+    }
+  }
+
+  // 3. Mount any configured MCP tools
+  for (const config of allConfigs) {
+    if (!config.enabled) continue;
+    if (config.provider === "mcp") {
       const mcpConfig = config.config as { url?: string } | null;
       if (!mcpConfig?.url) {
         throw new Error(

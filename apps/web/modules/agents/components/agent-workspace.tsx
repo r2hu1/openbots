@@ -63,6 +63,13 @@ const SchedulesSheet = dynamic(
     ),
   { ssr: false },
 );
+const BrowserLivePreview = dynamic(
+  () =>
+    import("@/modules/browserbase/browser-live-preview").then(
+      (m) => m.BrowserLivePreview,
+    ),
+  { ssr: false },
+);
 
 function useIdleReady() {
   const [ready, setReady] = React.useState(false);
@@ -230,41 +237,82 @@ const ChatPane = React.memo(function ChatPane({
 
   const placeholder = `Message ${agentName}...`;
 
-  return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <MemoTimeline
-        messages={messages}
-        activeRun={activeRun}
-        activeRunSteps={activeRunSteps}
-        onCancelRun={cancelActiveRun}
-        isCancelling={isCancelling}
-        agentName={agentName}
-        isOptimisticRunning={isOptimisticRunning}
-        isLoading={isChatLoading}
-        onOpenArtifact={onOpenArtifact}
-        hasOlderMessages={!!hasOlderMessages}
-        isLoadingOlder={isLoadingOlder}
-        onLoadOlderMessages={() => {
-          if (hasOlderMessages && !isLoadingOlder) {
-            fetchNextPage();
-          }
-        }}
-        executionError={executionError}
-        onDismissError={clearExecutionError}
-        onReply={setReplyTarget}
-        onReact={handleToggleReaction}
-        streamingText={streamingText}
-      />
+  // Inspect active run steps for any Browserbase live view metadata
+  const liveBrowserData = React.useMemo(() => {
+    // Reverse find latest step with liveViewUrl
+    for (let i = activeRunSteps.length - 1; i >= 0; i--) {
+      const step = activeRunSteps[i];
+      if (!step) continue;
+      const output = step.toolOutput as Record<string, any> | null;
+      if (output?.liveViewUrl) {
+        return {
+          liveViewUrl: output.liveViewUrl as string,
+          currentUrl: (output.currentUrl || output.url) as string | undefined,
+          title: output.title as string | undefined,
+        };
+      }
+    }
+    return null;
+  }, [activeRunSteps]);
 
-      <MemoComposer
-        onSend={sendPrompt}
-        isSubmitting={isSubmitting}
-        isActiveRun={isActiveRun}
-        onCancelRun={cancelActiveRun}
-        isCancelling={isCancelling}
-        placeholder={placeholder}
-        replyTarget={replyTarget}
-        onClearReply={() => setReplyTarget(null)}
+  const [previewManuallyClosed, setPreviewManuallyClosed] = React.useState(false);
+
+  // Auto-open live preview whenever a browser action produces a live view URL
+  React.useEffect(() => {
+    if (liveBrowserData?.liveViewUrl) {
+      setPreviewManuallyClosed(false);
+    }
+  }, [liveBrowserData?.liveViewUrl]);
+
+  const isLivePreviewOpen = Boolean(
+    liveBrowserData?.liveViewUrl && !previewManuallyClosed,
+  );
+
+  return (
+    <div className="flex flex-1 flex-row overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+        <MemoTimeline
+          messages={messages}
+          activeRun={activeRun}
+          activeRunSteps={activeRunSteps}
+          onCancelRun={cancelActiveRun}
+          isCancelling={isCancelling}
+          agentName={agentName}
+          isOptimisticRunning={isOptimisticRunning}
+          isLoading={isChatLoading}
+          onOpenArtifact={onOpenArtifact}
+          hasOlderMessages={!!hasOlderMessages}
+          isLoadingOlder={isLoadingOlder}
+          onLoadOlderMessages={() => {
+            if (hasOlderMessages && !isLoadingOlder) {
+              fetchNextPage();
+            }
+          }}
+          executionError={executionError}
+          onDismissError={clearExecutionError}
+          onReply={setReplyTarget}
+          onReact={handleToggleReaction}
+          streamingText={streamingText}
+        />
+
+        <MemoComposer
+          onSend={sendPrompt}
+          isSubmitting={isSubmitting}
+          isActiveRun={isActiveRun}
+          onCancelRun={cancelActiveRun}
+          isCancelling={isCancelling}
+          placeholder={placeholder}
+          replyTarget={replyTarget}
+          onClearReply={() => setReplyTarget(null)}
+        />
+      </div>
+
+      <BrowserLivePreview
+        isOpen={isLivePreviewOpen}
+        liveViewUrl={liveBrowserData?.liveViewUrl ?? null}
+        currentUrl={liveBrowserData?.currentUrl}
+        title={liveBrowserData?.title}
+        onClose={() => setPreviewManuallyClosed(true)}
       />
     </div>
   );

@@ -59,7 +59,16 @@ Trigger.dev provides durable agent execution so long-running tasks never get cut
 ### E. Integrations (Composio - Optional)
 - To enable agent access to 200+ external apps (Gmail, Slack, GitHub, Linear, Notion, etc.), get an API key from [Composio](https://app.composio.dev/) (`COMPOSIO_API_KEY`).
 
-### F. Web Push Notifications (Optional)
+### F. Cloud Isolated Desktop (Browserbase - Optional)
+To enable live web navigation, real-time interactive browser debugging, and Human-in-the-Loop (HITL) takeover:
+1. Create an account at [Browserbase](https://www.browserbase.com/).
+2. Grab your API key and Project ID from your dashboard.
+3. Configure the environment variables:
+   - `BROWSERBASE_API_KEY="bb_..."`
+   - `BROWSERBASE_PROJECT_ID="proj_..."`
+   - `BROWSERBASE_REGION="us-west-2"` (Optional: `us-west-2`, `us-east-1`, `eu-central-1`, or `ap-southeast-1`)
+
+### G. Web Push Notifications (Optional)
 OpenBots supports native desktop and mobile Web Push notifications for scheduled tasks and background reminders:
 1. Generate a standard VAPID key pair:
    ```bash
@@ -133,6 +142,11 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 COMPOSIO_API_KEY=""
 UPSTASH_REDIS_REST_URL=""
 UPSTASH_REDIS_REST_TOKEN=""
+
+# Cloud Isolated Desktop (Browserbase)
+BROWSERBASE_API_KEY=""
+BROWSERBASE_PROJECT_ID=""
+BROWSERBASE_REGION="us-west-2"
 
 # ==============================================================================
 # Web Push Notifications (Optional)

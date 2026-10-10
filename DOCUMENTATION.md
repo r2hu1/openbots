@@ -39,7 +39,8 @@ OpenBots is designed around clean boundaries separating presentation, RPC contra
              v                               v                               v
 +------------------------------+ +---------------------------+ +-------------------------------+
 |        PostgreSQL DB         | |    Redis / Upstash PubSub | |       External Providers        |
-| (Agents, Runs, Steps, Auth)  | | (Ephemeral Run Streaming) | | (Google AI, Composio, MCP)    |
+| (Agents, Runs, Steps, Auth)  | | (Ephemeral Run Streaming) | | (Google AI, Browserbase,      |
+|                              | | (HITL & Browser Sessions) | |  Composio, MCP)               |
 +------------------------------+ +---------------------------+ +-------------------------------+
 ```
 
@@ -107,6 +108,7 @@ openbots/
 | **Agent Reasoning Engine** | Vercel AI SDK (`ai`) | `^7.0.0` | Multi-step agent loop (`ToolLoopAgent`) |
 | **LLM Provider** | Google Gemini (`@ai-sdk/google`) | `^4.0.0` | Multi-modal reasoning & vision inputs |
 | **Background Engine** | Trigger.dev v4 | `4.7.3` | Durable execution & cron task scheduling |
+| **Cloud Isolated Desktop** | Browserbase (`@browserbasehq/sdk`) | `^2.21.0` | Headless browser execution, live debugging, stealth & HITL |
 | **Database ORM** | Drizzle ORM | `^0.45.3` | Type-safe PostgreSQL mapping & migrations |
 | **Cache / Queue** | Redis (`ioredis` / Upstash) | `^6.0.0` | Ephemeral run state & agent event pub/sub |
 | **Authentication** | Better Auth | `^1.7.7` | Session cookies, email/password, RBAC |
@@ -157,6 +159,22 @@ All internal tools are declared in `packages/api-contract/src/tools`:
 | `json_parser` | Utilities | JSON structure navigation and dot-path queries |
 | `text_analyzer` | Utilities | Linguistic metrics, token counts, and keyword frequencies |
 | `random_generator` | Utilities | Secure random selections, dice rolling, and array shuffling |
+
+### Cloud Isolated Desktop & Browser Tools (`packages/api-contract/src/browserbase`)
+
+Powered by Browserbase, agents can operate full cloud browser sessions with persistent state:
+
+| Tool Identifier | Implementation Category | Functionality |
+| :--- | :--- | :--- |
+| `browser_navigate` | Cloud Desktop | Navigates to a URL, waits for load, and yields page title, status code & live debugger URL |
+| `browser_click` | Cloud Desktop | Clicks interactive elements via CSS selector or text matcher |
+| `browser_type` | Cloud Desktop | Types keystrokes into input fields, with optional clearing and Enter submission |
+| `browser_screenshot` | Cloud Desktop | Captures full-page or viewport base64 visual snapshots |
+| `browser_extract_content` | Cloud Desktop | Extracts structured, sanitized text and links within model context limits |
+| `browser_scroll` | Cloud Desktop | Scrolls page viewport smoothly up/down to trigger lazy loading |
+| `browser_evaluate` | Cloud Desktop | Executes sandboxed JavaScript directly in page context and returns output |
+| `browser_wait_for_user` | Cloud Desktop (HITL) | Pauses agent run for Human-in-the-Loop interaction (e.g. 2FA, Captchas) with Redis synchronization |
+| `browser_close` | Cloud Desktop | Gracefully releases and terminates the cloud browser instance |
 
 ### SaaS & External Integrations (Composio & MCP)
 - When enabled, agents can invoke Composio tools across Gmail, Google Docs/Sheets/Calendar, Slack, GitHub, Linear, Discord, Notion, Jira, and Twitter.

@@ -4,7 +4,7 @@
 
 ### Autonomous AI Coworkers for Humans Who Ship
 
-OpenBots is an open-source platform where you can build, customize, and collaborate with teams of autonomous AI agents. Unlike simple chatbots that only talk, OpenBots agents research the web, write code, run scheduled tasks in the background, send emails, connect to your SaaS apps, generate interactive visual artifacts and many other things.
+OpenBots is an open-source platform where you can build, customize, and collaborate with teams of autonomous AI agents. Unlike simple chatbots that only talk, OpenBots agents research the web in an isolated cloud desktop, write code, run scheduled tasks in the background, send emails, connect to your SaaS apps, generate interactive visual artifacts and many other things.
 
 [Explore Features](#a-walkthrough-of-openbots) • [Self-Hosting Guide](SELF_HOST.md) • [Technical Docs](DOCUMENTATION.md)
 
@@ -12,26 +12,18 @@ OpenBots is an open-source platform where you can build, customize, and collabor
 
 </div>
 
-
 https://github.com/user-attachments/assets/e9e70be1-bec4-45a0-b9c4-f64d3890f2e5
-
-
----
-
-## What is OpenBots?
-
-Imagine having a dedicated team of digital colleagues:
-
-- A **Research Assistant** that searches the web, reads docs, cross-references sources, and delivers concise summaries.
-- A **Social Media Manager** that drafts and publishes technical updates to LinkedIn or Twitter every day at 9:00 AM on a cron schedule.
-- A **Full-Stack Developer** that inspects bugs, runs safe sandboxed code, and builds interactive HTML, SVG, or Mermaid diagrams directly inside the chat.
-- An **Executive Assistant** that connects with Gmail, Slack, Notion, and Google Calendar to schedule meetings and manage follow-ups.
-
-OpenBots gives you an elegant, fast workspace to orchestrate these agents effortlessly.
 
 ---
 
 ## A Walkthrough of OpenBots
+
+| | |
+|:---:|:---:|
+| **Conversational Workspace**<br>[![Chat](./apps/web/public/preview-chat.png)](#2-rich-conversational-workspace) | **Cloud Isolated Desktop & Browser**<br>[![Browser Automation](./apps/web/public/preview-browser-use.png)](#6-cloud-isolated-desktop--browser-automation) |
+| **Interactive Artifacts**<br>[![Artifacts](./apps/web/public/preview-artifacts.png)](#4-interactive-artifacts--sandboxes) | **Inline Artifact Previews**<br>[![Inline Artifacts](./apps/web/public/preview-artifacts-inline.png)](#4-interactive-artifacts--sandboxes) |
+| **Durable Schedules & Workflows**<br>[![Schedules](./apps/web/public/preview-schedules.png)](#5-durable-background-workflows-scheduling--web-push) | **200+ SaaS Connections**<br>[![Connections](./apps/web/public/preview-connections.png)](#7-200-saas-integrations-via-composio--mcp) |
+| **Reactions & Celebrations**<br>[![Reactions](./apps/web/public/preview-reactions.png)](#2-rich-conversational-workspace) | |
 
 Take a visual tour through everything you can do in OpenBots:
 
@@ -93,7 +85,18 @@ Agents don't only react when you prompt them — they can run autonomously on th
 - **Native Web Push Notifications**: Stay updated even when away from your browser with desktop & mobile Web Push notifications when scheduled tasks finish.
 - **Survives Restarts**: Powered by Trigger.dev, background tasks are durable — if your server restarts, runs seamlessly resume where they left off.
 
-### 6. 200+ SaaS Integrations via Composio & MCP
+### 6. Cloud Isolated Desktop & Browser Automation
+
+![Browser Automation](./apps/web/public/preview-browser-use.png)
+
+Empower your agents with a dedicated, isolated cloud desktop environment powered by Browserbase:
+
+- **Live Interactive Desktop Preview**: Watch your agent browse, fill out complex forms, click elements, run JavaScript, and extract structured web data in real time side-by-side with your chat. Toggle or resize the desktop panel on demand.
+- **Human-in-the-Loop (HITL) Takeover**: When your agent encounters Captchas, MFA/2FA challenges, or payment confirmations, it pauses and prompts you to interact directly in the cloud desktop to finish the verification before handing control back.
+- **Persistent Cloud Sessions**: Isolated desktop environments survive across conversation turns and background tasks, persisting login sessions, cookies, and browsing state.
+- **Anti-Detect & Stealth Capabilities**: Built-in automated captcha solving, ad-blocking, and proxying ensure reliable web automation without IP blocks or bot detection headaches.
+
+### 7. 200+ SaaS Integrations via Composio & MCP
 
 ![Connections](./apps/web/public/preview-connections.png)
 
@@ -124,7 +127,7 @@ Connect your agents to the real world:
    cp .env.example .env
    ```
 
-   Add your PostgreSQL database URL and your Google Gemini API key (`GEMINI_API_KEY`) or configure via web ui > settings.
+   Add your PostgreSQL database URL, your LLM provider key (e.g. `GEMINI_API_KEY`), and optionally `BROWSERBASE_API_KEY` for the Cloud Isolated Desktop (or configure them via Web UI > Settings).
 
 3. **Initialize the database**:
 

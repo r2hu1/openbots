@@ -8,6 +8,7 @@ This document synthesizes the core architectural concepts, package boundaries, d
 
 **OpenBots** is an open-source autonomous multi-agent platform for building, orchestrating, and operating AI agent workflows. It features:
 - Dual-mode execution (direct streaming via Bun HTTP or durable background jobs via Trigger.dev).
+- Cloud Isolated Desktop & headless browser automation (Browserbase) with live interactive debugging and Human-in-the-Loop (HITL) handoffs.
 - Multi-provider model routing (Google Gemini, OpenAI, Anthropic).
 - SaaS integrations via Composio & Model Context Protocol (MCP).
 - Persistent conversation and execution telemetry (runs and run steps).
@@ -20,10 +21,11 @@ graph TD
     API["apps/api (Bun HTTP entrypoint)"]
     Contract["packages/api-contract (Hono API routes & business logic)"]
     DB["packages/db (Drizzle ORM + PostgreSQL)"]
-    Redis["Upstash Redis (Pub/Sub & ephemeral state)"]
+    Redis["Upstash Redis (Pub/Sub, HITL & ephemeral state)"]
     AI["AI SDK / LLM (Gemini, OpenAI, Anthropic)"]
     Trigger["Trigger.dev Worker (Durable background runs)"]
     Composio["Composio / MCP (External Tools)"]
+    Browserbase["Browserbase (Cloud Isolated Desktop & Browser Automation)"]
 
     Client --> APIClient
     APIClient --> API
@@ -33,6 +35,8 @@ graph TD
     API --> AI
     API --> Trigger
     AI --> Composio
+    AI --> Browserbase
+    Browserbase --> Redis
 ```
 
 ---
@@ -75,9 +79,10 @@ graph TD
 3. **Model Resolution**: `resolveModel` resolves the API key (user BYOK or fallback env variables) and instantiates the AI SDK provider (`@ai-sdk/google`, `@ai-sdk/openai`, or `@ai-sdk/anthropic`).
 4. **Tool Resolution**:
    - Internal tools (`web_search`, `calculate`, `http_request`, `execute_code`, `dns_lookup`, etc.).
+   - Cloud Isolated Desktop tools via Browserbase (`browser_navigate`, `browser_click`, `browser_type`, `browser_wait_for_user`, `browser_screenshot`, `browser_evaluate`, etc.).
    - SaaS tools via Composio (`@composio/core` & `@composio/vercel`).
    - Custom MCP servers.
-5. **Telemetry & Artifacts**: Steps are persisted in `run_steps` and emitted via `runEventHub` / `agentEventHub` to the UI.
+5. **Telemetry & Artifacts**: Steps are persisted in `run_steps` and emitted via `runEventHub` / `agentEventHub` to the UI. Live browser views and HITL requests are synchronized in Redis.
 
 ---
 

@@ -10,12 +10,38 @@ export const agentRunTask = task({
     maxAttempts: 1, // Runs are managed atomically by database transitions; disable blind retries
   },
   run: async (payload: { runId: string }, { ctx }: { ctx?: any } = {}) => {
-    return await executeAgentRun(payload.runId, { signal: ctx?.signal });
+    try {
+      const result = await executeAgentRun(payload.runId, { signal: ctx?.signal });
+      // Explicitly broadcast completion to agent stream in Trigger.dev worker
+      if (result && "agentId" in result) {
+        agentEventHub.publish(result.agentId, {
+          type: "run_status",
+          runId: result.id,
+          status: result.status,
+          output: "output" in result ? result.output : undefined,
+          conversationId: result.conversationId ?? null,
+        });
+      }
+      return result;
+    } catch (err: any) {
+      // Re-fetch run to report failure if failed
+      const [failedRun] = await db.select().from(runs).where(eq(runs.id, payload.runId));
+      if (failedRun) {
+        agentEventHub.publish(failedRun.agentId, {
+          type: "run_status",
+          runId: failedRun.id,
+          status: "failed",
+          error: err?.message || "Task failed",
+          conversationId: failedRun.conversationId,
+        });
+      }
+      throw err;
+    }
   },
   onCancel: async ({ payload }: any) => {
     // If Trigger.dev signals cancellation, ensure DB status transitions to cancelled if still active
     if (!payload?.runId) return;
-    await db
+    const [cancelledRun] = await db
       .update(runs)
       .set({
         status: "cancelled",
@@ -26,7 +52,16 @@ export const agentRunTask = task({
           eq(runs.id, payload.runId),
           inArray(runs.status, ["queued", "running"]),
         ),
-      );
+      )
+      .returning();
+    if (cancelledRun) {
+      agentEventHub.publish(cancelledRun.agentId, {
+        type: "run_status",
+        runId: cancelledRun.id,
+        status: "cancelled",
+        conversationId: cancelledRun.conversationId,
+      });
+    }
   },
 });
 
@@ -124,7 +159,28 @@ export const scheduledAgentTask = triggerSchedules.task({
       );
     }
 
-    // Execute the run directly (executeAgentRun publishes schedule_fired and runs the agent)
-    return await executeAgentRun(newRun.id, { signal: ctx?.signal });
+    // Execute the run directly and broadcast run_status upon finish
+    try {
+      const result = await executeAgentRun(newRun.id, { signal: ctx?.signal });
+      if (result) {
+        agentEventHub.publish(scheduleRecord.agentId, {
+          type: "run_status",
+          runId: result.id,
+          status: result.status,
+          output: "output" in result ? result.output : undefined,
+          conversationId: "conversationId" in result ? result.conversationId : newRun.conversationId,
+        });
+      }
+      return result;
+    } catch (err: any) {
+      agentEventHub.publish(scheduleRecord.agentId, {
+        type: "run_status",
+        runId: newRun.id,
+        status: "failed",
+        error: err?.message || "Task failed",
+        conversationId: newRun.conversationId,
+      });
+      throw err;
+    }
   },
 });

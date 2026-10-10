@@ -227,6 +227,7 @@ export const agentsRoute = new Hono<Env>()
                         typeof raw === "string" ? raw : JSON.stringify(raw),
                     });
                   }
+                  if (queue.length > 0) continue;
                 }
               }
             }

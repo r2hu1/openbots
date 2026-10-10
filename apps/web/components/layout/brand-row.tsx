@@ -41,7 +41,7 @@ export function BrandRow({
         {!isMobile && collapsed ? (
           <div className="flex flex-col gap-2">
             <SidebarMenuButton
-              tooltip="Expand sidebar"
+              tooltip={`⌘B Expand sidebar`}
               onClick={toggleSidebar}
               className={cn(rowClass, "p-0")}
             >

@@ -13,6 +13,7 @@ export function useRunsQuery(
   options?: {
     enabled?: boolean;
     refetchInterval?: number | false;
+    staleTime?: number;
   },
 ) {
   return useQuery({
@@ -29,6 +30,7 @@ export function useRunsQuery(
     },
     enabled: (options?.enabled ?? true) && Boolean(agentId),
     refetchInterval: options?.refetchInterval ?? false,
+    staleTime: options?.staleTime ?? 60_000,
   });
 }
 

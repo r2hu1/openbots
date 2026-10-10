@@ -72,7 +72,7 @@ export function UserMenu({
               />
             }
           >
-            <Avatar className="size-7!" name={name} variant="pixel" />
+            <Avatar className="size-8!" name={name} variant="pixel" />
 
             <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
               <span className="block max-w-20 truncate text-[13px] font-medium">

@@ -178,28 +178,7 @@ export const agentsRoute = new Hono<Env>()
 
       try {
         while (!stream.aborted) {
-          if (queue.length > 0) {
-            const item = queue.shift()!;
-            await stream.writeSSE({
-              event: item.event,
-              data: item.data,
-            });
-            continue;
-          }
-
-          // Wait for next local event or 1.5s poll / heartbeat
-          await new Promise<void>((resolve) => {
-            let timer: any = null;
-            const cb = () => {
-              if (timer) clearTimeout(timer);
-              notifyResolver = null;
-              resolve();
-            };
-            notifyResolver = cb;
-            timer = setTimeout(cb, 1500);
-          });
-
-          // Check cross-process events from Redis (dispatched by Trigger.dev or worker processes)
+          // Check cross-process events from Redis first (dispatched by Trigger.dev or worker processes)
           try {
             const redis = getRedis();
             if (redis) {
@@ -227,16 +206,36 @@ export const agentsRoute = new Hono<Env>()
                         typeof raw === "string" ? raw : JSON.stringify(raw),
                     });
                   }
-                  if (queue.length > 0) continue;
                 }
               }
             }
           } catch {}
 
+          if (queue.length > 0) {
+            const item = queue.shift()!;
+            await stream.writeSSE({
+              event: item.event,
+              data: item.data,
+            });
+            continue;
+          }
+
           // Ping heartbeat
           try {
             await stream.writeSSE({ event: "ping", data: "{}" });
           } catch {}
+
+          // Wait for next local event or 1.5s poll / heartbeat
+          await new Promise<void>((resolve) => {
+            let timer: any = null;
+            const cb = () => {
+              if (timer) clearTimeout(timer);
+              notifyResolver = null;
+              resolve();
+            };
+            notifyResolver = cb;
+            timer = setTimeout(cb, 1500);
+          });
         }
       } finally {
         unsubscribe();

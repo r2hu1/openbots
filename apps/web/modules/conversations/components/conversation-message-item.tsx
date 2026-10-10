@@ -98,6 +98,10 @@ interface ConversationMessageItemProps {
   isStreaming?: boolean
 }
 
+// Global tracker for seen reactions per message to survive optimistic -> server ID transitions
+// and React component remounts
+const seenReactionsByMsg = new Map<string, Set<string>>()
+
 export function ConversationMessageItem({
   message,
   agentName,
@@ -112,6 +116,11 @@ export function ConversationMessageItem({
     () => getMessageImages(message.content),
     [message.content]
   )
+
+  // Message tracking key: combine message.id and message content hash/snippet
+  const msgTrackingKey = React.useMemo(() => {
+    return isUser && text ? `user-${text.trim()}` : `msg-${message.id}`
+  }, [isUser, text, message.id])
 
   // Set of reactions recently fired by user click to avoid firing twice on query refetch
   const userFiredReactionsRef = React.useRef<Set<string>>(new Set())
@@ -135,39 +144,45 @@ export function ConversationMessageItem({
     return []
   }, [message.metadata])
 
-  // Track previously seen reactions for this message to fire confetti only when a new reaction appears after mount
   const prevReactionsRef = React.useRef<string[]>(reactions)
-  const isMountedRef = React.useRef(false)
+  const isInitialRenderRef = React.useRef(true)
 
   React.useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true
+    let seenSet = seenReactionsByMsg.get(msgTrackingKey)
+    if (!seenSet) {
+      // First time we encounter this message ever in session
+      // If it already has reactions on first encounter, record them as already seen
+      seenSet = new Set(reactions)
+      seenReactionsByMsg.set(msgTrackingKey, seenSet)
+      isInitialRenderRef.current = false
       prevReactionsRef.current = reactions
       return
     }
 
-    const prev = prevReactionsRef.current
-    if (reactions.length > prev.length) {
-      const newlyAdded = reactions.filter((r) => !prev.includes(r))
-      for (const emoji of newlyAdded) {
-        // If this was already fired by user interaction in handleReaction, don't fire again
+    // If message is known, check for any newly added reactions that haven't been shown yet
+    for (const emoji of reactions) {
+      if (!seenSet.has(emoji)) {
+        seenSet.add(emoji)
         if (userFiredReactionsRef.current.has(emoji)) {
           userFiredReactionsRef.current.delete(emoji)
         } else {
-          // If added remotely (e.g. from agent), burst near the message bubble
+          // Trigger confetti for the newly arrived reaction!
           const rect = bubbleRef.current?.getBoundingClientRect()
           const origin = rect
             ? {
-                x: (rect.left + 40) / window.innerWidth,
+                x: (isUser ? rect.right - 40 : rect.left + 40) / window.innerWidth,
                 y: (rect.bottom - 10) / window.innerHeight,
               }
-            : undefined
+            : isUser
+              ? { x: 0.85, y: 0.7 }
+              : { x: 0.2, y: 0.7 }
           fireEmojiConfetti(emoji, origin)
         }
       }
     }
     prevReactionsRef.current = reactions
-  }, [reactions])
+    isInitialRenderRef.current = false
+  }, [reactions, msgTrackingKey, isUser])
 
   const { messageParts } = React.useMemo(() => {
     if (isUser) {

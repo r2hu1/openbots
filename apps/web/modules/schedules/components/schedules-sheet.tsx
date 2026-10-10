@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   AlertDialog,
@@ -10,55 +10,55 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@openbots/ui/components/alert-dialog";
-import { Button } from "@openbots/ui/components/button";
+} from "@openbots/ui/components/alert-dialog"
+import { Button } from "@openbots/ui/components/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@openbots/ui/components/dialog";
+} from "@openbots/ui/components/dialog"
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@openbots/ui/components/sheet";
-import { Spinner } from "@openbots/ui/components/spinner";
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import { useAgentStream } from "@/modules/agents/hooks/use-agent-stream";
-import { RunDetailView } from "@/modules/runs/components/run-detail-view";
-import { useRunsQuery } from "@/modules/runs/queries";
-import type { RunRecord } from "@/modules/runs/types";
-import { formatTimestamp } from "@/modules/runs/utils";
+} from "@openbots/ui/components/sheet"
+import { Spinner } from "@openbots/ui/components/spinner"
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { useAgentStream } from "@/modules/agents/hooks/use-agent-stream"
+import { RunDetailView } from "@/modules/runs/components/run-detail-view"
+import { useRunsQuery } from "@/modules/runs/queries"
+import type { RunRecord } from "@/modules/runs/types"
+import { formatTimestamp } from "@/modules/runs/utils"
 import {
   useDeleteScheduleMutation,
   useSchedulesQuery,
   useUpdateScheduleMutation,
-} from "../queries";
-import type { ScheduleItem } from "../types";
-import { Calendar2Newicons, Clock2, Pause, Play, Trash2 } from "reicon-react";
+} from "../queries"
+import type { ScheduleItem } from "../types"
+import { Calendar2Newicons, Clock2, Pause, Play, Trash2 } from "reicon-react"
 
 interface SchedulesSheetProps {
-  agentId: string | null;
-  agentName?: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  agentId: string | null
+  agentName?: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 interface QueuedInput {
-  scheduledTaskName?: string;
-  prompt?: string;
-  scheduledFor?: string;
+  scheduledTaskName?: string
+  prompt?: string
+  scheduledFor?: string
 }
 
 const SCROLL_CLASS =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
   "[scrollbar-gutter:stable] [scrollbar-width:thin] " +
-  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]";
+  "[scrollbar-color:color-mix(in_oklab,currentColor_25%,transparent)_transparent]"
 
 const KNOWN_CRONS: Record<string, string> = {
   "0 9 * * *": "Every day at 9:00 AM",
@@ -69,26 +69,26 @@ const KNOWN_CRONS: Record<string, string> = {
   "0 * * * *": "Every hour",
   "0 9 * * 1": "Every Monday at 9:00 AM",
   "0 9 * * 1-5": "Every weekday at 9:00 AM",
-};
+}
 
 function formatWhen(value?: string) {
-  if (!value) return "Pending execution";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Pending execution";
+  if (!value) return "Pending execution"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "Pending execution"
   return date.toLocaleString([], {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  });
+  })
 }
 
 function GroupLabel({
   children,
   count,
 }: {
-  children: React.ReactNode;
-  count: number;
+  children: React.ReactNode
+  count: number
 }) {
   return (
     <h3 className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -97,7 +97,7 @@ function GroupLabel({
         {count}
       </span>
     </h3>
-  );
+  )
 }
 
 function ScheduleRow({
@@ -108,16 +108,16 @@ function ScheduleRow({
   onDelete,
   onSelect,
 }: {
-  schedule: ScheduleItem;
-  toggling: boolean;
-  deleting: boolean;
-  onToggle: (schedule: ScheduleItem) => void;
-  onDelete: (id: string) => void;
-  onSelect: (schedule: ScheduleItem) => void;
+  schedule: ScheduleItem
+  toggling: boolean
+  deleting: boolean
+  onToggle: (schedule: ScheduleItem) => void
+  onDelete: (id: string) => void
+  onSelect: (schedule: ScheduleItem) => void
 }) {
-  const isPaused = schedule.status === "paused";
-  const cron = schedule.cronExpression.trim();
-  const readable = KNOWN_CRONS[cron];
+  const isPaused = schedule.status === "paused"
+  const cron = schedule.cronExpression.trim()
+  const readable = KNOWN_CRONS[cron]
 
   return (
     <div
@@ -127,7 +127,7 @@ function ScheduleRow({
       <span
         className={cn(
           "mt-1.5 size-2 shrink-0 rounded-full",
-          isPaused ? "bg-muted-foreground/40" : "bg-emerald-500",
+          isPaused ? "bg-muted-foreground/40" : "bg-emerald-500"
         )}
         title={isPaused ? "Paused" : "Active"}
       />
@@ -217,7 +217,7 @@ function ScheduleRow({
         </AlertDialog>
       </div>
     </div>
-  );
+  )
 }
 
 function HistoryRow({
@@ -228,15 +228,15 @@ function HistoryRow({
   error,
   onClick,
 }: {
-  name: string;
-  prompt: string;
-  status: "completed" | "failed" | "cancelled";
-  completedAt?: string | Date | null;
-  error?: string | null;
-  onClick: () => void;
+  name: string
+  prompt: string
+  status: "completed" | "failed" | "cancelled"
+  completedAt?: string | Date | null
+  error?: string | null
+  onClick: () => void
 }) {
-  const isFailed = status === "failed";
-  const isCancelled = status === "cancelled";
+  const isFailed = status === "failed"
+  const isCancelled = status === "cancelled"
 
   return (
     <div
@@ -250,7 +250,7 @@ function HistoryRow({
             ? "bg-destructive"
             : isCancelled
               ? "bg-muted-foreground/40"
-              : "bg-emerald-500",
+              : "bg-emerald-500"
         )}
       />
       <div className="min-w-0 flex-1">
@@ -263,7 +263,7 @@ function HistoryRow({
                 ? "bg-destructive/10 text-destructive"
                 : isCancelled
                   ? "bg-muted text-muted-foreground"
-                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             )}
           >
             {status}
@@ -289,7 +289,7 @@ function HistoryRow({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function QueuedRow({
@@ -298,10 +298,10 @@ function QueuedRow({
   scheduledFor,
   onClick,
 }: {
-  name: string;
-  prompt: string;
-  scheduledFor?: string;
-  onClick: () => void;
+  name: string
+  prompt: string
+  scheduledFor?: string
+  onClick: () => void
 }) {
   return (
     <div
@@ -322,7 +322,7 @@ function QueuedRow({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 export function SchedulesSheet({
@@ -335,29 +335,29 @@ export function SchedulesSheet({
   useAgentStream({
     agentId,
     enabled: open,
-  });
+  })
 
   const { data: schedules = [], isLoading: isLoadingSchedules } =
     useSchedulesQuery(agentId, {
       enabled: open,
       refetchInterval: false,
-    });
+    })
 
   const { data: allRuns = [], isLoading: isLoadingRuns } = useRunsQuery(
     agentId,
     {
       enabled: open,
       refetchInterval: false,
-    },
-  );
+    }
+  )
 
   const queuedReminders = React.useMemo(
     () =>
       allRuns.filter(
-        (r) => r.triggerType === "schedule" && r.status === "queued",
+        (r) => r.triggerType === "schedule" && r.status === "queued"
       ),
-    [allRuns],
-  );
+    [allRuns]
+  )
 
   const pastExecutions = React.useMemo(
     () =>
@@ -367,39 +367,39 @@ export function SchedulesSheet({
             r.triggerType === "schedule" &&
             (r.status === "completed" ||
               r.status === "failed" ||
-              r.status === "cancelled"),
+              r.status === "cancelled")
         )
         .slice(0, 10),
-    [allRuns],
-  );
+    [allRuns]
+  )
 
-  const updateScheduleMutation = useUpdateScheduleMutation(agentId);
-  const deleteScheduleMutation = useDeleteScheduleMutation(agentId);
+  const updateScheduleMutation = useUpdateScheduleMutation(agentId)
+  const deleteScheduleMutation = useDeleteScheduleMutation(agentId)
 
   const handleToggleStatus = React.useCallback(
     (schedule: ScheduleItem) => {
       updateScheduleMutation.mutate({
         id: schedule.id,
         data: { status: schedule.status === "active" ? "paused" : "active" },
-      });
+      })
     },
-    [updateScheduleMutation],
-  );
+    [updateScheduleMutation]
+  )
 
   const handleDelete = React.useCallback(
     (id: string) => deleteScheduleMutation.mutate(id),
-    [deleteScheduleMutation],
-  );
+    [deleteScheduleMutation]
+  )
 
   const [selectedSchedule, setSelectedSchedule] =
-    React.useState<ScheduleItem | null>(null);
-  const [selectedRun, setSelectedRun] = React.useState<RunRecord | null>(null);
+    React.useState<ScheduleItem | null>(null)
+  const [selectedRun, setSelectedRun] = React.useState<RunRecord | null>(null)
 
-  const isLoading = isLoadingSchedules || isLoadingRuns;
+  const isLoading = isLoadingSchedules || isLoadingRuns
   const hasItems =
     schedules.length > 0 ||
     queuedReminders.length > 0 ||
-    pastExecutions.length > 0;
+    pastExecutions.length > 0
 
   return (
     <>
@@ -470,7 +470,7 @@ export function SchedulesSheet({
                     </GroupLabel>
                     <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
                       {queuedReminders.map((run) => {
-                        const input = (run.input ?? {}) as QueuedInput;
+                        const input = (run.input ?? {}) as QueuedInput
                         return (
                           <QueuedRow
                             key={run.id}
@@ -481,7 +481,7 @@ export function SchedulesSheet({
                             scheduledFor={input.scheduledFor}
                             onClick={() => setSelectedRun(run)}
                           />
-                        );
+                        )
                       })}
                     </div>
                   </section>
@@ -494,7 +494,7 @@ export function SchedulesSheet({
                     </GroupLabel>
                     <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
                       {pastExecutions.map((run) => {
-                        const input = (run.input ?? {}) as QueuedInput;
+                        const input = (run.input ?? {}) as QueuedInput
                         return (
                           <HistoryRow
                             key={run.id}
@@ -509,7 +509,7 @@ export function SchedulesSheet({
                             error={run.error}
                             onClick={() => setSelectedRun(run)}
                           />
-                        );
+                        )
                       })}
                     </div>
                   </section>
@@ -524,7 +524,7 @@ export function SchedulesSheet({
       <Dialog
         open={Boolean(selectedSchedule)}
         onOpenChange={(isOpen) => {
-          if (!isOpen) setSelectedSchedule(null);
+          if (!isOpen) setSelectedSchedule(null)
         }}
       >
         <DialogContent className="max-w-lg">
@@ -546,7 +546,7 @@ export function SchedulesSheet({
                     "flex items-center gap-1.5 font-medium capitalize",
                     selectedSchedule.status === "active"
                       ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-muted-foreground",
+                      : "text-muted-foreground"
                   )}
                 >
                   <span
@@ -554,7 +554,7 @@ export function SchedulesSheet({
                       "size-1.5 rounded-full",
                       selectedSchedule.status === "active"
                         ? "bg-emerald-500"
-                        : "bg-muted-foreground/50",
+                        : "bg-muted-foreground/50"
                     )}
                   />
                   {selectedSchedule.status}
@@ -608,10 +608,10 @@ export function SchedulesSheet({
       <Dialog
         open={Boolean(selectedRun)}
         onOpenChange={(isOpen) => {
-          if (!isOpen) setSelectedRun(null);
+          if (!isOpen) setSelectedRun(null)
         }}
       >
-        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {((selectedRun?.input ?? {}) as QueuedInput).scheduledTaskName ||
@@ -636,5 +636,5 @@ export function SchedulesSheet({
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

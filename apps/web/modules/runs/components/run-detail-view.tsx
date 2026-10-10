@@ -76,7 +76,7 @@ export function RunDetailView({ runId, agentId, onBack }: RunDetailViewProps) {
   const displaySteps = streamingSteps.length > 0 ? streamingSteps : steps
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         {isRunning && (
           <Button

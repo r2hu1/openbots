@@ -102,7 +102,7 @@ export function WorkspaceSidebar({
               <IconSearch className="size-3.5 opacity-70" />
               <span>Search & jump to...</span>
             </span>
-            <Kbd className="h-4.5 text-[10px]">⌘K</Kbd>
+            <Kbd className="-mr-1 h-4.5 text-[10px]">⌘K</Kbd>
           </button>
         ) : (
           <InputGroup className="mt-1 h-8 border border-border bg-background shadow-none group-data-[collapsible=icon]:hidden">

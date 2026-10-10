@@ -218,7 +218,7 @@ export const runsRoute = new Hono<Env>()
           }
 
           if (queue.length === 0 && !isDone) {
-            // Wait reactively for next event or 3s timeout for DB sync
+            // Wait reactively for next event or 1s timeout for Redis/DB sync
             await new Promise<void>((resolve) => {
               let timer: any = null;
               const cb = () => {
@@ -227,7 +227,7 @@ export const runsRoute = new Hono<Env>()
                 resolve();
               };
               notifyResolver = cb;
-              timer = setTimeout(cb, 3_000);
+              timer = setTimeout(cb, 1_000);
             });
           }
         }

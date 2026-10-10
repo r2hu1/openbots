@@ -14,26 +14,34 @@ export const agentRunTask = task({
       const result = await executeAgentRun(payload.runId, { signal: ctx?.signal });
       // Explicitly broadcast completion to agent stream in Trigger.dev worker
       if (result && "agentId" in result) {
-        agentEventHub.publish(result.agentId, {
-          type: "run_status",
-          runId: result.id,
-          status: result.status,
-          output: "output" in result ? result.output : undefined,
-          conversationId: result.conversationId ?? null,
-        });
+        agentEventHub.publish(
+          result.agentId,
+          {
+            type: "run_status",
+            runId: result.id,
+            status: result.status,
+            output: "output" in result ? result.output : undefined,
+            conversationId: result.conversationId ?? null,
+          },
+          result.userId,
+        );
       }
       return result;
     } catch (err: any) {
       // Re-fetch run to report failure if failed
       const [failedRun] = await db.select().from(runs).where(eq(runs.id, payload.runId));
       if (failedRun) {
-        agentEventHub.publish(failedRun.agentId, {
-          type: "run_status",
-          runId: failedRun.id,
-          status: "failed",
-          error: err?.message || "Task failed",
-          conversationId: failedRun.conversationId,
-        });
+        agentEventHub.publish(
+          failedRun.agentId,
+          {
+            type: "run_status",
+            runId: failedRun.id,
+            status: "failed",
+            error: err?.message || "Task failed",
+            conversationId: failedRun.conversationId,
+          },
+          failedRun.userId,
+        );
       }
       throw err;
     }
@@ -55,12 +63,16 @@ export const agentRunTask = task({
       )
       .returning();
     if (cancelledRun) {
-      agentEventHub.publish(cancelledRun.agentId, {
-        type: "run_status",
-        runId: cancelledRun.id,
-        status: "cancelled",
-        conversationId: cancelledRun.conversationId,
-      });
+      agentEventHub.publish(
+        cancelledRun.agentId,
+        {
+          type: "run_status",
+          runId: cancelledRun.id,
+          status: "cancelled",
+          conversationId: cancelledRun.conversationId,
+        },
+        cancelledRun.userId,
+      );
     }
   },
 });

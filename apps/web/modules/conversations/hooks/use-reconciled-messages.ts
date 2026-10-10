@@ -69,12 +69,23 @@ export function useReconciledMessages({
       }
     }
 
-    // Final safety: deduplicate by id
+    // Deduplicate by id
     const seenIds = new Set<string>();
-    return result.filter((m) => {
+    const deduplicated = result.filter((m) => {
       if (seenIds.has(m.id)) return false;
       seenIds.add(m.id);
       return true;
+    });
+
+    // Ensure strictly chronological ordering with role tie-breaker
+    // (user messages precede assistant messages if timestamps match)
+    return deduplicated.sort((a, b) => {
+      const timeA = new Date(a.createdAt).getTime();
+      const timeB = new Date(b.createdAt).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      if (a.role === "user" && b.role === "assistant") return -1;
+      if (a.role === "assistant" && b.role === "user") return 1;
+      return 0;
     });
   }, [serverMessages, optimisticMessages, activeRun, activeConversationId]);
 

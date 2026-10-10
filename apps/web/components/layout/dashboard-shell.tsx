@@ -6,6 +6,7 @@ import * as React from "react";
 import { AuthGuard } from "@/components/shared/auth-guard";
 import { CreateAgentDialog } from "@/modules/agents/components/create-agent-dialog";
 import { useAgentsQuery } from "@/modules/agents/queries";
+import { useWorkspaceStream } from "@/modules/agents/hooks/use-workspace-stream";
 import { ConnectionsSheet } from "@/modules/connections/components/connections-sheet";
 import { SearchCommandDialog } from "./search-command-dialog";
 import { SettingsSheet } from "./settings-sheet";
@@ -28,6 +29,7 @@ export function DashboardShell({
   const [searchOpen, setSearchOpen] = React.useState(false);
 
   const { data: agents = [], isPending: agentsPending } = useAgentsQuery();
+  const { activeAgentStatuses } = useWorkspaceStream();
   const { isSupported, permission, isSubscribed, subscribe } = usePushNotifications();
 
   // On initial dashboard load, if notifications are supported and permission is still "default", request and subscribe
@@ -59,6 +61,7 @@ export function DashboardShell({
       <SidebarProvider defaultOpen={defaultOpen}>
         <WorkspaceSidebar
           agents={agents}
+          activeStatuses={activeAgentStatuses}
           onOpenCreate={() => setCreateDialogOpen(true)}
           onOpenConnections={() => setConnectionsOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}

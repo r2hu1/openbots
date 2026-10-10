@@ -330,11 +330,15 @@ export async function createAgentRun(
     return { error: "Failed to create run", status: 500 as const };
   }
 
-  // Broadcast run_created in realtime to all agent stream listeners
-  agentEventHub.publish(agent.id, {
-    type: "run_created",
-    run,
-  });
+  // Broadcast run_created in realtime to all agent stream listeners and user workspace stream
+  agentEventHub.publish(
+    agent.id,
+    {
+      type: "run_created",
+      run,
+    },
+    userId,
+  );
 
   // Fast path: if direct executor is registered in this process (API server), start execution immediately
   const directExecutor = getDirectRunExecutor();

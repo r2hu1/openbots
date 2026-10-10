@@ -280,26 +280,34 @@ export async function executeAgentRun(
   }
 
   // Broadcast run_status running in realtime
-  agentEventHub.publish(agentRecord.id, {
-    type: "run_status",
-    runId: runRecord.id,
-    status: "running",
-    conversationId: runRecord.conversationId,
-  })
+  agentEventHub.publish(
+    agentRecord.id,
+    {
+      type: "run_status",
+      runId: runRecord.id,
+      status: "running",
+      conversationId: runRecord.conversationId,
+    },
+    runRecord.userId,
+  )
 
   // Broadcast schedule_fired if this run was triggered by a schedule
   if (runRecord.triggerType === "schedule") {
     const inputObj = runRecord.input as any
-    agentEventHub.publish(agentRecord.id, {
-      type: "schedule_fired",
-      scheduleId: inputObj?.recurringScheduleId,
-      runId: runRecord.id,
-      name: inputObj?.scheduledTaskName,
-      prompt:
-        inputObj?.prompt ??
-        (typeof inputObj === "string" ? inputObj : undefined),
-      conversationId: runRecord.conversationId,
-    })
+    agentEventHub.publish(
+      agentRecord.id,
+      {
+        type: "schedule_fired",
+        scheduleId: inputObj?.recurringScheduleId,
+        runId: runRecord.id,
+        name: inputObj?.scheduledTaskName,
+        prompt:
+          inputObj?.prompt ??
+          (typeof inputObj === "string" ? inputObj : undefined),
+        conversationId: runRecord.conversationId,
+      },
+      runRecord.userId,
+    )
   }
 
   // Set up cooperative AbortController with global registration for cancellation
@@ -864,13 +872,17 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       output: finalOutput,
     })
 
-    agentEventHub.publish(agentRecord.id, {
-      type: "run_status",
-      runId: runRecord.id,
-      status: "completed",
-      output: finalOutput,
-      conversationId: runRecord.conversationId,
-    })
+    agentEventHub.publish(
+      agentRecord.id,
+      {
+        type: "run_status",
+        runId: runRecord.id,
+        status: "completed",
+        output: finalOutput,
+        conversationId: runRecord.conversationId,
+      },
+      runRecord.userId,
+    )
 
     if (!completedRun) {
       // Race: run was cancelled or modified concurrently
@@ -931,12 +943,16 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
         type: "status",
         status: "cancelled",
       })
-      agentEventHub.publish(agentRecord?.id ?? runRecord.agentId, {
-        type: "run_status",
-        runId,
-        status: "cancelled",
-        conversationId: runRecord.conversationId,
-      })
+      agentEventHub.publish(
+        agentRecord?.id ?? runRecord.agentId,
+        {
+          type: "run_status",
+          runId,
+          status: "cancelled",
+          conversationId: runRecord.conversationId,
+        },
+        runRecord.userId,
+      )
       const [finalRun] = await db.select().from(runs).where(eq(runs.id, runId))
       return finalRun ?? currentRun
     }
@@ -957,13 +973,17 @@ The user has already connected the following apps: ${connectedApps.join(", ")}.
       status: "failed",
       error: safeError,
     })
-    agentEventHub.publish(agentRecord?.id ?? runRecord.agentId, {
-      type: "run_status",
-      runId,
-      status: "failed",
-      error: safeError,
-      conversationId: runRecord.conversationId,
-    })
+    agentEventHub.publish(
+      agentRecord?.id ?? runRecord.agentId,
+      {
+        type: "run_status",
+        runId,
+        status: "failed",
+        error: safeError,
+        conversationId: runRecord.conversationId,
+      },
+      runRecord.userId,
+    )
 
     // Also dispatch failure push notification for scheduled tasks so user is informed
     const scheduleInputObj = runRecord.input as any

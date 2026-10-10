@@ -77,40 +77,15 @@ export const runsRoute = new Hono<Env>()
       });
 
       const queue: Array<{ event: string; data: string }> = [];
-      let notifyResolver: (() => void) | null = null;
       let isDone = false;
       let lastSeenSeq = -1;
-
-      const unsubscribe = runEventHub.subscribe(id, (ev) => {
-        if (ev.seq !== undefined) {
-          if (ev.seq <= lastSeenSeq) return;
-          lastSeenSeq = ev.seq;
-        }
-        queue.push({
-          event: ev.type,
-          data: JSON.stringify(ev),
-        });
-        if (
-          ev.type === "done" ||
-          (ev.type === "status" &&
-            (ev.status === "completed" ||
-              ev.status === "failed" ||
-              ev.status === "cancelled"))
-        ) {
-          isDone = true;
-        }
-        if (notifyResolver) {
-          notifyResolver();
-          notifyResolver = null;
-        }
-      });
 
       let lastRedisLen = 0;
       try {
         const redis = getRedis();
         if (redis) {
           const channelKey = `run_events:${id}`;
-          lastRedisLen = (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+          lastRedisLen = 0; // Read all past events for this run to hydrate client
         }
       } catch {}
 
@@ -218,21 +193,12 @@ export const runsRoute = new Hono<Env>()
           }
 
           if (queue.length === 0 && !isDone) {
-            // Wait reactively for next event or 1s timeout for Redis/DB sync
-            await new Promise<void>((resolve) => {
-              let timer: any = null;
-              const cb = () => {
-                if (timer) clearTimeout(timer);
-                notifyResolver = null;
-                resolve();
-              };
-              notifyResolver = cb;
-              timer = setTimeout(cb, 1_000);
-            });
+            // Poll Redis every 300ms for sub-second updates across instances
+            await new Promise<void>((resolve) => setTimeout(resolve, 300));
           }
         }
       } finally {
-        unsubscribe();
+        // Stream closed
       }
     });
   })

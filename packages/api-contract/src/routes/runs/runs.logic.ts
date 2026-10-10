@@ -95,7 +95,7 @@ export async function cancelRun(runId: string, userId: string) {
   return { run: existingRun, status: 200 as const };
 }
 
-// Cross-process event emitter using Upstash Redis Pub/Sub with in-memory fallback
+// Cross-process event publisher using Redis for scale
 export type RunEvent =
   | { seq?: number; type: "delta"; text: string }
   | {
@@ -125,89 +125,30 @@ export type RunEvent =
     }
   | { seq?: number; type: "done"; status: string; output?: any };
 
-type RunEventListener = (event: RunEvent) => void;
-
 class RunEventHub {
-  private localListeners = new Map<string, Set<RunEventListener>>();
-  private nextSeq = 0;
-
-  subscribe(runId: string, listener: RunEventListener): () => void {
-    let lastSeenSeq = -1;
-    const safeListener: RunEventListener = (ev) => {
-      if (ev.seq !== undefined) {
-        if (ev.seq <= lastSeenSeq) return;
-        lastSeenSeq = ev.seq;
-      }
-      listener(ev);
-    };
-
-    let set = this.localListeners.get(runId);
-    if (!set) {
-      set = new Set();
-      this.localListeners.set(runId, set);
-    }
-    set.add(safeListener);
-
-    // Initial replay of stored events from Redis for late-joining subscribers across scale
-    try {
-      const redis = getRedis();
-      if (redis) {
-        const channelKey = `run_events:${runId}`;
-        redis
-          .lrange(channelKey, 0, -1)
-          .then((items) => {
-            if (items && items.length > 0) {
-              for (const item of items) {
-                const parsed: RunEvent =
-                  typeof item === "string" ? JSON.parse(item) : item;
-                safeListener(parsed);
-              }
-            }
-          })
-          .catch(() => {});
-      }
-    } catch {
-      // Redis not configured, fallback to in-process dispatch
-    }
-
-    return () => {
-      set?.delete(safeListener);
-      if (set && set.size === 0) {
-        this.localListeners.delete(runId);
-      }
-    };
-  }
-
   publish(runId: string, event: RunEvent): void {
-    const eventWithSeq: RunEvent = {
-      ...event,
-      seq: event.seq ?? this.nextSeq++,
-    };
+    const redis = getRedis();
+    if (!redis) return;
 
-    // 1. Dispatch immediately to in-process listeners with 0ms latency
-    const set = this.localListeners.get(runId);
-    if (set) {
-      for (const listener of set) {
-        try {
-          listener(eventWithSeq);
-        } catch (e) {
-          console.error("Error in run event listener:", e);
-        }
-      }
-    }
+    const channelKey = `run_events:${runId}`;
+    const seqKey = `run_events_seq:${runId}`;
 
-    // 2. Persist to Redis list for cross-process subscribers and scaling across instances
-    try {
-      const redis = getRedis();
-      if (redis) {
-        const channelKey = `run_events:${runId}`;
+    redis
+      .incr(seqKey)
+      .then((seq) => {
+        const eventWithSeq: RunEvent = {
+          ...event,
+          seq,
+        };
         const serialized = JSON.stringify(eventWithSeq);
-        redis
-          .rpush(channelKey, serialized)
-          .then(() => redis.expire(channelKey, 3600))
-          .catch(() => {});
-      }
-    } catch {}
+        return Promise.allSettled([
+          redis.expire(seqKey, 3600),
+          redis.rpush(channelKey, serialized).then(() => redis.expire(channelKey, 3600)),
+        ]);
+      })
+      .catch((err) => {
+        console.error("Failed to publish run event to Redis:", err);
+      });
   }
 }
 
@@ -238,67 +179,72 @@ export type AgentEvent =
       type: "schedule_updated";
       scheduleId: string;
       action: "created" | "updated" | "deleted";
+    }
+  | {
+      seq?: number;
+      type: "agent_updated";
+      agentId: string;
+      status?: string;
+      lastMessage?: string | null;
+      runId?: string;
     };
 
-type AgentEventListener = (event: AgentEvent) => void;
+export type UserAgentEvent = AgentEvent & { agentId: string };
 
 class AgentEventHub {
-  private localListeners = new Map<string, Set<AgentEventListener>>();
-  private nextSeq = 0;
+  publishUser(userId: string, event: UserAgentEvent): void {
+    const redis = getRedis();
+    if (!redis) return;
 
-  subscribe(agentId: string, listener: AgentEventListener): () => void {
-    let lastSeenSeq = -1;
-    const safeListener: AgentEventListener = (ev) => {
-      if (ev.seq !== undefined) {
-        if (ev.seq <= lastSeenSeq) return;
-        lastSeenSeq = ev.seq;
-      }
-      listener(ev);
-    };
+    const channelKey = `user_agent_events:${userId}`;
+    const seqKey = `user_agent_events_seq:${userId}`;
 
-    let set = this.localListeners.get(agentId);
-    if (!set) {
-      set = new Set();
-      this.localListeners.set(agentId, set);
-    }
-    set.add(safeListener);
-
-    return () => {
-      set?.delete(safeListener);
-      if (set && set.size === 0) {
-        this.localListeners.delete(agentId);
-      }
-    };
+    redis
+      .incr(seqKey)
+      .then((seq) => {
+        const eventWithSeq: UserAgentEvent = {
+          ...event,
+          seq,
+        };
+        const serialized = JSON.stringify(eventWithSeq);
+        return Promise.allSettled([
+          redis.expire(seqKey, 1800),
+          redis.rpush(channelKey, serialized).then(() => redis.expire(channelKey, 1800)),
+        ]);
+      })
+      .catch((err) => {
+        console.error("Failed to publish user event to Redis:", err);
+      });
   }
 
-  publish(agentId: string, event: AgentEvent): void {
-    const eventWithSeq: AgentEvent = {
-      ...event,
-      seq: event.seq ?? this.nextSeq++,
-    };
+  publish(agentId: string, event: AgentEvent, userId?: string): void {
+    const redis = getRedis();
 
-    const set = this.localListeners.get(agentId);
-    if (set) {
-      for (const listener of set) {
-        try {
-          listener(eventWithSeq);
-        } catch (e) {
-          console.error("Error in agent event listener:", e);
-        }
-      }
+    if (redis) {
+      const channelKey = `agent_events:${agentId}`;
+      const seqKey = `agent_events_seq:${agentId}`;
+
+      redis
+        .incr(seqKey)
+        .then((seq) => {
+          const eventWithSeq: AgentEvent = {
+            ...event,
+            seq,
+          };
+          const serialized = JSON.stringify(eventWithSeq);
+          return Promise.allSettled([
+            redis.expire(seqKey, 1800),
+            redis.rpush(channelKey, serialized).then(() => redis.expire(channelKey, 1800)),
+          ]);
+        })
+        .catch((err) => {
+          console.error("Failed to publish agent event to Redis:", err);
+        });
     }
 
-    try {
-      const redis = getRedis();
-      if (redis) {
-        const channelKey = `agent_events:${agentId}`;
-        const serialized = JSON.stringify(eventWithSeq);
-        redis
-          .rpush(channelKey, serialized)
-          .then(() => redis.expire(channelKey, 1800))
-          .catch(() => {});
-      }
-    } catch {}
+    if (userId) {
+      this.publishUser(userId, { ...event, agentId });
+    }
   }
 }
 

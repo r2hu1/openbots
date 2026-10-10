@@ -16,6 +16,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
@@ -39,6 +40,7 @@ interface WorkspaceSidebarProps {
   onOpenSettings?: () => void
   onOpenSearch?: () => void
   agentsPending: boolean
+  activeStatuses?: Record<string, string>
 }
 
 const rowClass =
@@ -51,6 +53,7 @@ export function WorkspaceSidebar({
   onOpenSettings,
   onOpenSearch,
   agentsPending,
+  activeStatuses = {},
 }: WorkspaceSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -142,6 +145,7 @@ export function WorkspaceSidebar({
                 {!agentsPending &&
                   filteredAgents.map((agent) => {
                     const isActive = pathname === `/agent/${agent.id}`
+                    const isRunning = activeStatuses[agent.id] === "running"
 
                     return (
                       <SidebarMenuItem key={agent.id}>
@@ -159,7 +163,7 @@ export function WorkspaceSidebar({
                               name={agent.name || agent.id}
                               className="size-7! group-data-[collapsible=icon]:size-6"
                               blobatar={{
-                                animate: "hover",
+                                animate: isRunning ? "always" : "hover",
                               }}
                             />
                           </span>
@@ -187,6 +191,15 @@ export function WorkspaceSidebar({
                             </span>
                           </span>
                         </SidebarMenuButton>
+                        {isRunning && (
+                          <SidebarMenuAction>
+                            <span className="relative flex gap-px">
+                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/80 [animation-delay:-0.3s]" />
+                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/80 [animation-delay:-0.15s]" />
+                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/80" />
+                            </span>
+                          </SidebarMenuAction>
+                        )}
                       </SidebarMenuItem>
                     )
                   })}

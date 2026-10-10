@@ -77,7 +77,7 @@ export async function getConversation(
       .select()
       .from(messages)
       .where(and(...queryConditions))
-      .orderBy(desc(messages.createdAt))
+      .orderBy(desc(messages.createdAt), desc(messages.id))
       .limit(limit + 1),
   ]);
 

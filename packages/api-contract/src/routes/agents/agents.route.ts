@@ -53,6 +53,93 @@ export const agentsRoute = new Hono<Env>()
     return c.json(result);
   })
 
+  .get("/stream", async (c) => {
+    const user = c.get("user");
+
+    c.header("Content-Type", "text/event-stream");
+    c.header("Cache-Control", "no-cache, no-transform");
+    c.header("Connection", "keep-alive");
+    c.header("X-Accel-Buffering", "no");
+
+    return streamSSE(c, async (stream) => {
+      await stream.writeSSE({
+        event: "ready",
+        data: JSON.stringify({ userId: user.id }),
+      });
+
+      const queue: Array<{ event: string; data: string }> = [];
+      let lastSeenSeq = -1;
+
+      let lastRedisLen = 0;
+      try {
+        const redis = getRedis();
+        if (redis) {
+          const channelKey = `user_agent_events:${user.id}`;
+          lastRedisLen = (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+        }
+      } catch {}
+
+      try {
+        let lastPing = Date.now();
+        while (!stream.aborted) {
+          try {
+            const redis = getRedis();
+            if (redis) {
+              const channelKey = `user_agent_events:${user.id}`;
+              const currentLen =
+                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+              if (currentLen > lastRedisLen) {
+                const items = await redis.lrange(
+                  channelKey,
+                  lastRedisLen,
+                  currentLen - 1,
+                );
+                lastRedisLen = currentLen;
+                if (items && items.length > 0) {
+                  for (const raw of items) {
+                    const parsed =
+                      typeof raw === "string" ? JSON.parse(raw) : raw;
+                    if (parsed.seq !== undefined) {
+                      if (parsed.seq <= lastSeenSeq) continue;
+                      lastSeenSeq = parsed.seq;
+                    }
+                    queue.push({
+                      event: parsed.type,
+                      data:
+                        typeof raw === "string" ? raw : JSON.stringify(raw),
+                    });
+                  }
+                }
+              }
+            }
+          } catch {}
+
+          if (queue.length > 0) {
+            const item = queue.shift()!;
+            await stream.writeSSE({
+              event: item.event,
+              data: item.data,
+            });
+            continue;
+          }
+
+          // Ping heartbeat every 10s
+          if (Date.now() - lastPing > 10_000) {
+            lastPing = Date.now();
+            try {
+              await stream.writeSSE({ event: "ping", data: "{}" });
+            } catch {}
+          }
+
+          // Poll interval 300ms for fast Redis sync without in-memory Map
+          await new Promise<void>((resolve) => setTimeout(resolve, 300));
+        }
+      } finally {
+        // Stream closed
+      }
+    });
+  })
+
   .get("/:id", async (c) => {
     const user = c.get("user");
     const id = c.req.param("id");
@@ -149,23 +236,7 @@ export const agentsRoute = new Hono<Env>()
       } catch {}
 
       const queue: Array<{ event: string; data: string }> = [];
-      let notifyResolver: (() => void) | null = null;
       let lastSeenSeq = -1;
-
-      const unsubscribe = agentEventHub.subscribe(id, (ev) => {
-        if (ev.seq !== undefined) {
-          if (ev.seq <= lastSeenSeq) return;
-          lastSeenSeq = ev.seq;
-        }
-        queue.push({
-          event: ev.type,
-          data: JSON.stringify(ev),
-        });
-        if (notifyResolver) {
-          notifyResolver();
-          notifyResolver = null;
-        }
-      });
 
       let lastRedisLen = 0;
       try {
@@ -177,8 +248,9 @@ export const agentsRoute = new Hono<Env>()
       } catch {}
 
       try {
+        let lastPing = Date.now();
         while (!stream.aborted) {
-          // Check cross-process events from Redis first (dispatched by Trigger.dev or worker processes)
+          // Check cross-process events from Redis (dispatched by API server, Trigger.dev, or background workers)
           try {
             const redis = getRedis();
             if (redis) {
@@ -220,25 +292,19 @@ export const agentsRoute = new Hono<Env>()
             continue;
           }
 
-          // Ping heartbeat
-          try {
-            await stream.writeSSE({ event: "ping", data: "{}" });
-          } catch {}
+          // Ping heartbeat every 10s
+          if (Date.now() - lastPing > 10_000) {
+            lastPing = Date.now();
+            try {
+              await stream.writeSSE({ event: "ping", data: "{}" });
+            } catch {}
+          }
 
-          // Wait for next local event or 1.5s poll / heartbeat
-          await new Promise<void>((resolve) => {
-            let timer: any = null;
-            const cb = () => {
-              if (timer) clearTimeout(timer);
-              notifyResolver = null;
-              resolve();
-            };
-            notifyResolver = cb;
-            timer = setTimeout(cb, 1500);
-          });
+          // Poll interval 300ms for fast Redis sync without in-memory Map
+          await new Promise<void>((resolve) => setTimeout(resolve, 300));
         }
       } finally {
-        unsubscribe();
+        // Stream closed
       }
     });
   });

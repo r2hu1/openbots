@@ -86,16 +86,6 @@ export function BrowserLivePreview({
               {agentName}'s View
             </span>
           </div>
-
-          {currentUrl ? (
-            <div className="flex max-w-[280px] min-w-0 items-center rounded-md border border-border/50 bg-background/70 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-              <span className="truncate">{currentUrl}</span>
-            </div>
-          ) : title ? (
-            <span className="truncate text-xs font-medium text-foreground/80">
-              {title}
-            </span>
-          ) : null}
         </div>
 
         {/* Browser Preview Controls */}
@@ -208,7 +198,7 @@ export function BrowserLivePreview({
           </div>
         )}
 
-        <div className="relative flex aspect-[16/10] h-auto max-h-full w-full max-w-5xl items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-background shadow-xs">
+        <div className="relative flex aspect-[16/10] h-auto max-h-full w-full max-w-5xl items-center justify-center overflow-hidden rounded-lg border border-border/80 bg-background shadow-xs">
           <iframe
             key={iframeKey}
             src={liveViewUrl}

@@ -57,8 +57,8 @@ export function ConversationLiveStatus({
 
     return (
       <div className="space-y-3 py-1">
-        {!hasStreamingContent && (
-          <MessageGroup>
+        <MessageGroup>
+          {!hasStreamingContent && (
             <Message align="start" className="gap-2">
               <MessageAvatar className="-mr-1 p-0!">
                 <Blobatar
@@ -77,36 +77,36 @@ export function ConversationLiveStatus({
                 </Bubble>
               </MessageContent>
             </Message>
-            <div className="gap-px px-0">
-              <Marker className="text-xs text-muted-foreground">
-                {latestToolLabel ? (
-                  <>
-                    <MarkerIcon className="size-3.5 shrink-0">
-                      {isLatestToolRunning ? (
-                        <Spinner className="size-3 text-primary" />
-                      ) : (
-                        <IconCheck className="size-3" />
-                      )}
-                    </MarkerIcon>
-                    <MarkerContent
-                      className={
-                        isLatestToolRunning
-                          ? "shimmer font-medium"
-                          : "truncate text-muted-foreground"
-                      }
-                    >
-                      {latestToolLabel}
-                    </MarkerContent>
-                  </>
-                ) : (
-                  <MarkerContent className="shimmer text-xs">
-                    Thinking...
+          )}
+          <div className="gap-px px-0">
+            <Marker className="text-xs text-muted-foreground">
+              {latestToolLabel ? (
+                <>
+                  <MarkerIcon className="size-3.5 shrink-0">
+                    {isLatestToolRunning ? (
+                      <Spinner className="size-3 text-primary" />
+                    ) : (
+                      <IconCheck className="size-3" />
+                    )}
+                  </MarkerIcon>
+                  <MarkerContent
+                    className={
+                      isLatestToolRunning
+                        ? "shimmer font-medium"
+                        : "truncate text-muted-foreground"
+                    }
+                  >
+                    {latestToolLabel}
                   </MarkerContent>
-                )}
-              </Marker>
-            </div>
-          </MessageGroup>
-        )}
+                </>
+              ) : !hasStreamingContent ? (
+                <MarkerContent className="shimmer text-xs">
+                  Thinking...
+                </MarkerContent>
+              ) : null}
+            </Marker>
+          </div>
+        </MessageGroup>
       </div>
     )
   }

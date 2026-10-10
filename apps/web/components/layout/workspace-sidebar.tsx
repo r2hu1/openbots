@@ -163,7 +163,10 @@ export function WorkspaceSidebar({
                               name={agent.name || agent.id}
                               className="size-7! group-data-[collapsible=icon]:size-6"
                               blobatar={{
-                                animate: isRunning ? "always" : "hover",
+                                animate:
+                                  isRunning && !pathname.includes(agent.id)
+                                    ? "always"
+                                    : "hover",
                               }}
                             />
                           </span>
@@ -173,20 +176,15 @@ export function WorkspaceSidebar({
                               {agent.name}
                             </span>
 
-                            <span className="flex min-w-0 items-center text-[11px] font-normal text-muted-foreground">
-                              <span className="max-w-30 shrink-0 truncate text-[10px] text-muted-foreground">
-                                {agent.description}
-                              </span>
-
-                              {agent.lastMessage && (
-                                <>
-                                  <span className="mx-1 shrink-0 text-[10px] text-muted-foreground/80">
-                                    •
-                                  </span>
-                                  <span className="min-w-0 truncate">
-                                    {agent.lastMessage}
-                                  </span>
-                                </>
+                            <span className="flex min-w-0 items-center text-[11.5px] font-normal text-muted-foreground">
+                              {agent.lastMessage ? (
+                                <span className="min-w-0 truncate">
+                                  {agent.lastMessage}
+                                </span>
+                              ) : (
+                                <span className="min-w-0 truncate">
+                                  {agent.description}
+                                </span>
                               )}
                             </span>
                           </span>

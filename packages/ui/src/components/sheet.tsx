@@ -171,19 +171,19 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 rounded-none border-0 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-100 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 sm:rounded-xl sm:border sm:shadow-xl",
+          "fixed z-50 flex flex-col gap-4 border bg-popover bg-clip-padding text-sm text-popover-foreground shadow-xl transition duration-100 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0",
 
-          // bottom
-          "data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=bottom]:sm:inset-x-3 data-[side=bottom]:sm:bottom-3",
+          // Bottom
+          "data-[side=bottom]:inset-x-3 data-[side=bottom]:bottom-3 data-[side=bottom]:max-h-[85dvh] data-[side=bottom]:rounded-xl data-[side=bottom]:data-ending-style:translate-y-4 data-[side=bottom]:data-starting-style:translate-y-4",
 
-          // top
-          "data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=top]:sm:inset-x-3 data-[side=top]:sm:top-3",
+          // Top
+          "data-[side=top]:inset-x-3 data-[side=top]:top-3 data-[side=top]:max-h-[85dvh] data-[side=top]:rounded-xl data-[side=top]:data-ending-style:-translate-y-4 data-[side=top]:data-starting-style:-translate-y-4",
 
-          // left
-          "data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=left]:sm:inset-y-3 data-[side=left]:sm:left-3 data-[side=left]:sm:h-auto data-[side=left]:sm:w-auto data-[side=left]:sm:w-full data-[side=left]:sm:max-w-sm",
+          // Left
+          "data-[side=left]:inset-y-3 data-[side=left]:left-3 data-[side=left]:max-w-sm data-[side=left]:rounded-xl data-[side=left]:data-ending-style:-translate-x-4 data-[side=left]:data-starting-style:-translate-x-4",
 
-          // right
-          "data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-full data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=right]:sm:inset-y-3 data-[side=right]:sm:right-3 data-[side=right]:sm:h-auto data-[side=right]:sm:w-auto data-[side=right]:sm:max-w-sm",
+          // Right
+          "data-[side=right]:inset-y-3 data-[side=right]:right-3 data-[side=right]:max-w-[80%] data-[side=right]:rounded-xl data-[side=right]:data-ending-style:translate-x-4 data-[side=right]:data-starting-style:translate-x-4 sm:data-[side=right]:max-w-sm",
 
           className
         )}
@@ -194,16 +194,11 @@ function SheetContent({
           <SheetPrimitive.Close
             data-slot="sheet-close"
             render={
-              <Button
-                className="absolute top-2 right-2 h-6.5 px-2 sm:size-6"
-                size="sm"
-              />
+              <Button className="absolute top-2 right-2 size-6" size="sm" />
             }
           >
-            <XIcon className="hidden size-3.5 sm:flex" />
-            <ChevronLeft className="flex size-3.5 sm:hidden" />
+            <XIcon className="size-3.5" />
             <span className="sr-only">Close</span>
-            <span className="sm:hidden">Back</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Popup>

@@ -10,6 +10,7 @@ import {
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupInput,
 } from "@openbots/ui/components/input-group"
 import { Command as CommandPrimitive } from "cmdk"
 import { cn } from "cn"
@@ -54,7 +55,7 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          "top-1/2 h-130! max-w-xl! overflow-hidden rounded-xl! p-1 transition-none!",
+          "top-1/2 h-130! w-full max-w-[calc(100%-2rem)] overflow-hidden rounded-xl! p-1 transition-none! sm:max-w-xl",
           className
         )}
         showCloseButton={showCloseButton}
@@ -74,7 +75,7 @@ function CommandInput({
   return (
     <div data-slot="command-input-wrapper" className="rounded-lg! p-1">
       <InputGroup className="h-9! rounded-lg! border-border bg-muted shadow-none! ring-border focus-within:border-foreground/30 focus-within:ring-3 *:data-[slot=input-group-addon]:pl-2!">
-        <CommandPrimitive.Input
+        <InputGroupInput
           data-slot="command-input"
           className={cn(
             "w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",

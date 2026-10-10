@@ -390,8 +390,30 @@ export function ConversationTimeline({
                 </MessageScrollerItem>
               ))}
 
-            {/* Live tool execution steps */}
-            {!isLoading && isActiveRunOngoing && activeRunSteps.length > 0 && (
+            {/* Live tool execution steps and thinking indicator */}
+            {!isLoading &&
+            isActiveRunOngoing &&
+            !isCurrentRunAlreadyRendered &&
+            !streamingText ? (
+              <MessageScrollerItem
+                key={`live-status-${activeRun?.id || "current"}`}
+                id={`live-status-${activeRun?.id || "current"}`}
+              >
+                <ConversationLiveStatus
+                  agentName={agentName}
+                  activeRun={activeRun}
+                  activeRunSteps={activeRunSteps}
+                  isActiveRunOngoing={true}
+                  hasStreamingContent={false}
+                />
+              </MessageScrollerItem>
+            ) : null}
+
+            {/* Live tool execution steps when streaming text is already active */}
+            {!isLoading &&
+            isActiveRunOngoing &&
+            streamingText &&
+            activeRunSteps.length > 0 ? (
               <MessageScrollerItem key="live-steps">
                 <ConversationLiveStatus
                   agentName={agentName}
@@ -401,9 +423,9 @@ export function ConversationTimeline({
                   hasStreamingContent={true}
                 />
               </MessageScrollerItem>
-            )}
+            ) : null}
 
-            {/* Assistant message: streaming text if available, or thinking indicator while ongoing */}
+            {/* Assistant message: streaming text if available */}
             {!isLoading &&
             isActiveRunOngoing &&
             !isCurrentRunAlreadyRendered &&
@@ -423,21 +445,6 @@ export function ConversationTimeline({
                   agentName={agentName}
                   isStreaming={true}
                   onOpenArtifact={onOpenArtifact}
-                />
-              </MessageScrollerItem>
-            ) : !isLoading &&
-              isActiveRunOngoing &&
-              !isCurrentRunAlreadyRendered ? (
-              <MessageScrollerItem
-                key={`thinking-${activeRun?.id || "current"}`}
-                id={`thinking-${activeRun?.id || "current"}`}
-              >
-                <ConversationLiveStatus
-                  agentName={agentName}
-                  activeRun={activeRun}
-                  activeRunSteps={activeRunSteps}
-                  isActiveRunOngoing={true}
-                  hasStreamingContent={false}
                 />
               </MessageScrollerItem>
             ) : null}

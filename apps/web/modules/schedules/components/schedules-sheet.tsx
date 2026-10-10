@@ -527,7 +527,7 @@ export function SchedulesSheet({
           if (!isOpen) setSelectedSchedule(null)
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className={"max-w-[93%] sm:max-w-lg"}>
           <DialogHeader>
             <DialogTitle>
               {selectedSchedule?.name || "Schedule Details"}
@@ -611,7 +611,7 @@ export function SchedulesSheet({
           if (!isOpen) setSelectedRun(null)
         }}
       >
-        <DialogContent className={"max-w-lg!"}>
+        <DialogContent className={"max-w-[93%] sm:max-w-lg"}>
           <DialogHeader>
             <DialogTitle>
               {((selectedRun?.input ?? {}) as QueuedInput).scheduledTaskName ||

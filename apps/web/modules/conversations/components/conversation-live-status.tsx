@@ -67,36 +67,34 @@ export function ConversationLiveStatus({
           </MessageAvatar>
         )}
         <MessageContent className="gap-2">
-          {!hasStreamingContent && (
-            <Bubble variant="secondary" align="start">
-              <BubbleContent className="flex items-center gap-2 py-3">
-                <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60 [animation-delay:-0.3s]" />
-                <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60 [animation-delay:-0.15s]" />
-                <span className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/60" />
-              </BubbleContent>
-            </Bubble>
-          )}
+          <Bubble variant="secondary" align="start">
+            <BubbleContent className="py-3">
+              {!hasStreamingContent && !latestToolLabel && (
+                <span className="shimmer">Thinking...</span>
+              )}
 
-          {latestToolLabel && (
-            <Marker className="text-xs text-muted-foreground">
-              <MarkerIcon>
-                {isLatestToolRunning ? (
-                  <Spinner className="size-3 text-primary" />
-                ) : (
-                  <IconCheck className="size-3" />
-                )}
-              </MarkerIcon>
-              <MarkerContent
-                className={
-                  isLatestToolRunning
-                    ? "shimmer font-medium"
-                    : "truncate text-muted-foreground"
-                }
-              >
-                {latestToolLabel}
-              </MarkerContent>
-            </Marker>
-          )}
+              {latestToolLabel && (
+                <Marker className="text-xs text-muted-foreground">
+                  <MarkerIcon className="flex items-center justify-center">
+                    {isLatestToolRunning ? (
+                      <Spinner className="size-4 text-primary" />
+                    ) : (
+                      <IconCheck className="size-4" />
+                    )}
+                  </MarkerIcon>
+                  <MarkerContent
+                    className={
+                      isLatestToolRunning
+                        ? "shimmer font-medium"
+                        : "truncate text-muted-foreground"
+                    }
+                  >
+                    {latestToolLabel}
+                  </MarkerContent>
+                </Marker>
+              )}
+            </BubbleContent>
+          </Bubble>
         </MessageContent>
       </Message>
     )

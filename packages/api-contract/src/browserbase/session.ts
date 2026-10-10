@@ -79,6 +79,11 @@ export async function acquireBrowserSession(
     },
   });
 
+  const browser = await chromium.connectOverCDP(session.connectUrl);
+  // Browserbase pre-creates the default context and page
+  const context = browser.contexts()[0] || (await browser.newContext());
+  const page = context.pages()[0] || (await context.newPage());
+
   let liveDebuggerUrl: string | undefined;
   let liveDebuggerFullscreenUrl: string | undefined;
   try {
@@ -86,13 +91,9 @@ export async function acquireBrowserSession(
     liveDebuggerUrl = debug.debuggerUrl;
     liveDebuggerFullscreenUrl = debug.debuggerFullscreenUrl;
   } catch {
-    // Non-fatal if debug endpoint isn't ready immediately
+    // If not ready immediately, fallback to standard Browserbase live URL format
+    liveDebuggerFullscreenUrl = `https://www.browserbase.com/sessions/${session.id}`;
   }
-
-  const browser = await chromium.connectOverCDP(session.connectUrl);
-  // Browserbase pre-creates the default context and page
-  const context = browser.contexts()[0] || (await browser.newContext());
-  const page = context.pages()[0] || (await context.newPage());
 
   const conn: ActiveBrowserConnection = {
     browser,

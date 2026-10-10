@@ -160,6 +160,7 @@ export const ALL_INTERNAL_TOOLS = [
   "browser_extract_content",
   "browser_scroll",
   "browser_evaluate",
+  "browser_wait_for_user",
   "browser_close",
 ] as const;
 

@@ -48,6 +48,8 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
     "Scrolls web pages up or down to reveal dynamic lazy-loaded contents.",
   browser_evaluate:
     "Runs custom JavaScript directly in the active browser tab context.",
+  browser_wait_for_user:
+    "Pauses agent execution to allow the human user to interact directly in the live browser (e.g. login, solve CAPTCHA, 2FA).",
   browser_close:
     "Releases and closes the cloud browser session once browsing is complete.",
 };

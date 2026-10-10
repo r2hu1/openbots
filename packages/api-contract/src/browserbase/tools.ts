@@ -318,7 +318,64 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
     },
   });
 
-  // 8. Close Browser Session
+  // 8. Wait for User Interaction / Human-in-the-Loop
+  const browserWaitForUser = tool({
+    description:
+      "Pauses execution and waits for the user to complete a manual action directly in the live browser preview (such as logging in, solving a CAPTCHA, approving 2FA, or clicking an authorization button). Once the user completes the action or timeout elapses, returns the resulting page state.",
+    inputSchema: z.object({
+      instruction: z
+        .string()
+        .describe(
+          "Clear explanation instructing the user what action to take in the live browser window (e.g. 'Please sign in with your GitHub credentials in the browser on the right', 'Please solve the CAPTCHA')",
+        ),
+      waitForSelector: z
+        .string()
+        .optional()
+        .describe(
+          "Optional CSS selector to wait for that signals the user has finished (e.g. '.dashboard', 'text=Welcome', '#user-profile')",
+        ),
+      timeoutSeconds: z
+        .number()
+        .default(60)
+        .describe("Maximum seconds to wait for user interaction before proceeding (up to 180s)"),
+    }),
+    execute: async ({ instruction, waitForSelector, timeoutSeconds }) => {
+      try {
+        const { page, session } = await getConn();
+        const timeoutMs = Math.min(Math.max(timeoutSeconds, 5), 180) * 1000;
+
+        if (waitForSelector) {
+          try {
+            await page.waitForSelector(waitForSelector, {
+              state: "visible",
+              timeout: timeoutMs,
+            });
+          } catch {
+            // If selector not found in time, return current state
+          }
+        } else {
+          // Wait for page to navigate or settle after human action
+          await page.waitForTimeout(Math.min(timeoutMs, 15000));
+        }
+
+        return {
+          success: true,
+          message: `User completed manual action: "${instruction}"`,
+          url: page.url(),
+          title: await page.title(),
+          sessionId: session.sessionId,
+          liveViewUrl: session.liveDebuggerFullscreenUrl,
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          error: `Wait for user interaction failed: ${err.message}`,
+        };
+      }
+    },
+  });
+
+  // 9. Close Browser Session
   const browserClose = tool({
     description:
       "Closes the active cloud browser session when navigation and browsing tasks are finished.",
@@ -347,6 +404,7 @@ export function createBrowserbaseTools(contextKey: string): Record<string, any> 
     browser_extract_content: browserExtractContent,
     browser_scroll: browserScroll,
     browser_evaluate: browserEvaluate,
+    browser_wait_for_user: browserWaitForUser,
     browser_close: browserClose,
   };
 }

@@ -597,7 +597,7 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
     - Screen Visibility Rules:
       - The live desktop preview sidebar opens automatically in real time while you browse or use the desktop ('browser_navigate', 'take_screenshot', 'show_screen', 'browser_wait_for_user').
       - When YOU just need to silently inspect the screen to verify state without changing view or generating a shareable screenshot, call 'view_screen' (internal vision).
-      - When your desktop task is complete (e.g. you navigated and took the requested screenshot), call 'browser_close' to conclude the session cleanly so the preview closes unless the user asked you to leave it open.
+      - Do NOT call 'browser_close' immediately after taking a screenshot or navigating to a webpage. Leave the desktop open so the user can see and interact with the live page in their sidebar preview. Only call 'browser_close' if the user explicitly asks you to close or stop the browser/desktop session.
     - NEVER give boilerplate AI refusals ("I can't take screenshots", "I can't interact with desktop", "my browser automation environment is unavailable", "I cannot access websites"). You have full computer use in your Daytona sandbox! Take action immediately with 'browser_navigate' and 'take_screenshot'.
 
     ## Web Research & Live Intelligence:

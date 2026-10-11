@@ -28,6 +28,10 @@ export async function createAgentSandbox(agentName: string): Promise<string | nu
       envVars: {
         VNC_RESOLUTION: "1280x800",
       },
+      // Disable auto-stop and auto-pause so sandboxes don't stop after 15 minutes of inactivity
+      autoStopInterval: 0,
+      autoPauseInterval: 0,
+      autoArchiveInterval: 0,
     });
 
     const redis = getRedis();
@@ -71,6 +75,7 @@ export async function deleteAgentSandbox(sandboxId: string): Promise<void> {
 
 /**
  * Retrieves a running sandbox instance by ID directly via the Daytona client.
+ * Automatically wakes up/starts the sandbox if it is paused or stopped.
  * Uses Redis for session metadata rather than in-process state.
  */
 export async function getAgentSandbox(sandboxId: string): Promise<Sandbox | null> {
@@ -81,7 +86,21 @@ export async function getAgentSandbox(sandboxId: string): Promise<Sandbox | null
 
   try {
     const sandbox = await daytona.get(sandboxId);
-    return sandbox ?? null;
+    if (!sandbox) return null;
+
+    // Check if sandbox is paused or stopped and resume/start it
+    const state = (sandbox.state as string || "").toLowerCase();
+    if (state === "paused" || state === "stopped" || state === "archived") {
+      console.log(`Sandbox ${sandboxId} is in '${state}' state. Resuming/starting...`);
+      await sandbox.start().catch((startErr) => {
+        console.warn(`Failed to start/resume sandbox ${sandboxId}:`, startErr);
+      });
+    }
+
+    // Refresh activity to reset idle timer
+    await sandbox.refreshActivity().catch(() => {});
+
+    return sandbox;
   } catch (err) {
     console.error(`Failed to retrieve Daytona sandbox ${sandboxId}:`, err);
     return null;
@@ -107,9 +126,24 @@ export async function ensureDesktopLiveView(sandbox: Sandbox): Promise<string | 
   }
 
   try {
+    // Check if sandbox is in stopped or paused state and start it
+    const state = (sandbox.state as string || "").toLowerCase();
+    if (state === "paused" || state === "stopped" || state === "archived") {
+      await sandbox.start().catch(() => {});
+    }
+
+    // Refresh activity and ensure autostop is disabled
+    await sandbox.refreshActivity().catch(() => {});
+    await sandbox.setAutostopInterval(0).catch(() => {});
+    await sandbox.setAutoPauseInterval(0).catch(() => {});
+
     // Start computer use processes if not already running
     await sandbox.computerUse.start().catch(() => {});
-    
+
+    // Ensure websockify / noVNC on port 6080 is actually accepting connections before returning signed URL
+    // Give desktop services up to 2.5s warm-up if starting fresh
+    await new Promise((r) => setTimeout(r, 1200));
+
     // Generate signed preview URL for noVNC (port 6080) valid for 1 hour
     const preview = await sandbox.getSignedPreviewUrl(6080, 3600);
     const url = preview.url;

@@ -65,12 +65,14 @@ export function DesktopLivePreview({
       }
       url.searchParams.set("autoconnect", "true")
       url.searchParams.set("resize", "scale")
+      url.searchParams.set("reconnect", "true")
+      url.searchParams.set("reconnect_delay", "1000")
       return url.toString()
     } catch {
       const base = liveViewUrl.replace(/\/$/, "")
       return base.includes("vnc.html")
-        ? `${base}?autoconnect=true&resize=scale`
-        : `${base}/vnc.html?autoconnect=true&resize=scale`
+        ? `${base}?autoconnect=true&resize=scale&reconnect=true&reconnect_delay=1000`
+        : `${base}/vnc.html?autoconnect=true&resize=scale&reconnect=true&reconnect_delay=1000`
     }
   }, [liveViewUrl])
 
@@ -117,7 +119,11 @@ export function DesktopLivePreview({
             size="icon-xs"
             onClick={() => {
               if (iframeSrc || liveViewUrl) {
-                window.open(iframeSrc || liveViewUrl!, "_blank", "noopener,noreferrer")
+                window.open(
+                  iframeSrc || liveViewUrl!,
+                  "_blank",
+                  "noopener,noreferrer"
+                )
               }
             }}
             title="Open Live View in full window"
@@ -211,7 +217,7 @@ export function DesktopLivePreview({
           </div>
         )}
 
-        <div className="relative flex aspect-[16/10] h-auto max-h-full w-full max-w-5xl items-center justify-center overflow-hidden rounded-lg border border-border/80 bg-background shadow-xs">
+        <div className="relative flex aspect-[16/10] h-auto max-h-full w-full max-w-5xl items-center justify-center overflow-hidden rounded-xs border border-border bg-background">
           <iframe
             key={iframeKey}
             src={iframeSrc}

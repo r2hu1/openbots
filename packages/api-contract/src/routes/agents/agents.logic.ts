@@ -79,8 +79,8 @@ export async function createAgent(userId: string, data: CreateAgentInput) {
     })
     .returning();
 
-  // Automatically enable all default internal tools for newly created agents
   if (agent) {
+    // Automatically enable all default internal tools for newly created agents
     await db.insert(agentTools).values(
       ALL_INTERNAL_TOOLS.map((toolName) => ({
         agentId: agent.id,
@@ -89,6 +89,21 @@ export async function createAgent(userId: string, data: CreateAgentInput) {
         enabled: true,
       })),
     );
+
+    // Create an isolated Daytona sandbox for the agent if configured
+    try {
+      const { createAgentSandbox } = await import("../../daytona/sandbox.js");
+      const sandboxId = await createAgentSandbox(agent.name);
+      if (sandboxId) {
+        await db
+          .update(agents)
+          .set({ sandboxId })
+          .where(eq(agents.id, agent.id));
+        agent.sandboxId = sandboxId;
+      }
+    } catch (err) {
+      console.warn("Failed to create Daytona sandbox for agent:", err);
+    }
   }
 
   return { agent };
@@ -122,6 +137,19 @@ export async function updateAgent(
 }
 
 export async function deleteAgent(id: string, userId: string) {
+  // Retrieve agent to inspect sandboxId before deletion
+  const [existing] = await db
+    .select({ id: agents.id, sandboxId: agents.sandboxId })
+    .from(agents)
+    .where(and(eq(agents.id, id), eq(agents.userId, userId)));
+
+  if (existing?.sandboxId) {
+    // Asynchronously delete the Daytona sandbox
+    import("../../daytona/sandbox.js")
+      .then(({ deleteAgentSandbox }) => deleteAgentSandbox(existing.sandboxId!))
+      .catch((err) => console.warn("Failed to delete Daytona sandbox:", err));
+  }
+
   const [deleted] = await db
     .delete(agents)
     .where(and(eq(agents.id, id), eq(agents.userId, userId)))
@@ -153,6 +181,17 @@ export const ALL_INTERNAL_TOOLS = [
   "currency_converter",
   "dns_lookup",
   "react_to_message",
+  "bash",
+  "read_file",
+  "write_file",
+  "list_files",
+  "mouse_click",
+  "mouse_move",
+  "mouse_scroll",
+  "keyboard_type",
+  "view_screen",
+  "show_screen",
+  "take_screenshot",
   "browser_navigate",
   "browser_click",
   "browser_type",

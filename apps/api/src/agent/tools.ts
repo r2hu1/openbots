@@ -10,10 +10,10 @@ import {
   normalizeTriggerTimezone,
 } from "@openbots/api-contract";
 import {
-  createBrowserbaseTools,
-  releaseBrowserSession,
-} from "@openbots/api-contract/browserbase";
+  createDaytonaTools,
+} from "@openbots/api-contract/daytona";
 import {
+  agents,
   agentTools,
   connections,
   db,
@@ -2781,9 +2781,18 @@ export async function buildAgentTools(params: {
     }
   }
 
-  // Initialize Browserbase tools suite if any browser tools are enabled or if BROWSERBASE_API_KEY is present
-  const browserContextKey = conversationId || agentId || userId;
-  const browserTools = createBrowserbaseTools(browserContextKey);
+  // Fetch agent to get associated Daytona sandbox ID
+  const [agentRecord] = await db
+    .select({ sandboxId: agents.sandboxId })
+    .from(agents)
+    .where(eq(agents.id, agentId));
+
+  // Initialize Daytona desktop tools suite
+  const desktopContextKey = conversationId || agentId || userId;
+  const desktopTools = createDaytonaTools({
+    sandboxId: agentRecord?.sandboxId,
+    contextKey: desktopContextKey,
+  });
 
   // Map explicitly configured tool states (disabled=false overrides default)
   const allConfigs = await db
@@ -2800,8 +2809,8 @@ export async function buildAgentTools(params: {
     }
   }
 
-  // 2. Mount all browser automation tools (enabled by default unless explicitly disabled=false)
-  for (const [name, toolInstance] of Object.entries(browserTools)) {
+  // 2. Mount all desktop automation tools (enabled by default unless explicitly disabled=false)
+  for (const [name, toolInstance] of Object.entries(desktopTools)) {
     const cfg = toolStateMap.get(name);
     if (!cfg || cfg.enabled) {
       activeTools[name] = toolInstance;

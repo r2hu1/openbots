@@ -404,6 +404,9 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
         await sandbox.computerUse.start().catch(() => {});
         const liveViewUrl = await getLiveView(sandbox);
 
+        // Give the X11 desktop display a moment to flush changes and render active windows
+        await new Promise((r) => setTimeout(r, 1000));
+
         const screenshot = await sandbox.computerUse.screenshot.takeCompressed({
           format: "jpeg",
           quality: 85,

@@ -465,7 +465,15 @@ const ChatPane = React.memo(function ChatPane({
     }
   }, [isAgentUsingScreen, activeHitlPrompt])
 
-  const hasLiveBrowser = Boolean(liveBrowserData?.liveViewUrl)
+  // hasLiveBrowser: True when there is an active session or running screen tool or active HITL
+  const hasLiveBrowser = Boolean(
+    liveBrowserData?.liveViewUrl &&
+      (Boolean(activeHitlPrompt) ||
+        isAgentUsingScreen ||
+        userExplicitlyToggled ||
+        conversationInfiniteData?.pages?.[0]?.activeBrowser?.liveDebuggerFullscreenUrl ||
+        conversationInfiniteData?.pages?.[0]?.activeBrowser?.liveDebuggerUrl)
+  )
 
   // Only open sidebar if:
   // 1. HITL prompt is waiting (always show)

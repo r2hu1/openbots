@@ -74,7 +74,7 @@ export function formatToolStepLabel(
     }
   }
 
-  // 3. Browserbase Cloud Browser Tools
+  // 3. Daytona Cloud Desktop Tools
   if (normalized === "browser_navigate") {
     const url = typeof inputObj?.url === "string" ? inputObj.url : null
     const host = url ? tryExtractHostname(url) : null
@@ -162,9 +162,99 @@ export function formatToolStepLabel(
   }
 
   if (normalized === "browser_close") {
-    if (isRunning) return { label: "Closing browser session..." }
-    if (isFailed) return { label: "Failed to close browser" }
-    return { label: "Closed browser session" }
+    if (isRunning) return { label: "Closing desktop processes..." }
+    if (isFailed) return { label: "Failed to close desktop" }
+    return { label: "Closed desktop processes" }
+  }
+
+  // Daytona Computer Use & Sandbox Tools
+  if (normalized === "bash") {
+    const cmd = typeof inputObj?.command === "string" ? inputObj.command : null
+    if (isRunning)
+      return {
+        label: cmd ? `Running bash "${truncateText(cmd, 30)}"...` : "Executing terminal command...",
+        detail: cmd ?? undefined,
+      }
+    if (isFailed) return { label: "Terminal command failed", detail: cmd ?? undefined }
+    return {
+      label: cmd ? `Executed "${truncateText(cmd, 30)}"` : "Executed terminal command",
+      detail: cmd ?? undefined,
+    }
+  }
+
+  if (normalized === "read_file") {
+    const path = typeof inputObj?.path === "string" ? inputObj.path : null
+    if (isRunning) return { label: path ? `Reading ${path}...` : "Reading file...", detail: path ?? undefined }
+    if (isFailed) return { label: `Failed to read file`, detail: path ?? undefined }
+    return { label: path ? `Read ${path}` : "Read file", detail: path ?? undefined }
+  }
+
+  if (normalized === "write_file") {
+    const path = typeof inputObj?.path === "string" ? inputObj.path : null
+    if (isRunning) return { label: path ? `Writing ${path}...` : "Writing file...", detail: path ?? undefined }
+    if (isFailed) return { label: `Failed to write file`, detail: path ?? undefined }
+    return { label: path ? `Wrote ${path}` : "Wrote file", detail: path ?? undefined }
+  }
+
+  if (normalized === "list_files") {
+    const path = typeof inputObj?.path === "string" ? inputObj.path : null
+    if (isRunning) return { label: path ? `Listing ${path}...` : "Listing directory...", detail: path ?? undefined }
+    if (isFailed) return { label: "Failed to list files", detail: path ?? undefined }
+    return { label: path ? `Listed ${path}` : "Listed files", detail: path ?? undefined }
+  }
+
+  if (normalized === "mouse_click") {
+    const x = inputObj?.x
+    const y = inputObj?.y
+    const target = inputObj?.elementName ?? (x !== undefined ? `(${x}, ${y})` : "desktop")
+    if (isRunning) return { label: `Clicking ${target}...` }
+    if (isFailed) return { label: `Failed to click ${target}` }
+    return { label: `Clicked ${target}` }
+  }
+
+  if (normalized === "mouse_move") {
+    const x = inputObj?.x
+    const y = inputObj?.y
+    if (isRunning) return { label: `Moving mouse to (${x}, ${y})...` }
+    if (isFailed) return { label: "Failed to move mouse" }
+    return { label: `Moved mouse to (${x}, ${y})` }
+  }
+
+  if (normalized === "mouse_scroll") {
+    const dir = inputObj?.direction === "up" ? "up" : "down"
+    if (isRunning) return { label: `Scrolling ${dir}...` }
+    if (isFailed) return { label: "Failed to scroll" }
+    return { label: `Scrolled ${dir}` }
+  }
+
+  if (normalized === "keyboard_type") {
+    const text = typeof inputObj?.text === "string" ? inputObj.text : null
+    if (isRunning)
+      return {
+        label: text ? `Typing "${truncateText(text, 24)}"...` : "Typing text...",
+      }
+    if (isFailed) return { label: "Failed to type text" }
+    return {
+      label: text ? `Typed "${truncateText(text, 24)}"` : "Typed text",
+    }
+  }
+
+  if (normalized === "view_screen") {
+    if (isRunning) return { label: "Inspecting screen..." }
+    if (isFailed) return { label: "Failed to inspect screen" }
+    return { label: "Inspected desktop screen" }
+  }
+
+  if (normalized === "show_screen") {
+    if (isRunning) return { label: "Opening live screen preview..." }
+    if (isFailed) return { label: "Failed to open live screen" }
+    return { label: "Opened live screen preview for user" }
+  }
+
+  if (normalized === "take_screenshot") {
+    if (isRunning) return { label: "Capturing screenshot..." }
+    if (isFailed) return { label: "Failed to take screenshot" }
+    return { label: "Captured screenshot" }
   }
 
   // 4. Fetch web page / read url
@@ -370,7 +460,7 @@ export function formatToolStepLabel(
     return { label: "Generated value" }
   }
 
-  // 8. Cloud Browser (Browserbase) Tools
+  // 8. Cloud Desktop (Daytona) Tools
   if (normalized.startsWith("browser_")) {
     if (normalized === "browser_navigate") {
       const url = typeof inputObj?.url === "string" ? inputObj.url : null

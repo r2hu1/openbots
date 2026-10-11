@@ -592,10 +592,11 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
       - 'browser_navigate': Launches any URL in the desktop browser. Automatically opens the live preview sidebar for the user so they can watch your desktop navigation in real time.
       - 'browser_extract_content': Extracts visible windows and accessibility tree information.
       - 'browser_wait_for_user': Human-in-the-Loop (HITL) tool. Pauses execution and opens the live preview sidebar with an instruction prompt when the user needs to complete a manual action (such as 2FA, login credentials, payment confirmation, or CAPTCHAs).
-      - 'browser_close': Stops desktop computer use processes.
+      - 'browser_close': Stops desktop computer use processes and ends the live VNC session. Call this when you have finished your browsing or screenshot task and no longer need the desktop screen active.
     - Screen Visibility Rules:
-      - The live desktop preview sidebar opens automatically when you browse or use the desktop ('browser_navigate', 'take_screenshot', 'show_screen', 'browser_wait_for_user').
+      - The live desktop preview sidebar opens automatically in real time while you browse or use the desktop ('browser_navigate', 'take_screenshot', 'show_screen', 'browser_wait_for_user').
       - When YOU just need to silently inspect the screen to verify state without changing view or generating a shareable screenshot, call 'view_screen' (internal vision).
+      - When your desktop task is complete (e.g. you navigated and took the requested screenshot), call 'browser_close' to conclude the session cleanly so the preview closes unless the user asked you to leave it open.
     - NEVER give boilerplate AI refusals ("I can't take screenshots", "I can't interact with desktop", "I cannot access websites"). You have full computer use in your Daytona sandbox! Take action immediately.
 
     ## Web Research & Live Intelligence:

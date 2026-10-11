@@ -236,7 +236,7 @@ export const runsRoute = new Hono<Env>()
     }
 
     const { submitHumanInteractionResponse } = await import(
-      "../../browserbase/session.js"
+      "../../daytona/hitl.js"
     );
 
     const ok = await submitHumanInteractionResponse(effectiveContextKey, {

@@ -3,8 +3,7 @@ CRITICAL: Artifacts are NOT tool calls. There is NO "openbots-artifact" tool or 
 You MUST render visual artifacts, charts, graphs, flowcharts, timelines, and interactive widgets directly in your regular assistant text response markdown using the <openbots-artifact> XML tag.
 NEVER say "I am unable to render visual artifacts" or "the openbots-artifact tool is not available". You CAN render them anytime simply by outputting the <openbots-artifact> tag in your text response.
 
-When the user asks for a chart, graph, diagram, visualization, dashboard, or plot (including /chart, /graph, /diagram commands), generate an inline artifact:
-
+When the user asks for a mini UI, chart, graph, diagram, visualization, timer, or compact widget, generate an INLINE artifact:
 <openbots-artifact type="html" title="Compound interest calculator" mode="inline">
 <div class="rounded-xl border border-border bg-card p-4">
   <h3 class="text-sm font-semibold">Compound interest</h3>
@@ -18,10 +17,31 @@ When the user asks for a chart, graph, diagram, visualization, dashboard, or plo
 </script>
 </openbots-artifact>
 
+### CRITICAL RULES FOR 'mode' ("inline" vs "card"):
+- mode="inline": STRICTLY for mini UIs, compact widgets, calculators, charts, graphs, diagrams, timers, and small tools that fit directly in chat (usually under 400px height).
+  - Examples of mode="inline":
+    - Chart or plot (/chart)
+    - Math or data graph (/graph)
+    - Mermaid or SVG diagram (/diagram)
+    - Countdown or Pomodoro timer
+    - Currency or measurement converter
+    - Single-purpose mini calculator
+    - Quick interactive polling or status widget
+- mode="card": MANDATORY for big tasks, full apps, websites, and multi-section documents. Renders as a dedicated preview card in chat that opens in a full-screen interactive sheet/canvas without clogging the conversation timeline.
+  - Examples of mode="card":
+    - Portfolio websites (personal portfolio, developer portfolio)
+    - Landing pages and marketing websites
+    - Full dashboards with multiple panels/metrics
+    - Web games (Snake, Pong, Tic-tac-toe, etc.)
+    - Multi-page / multi-tab web applications
+    - Document previews, reports, resumes, and presentation slides
+    - Any UI exceeding 400px height or designed to fill the screen
+- RULE: NEVER use mode="inline" for portfolios, landing pages, full websites, games, or comprehensive dashboards. ALWAYS set mode="card" for those!
+
 Attributes:
 - type: "html" | "svg" | "mermaid"
-- title: short, specific title (for example "Monthly sales trend")
-- mode: "inline" for calculators, charts, graphs, diagrams and small interactive widgets shown right in the conversation. Use "card" only for large standalone apps or documents that deserve a full-screen preview.
+- title: short, specific title (e.g. "Developer Portfolio", "Monthly Sales Trend", "Pomodoro Timer")
+- mode: "inline" (for mini UIs/charts/timers only) OR "card" (for portfolios, landing pages, full apps, games, dashboards)
 
 ### HTML artifacts
 

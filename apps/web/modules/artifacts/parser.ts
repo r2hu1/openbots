@@ -76,7 +76,31 @@ export function parseArtifacts(content: string): {
 
     const title = (rawTitle || `${type.toUpperCase()} Artifact`).trim();
     const cleanContent = (rawContent || "").trim();
-    const mode = rawMode === "inline" ? "inline" : "card";
+    const titleLower = title.toLowerCase();
+    const isBigTask =
+      type === "html" &&
+      (titleLower.includes("portfolio") ||
+        titleLower.includes("landing page") ||
+        titleLower.includes("website") ||
+        titleLower.includes("dashboard") ||
+        titleLower.includes("game") ||
+        titleLower.includes("store") ||
+        titleLower.includes("e-commerce") ||
+        titleLower.includes("app") ||
+        titleLower.includes("resume") ||
+        titleLower.includes("presentation") ||
+        cleanContent.length > 2500);
+
+    const mode: "inline" | "card" =
+      isBigTask
+        ? "card"
+        : rawMode === "inline"
+          ? "inline"
+          : rawMode === "card"
+            ? "card"
+            : type === "mermaid" || type === "svg"
+              ? "inline"
+              : "card";
 
     const artifact: ParsedArtifact = {
       id: `artifact-${artifacts.length + 1}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
@@ -144,7 +168,31 @@ export function parseArtifacts(content: string): {
         /<\/openbots-artifact?[\s\S]*$/i,
         "",
       );
-      const mode = rawMode === "inline" ? "inline" : "card";
+      const titleLower = title.toLowerCase();
+      const isBigTask =
+        type === "html" &&
+        (titleLower.includes("portfolio") ||
+          titleLower.includes("landing page") ||
+          titleLower.includes("website") ||
+          titleLower.includes("dashboard") ||
+          titleLower.includes("game") ||
+          titleLower.includes("store") ||
+          titleLower.includes("e-commerce") ||
+          titleLower.includes("app") ||
+          titleLower.includes("resume") ||
+          titleLower.includes("presentation") ||
+          cleanContent.length > 2500);
+
+      const mode: "inline" | "card" =
+        isBigTask
+          ? "card"
+          : rawMode === "inline"
+            ? "inline"
+            : rawMode === "card"
+              ? "card"
+              : type === "mermaid" || type === "svg"
+                ? "inline"
+                : "card";
 
       const artifactIndex = artifacts.length + 1;
       const artifact: ParsedArtifact = {

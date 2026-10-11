@@ -20,7 +20,7 @@ https://github.com/user-attachments/assets/e9e70be1-bec4-45a0-b9c4-f64d3890f2e5
 
 | | |
 |:---:|:---:|
-| **Conversational Workspace**<br>[![Chat](./apps/web/public/preview-chat.png)](#2-rich-conversational-workspace) | **Cloud Isolated Desktop & Browser**<br>[![Browser Automation](./apps/web/public/preview-browser-use.png)](#6-cloud-isolated-desktop--browser-automation) |
+| **Conversational Workspace**<br>[![Chat](./apps/web/public/preview-chat.png)](#2-rich-conversational-workspace) | **Cloud Isolated Desktop & Browser**<br>[![Cloud Isolated Desktop](./apps/web/public/preview-vm.png)](#6-cloud-isolated-desktop--browser-automation) |
 | **Interactive Artifacts**<br>[![Artifacts](./apps/web/public/preview-artifacts.png)](#4-interactive-artifacts--sandboxes) | **Inline Artifact Previews**<br>[![Inline Artifacts](./apps/web/public/preview-artifacts-inline.png)](#4-interactive-artifacts--sandboxes) |
 | **Durable Schedules & Workflows**<br>[![Schedules](./apps/web/public/preview-schedules.png)](#5-durable-background-workflows-scheduling--web-push) | **200+ SaaS Connections**<br>[![Connections](./apps/web/public/preview-connections.png)](#7-200-saas-integrations-via-composio--mcp) |
 | **Reactions & Celebrations**<br>[![Reactions](./apps/web/public/preview-reactions.png)](#2-rich-conversational-workspace) | **AI Providers & Intelligence**<br>[![Providers](./apps/web/public/preview-providers.png)](#1-dedicated-agents-with-personalities--roles) |
@@ -89,7 +89,7 @@ Agents don't only react when you prompt them — they can run autonomously on th
 
 ### 6. Cloud Isolated Desktop & Browser Automation
 
-![Browser Automation](./apps/web/public/preview-browser-use.png)
+![Cloud Isolated Desktop](./apps/web/public/preview-vm.png)
 
 Empower your agents with a dedicated, isolated cloud desktop sandbox powered by Daytona:
 

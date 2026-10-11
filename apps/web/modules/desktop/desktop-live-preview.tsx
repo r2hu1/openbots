@@ -3,13 +3,10 @@
 import { Button } from "@openbots/ui/components/button"
 import { Spinner } from "@openbots/ui/components/spinner"
 import {
-  IconCheck,
   IconExternalLink,
-  IconHandClick,
   IconMaximize,
   IconMinimize,
   IconRefresh,
-  IconWorld,
   IconX,
 } from "@tabler/icons-react"
 import * as React from "react"
@@ -22,7 +19,7 @@ export interface HitlPromptData {
   contextKey?: string
 }
 
-interface BrowserLivePreviewProps {
+interface DesktopLivePreviewProps {
   agentName?: string
   liveViewUrl: string | null
   currentUrl?: string | null
@@ -35,7 +32,7 @@ interface BrowserLivePreviewProps {
   className?: string
 }
 
-export function BrowserLivePreview({
+export function DesktopLivePreview({
   agentName,
   liveViewUrl,
   currentUrl,
@@ -46,7 +43,7 @@ export function BrowserLivePreview({
   onHitlResponse,
   isSubmittingHitl = false,
   className,
-}: BrowserLivePreviewProps) {
+}: DesktopLivePreviewProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false)
   const [iframeKey, setIframeKey] = React.useState(0)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -59,9 +56,23 @@ export function BrowserLivePreview({
     return () => clearTimeout(timer)
   }, [liveViewUrl, iframeKey])
 
-  if (!isOpen || !liveViewUrl) {
-    return null
-  }
+  const iframeSrc = React.useMemo(() => {
+    if (!liveViewUrl) return ""
+    try {
+      const url = new URL(liveViewUrl)
+      if (!url.pathname.includes("vnc.html")) {
+        url.pathname = url.pathname.replace(/\/$/, "") + "/vnc.html"
+      }
+      url.searchParams.set("autoconnect", "true")
+      url.searchParams.set("resize", "scale")
+      return url.toString()
+    } catch {
+      const base = liveViewUrl.replace(/\/$/, "")
+      return base.includes("vnc.html")
+        ? `${base}?autoconnect=true&resize=scale`
+        : `${base}/vnc.html?autoconnect=true&resize=scale`
+    }
+  }, [liveViewUrl])
 
   const reloadIframe = () => {
     setIsLoading(true)
@@ -77,18 +88,18 @@ export function BrowserLivePreview({
         className
       )}
     >
-      {/* Browser Bar Header */}
+      {/* Desktop Bar Header */}
       <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border/80 bg-muted/30 px-3 py-1.5 pl-4 select-none">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="flex shrink-0 items-center gap-2">
             <Display className="size-3" />
             <span className="text-[11px] font-medium tracking-wide capitalize">
-              {agentName}'s View
+              {agentName}&apos;s Desktop View
             </span>
           </div>
         </div>
 
-        {/* Browser Preview Controls */}
+        {/* Desktop Preview Controls */}
         <div className="flex shrink-0 items-center gap-0.5">
           <Button
             variant="ghost"
@@ -187,13 +198,13 @@ export function BrowserLivePreview({
         </div>
       )}
 
-      {/* Centered Browser Canvas Container */}
+      {/* Centered Desktop Canvas Container */}
       <div className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/20 p-4 sm:p-6">
         {isLoading && (
           <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-xs">
             <Spinner className="size-5 text-primary" />
             <span className="animate-pulse text-xs text-muted-foreground">
-              Connecting to live browser session...
+              Connecting to Daytona live desktop session...
             </span>
           </div>
         )}
@@ -201,7 +212,7 @@ export function BrowserLivePreview({
         <div className="relative flex aspect-[16/10] h-auto max-h-full w-full max-w-5xl items-center justify-center overflow-hidden rounded-lg border border-border/80 bg-background shadow-xs">
           <iframe
             key={iframeKey}
-            src={liveViewUrl}
+            src={iframeSrc}
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock allow-downloads"
             allow="clipboard-read; clipboard-write; autoplay; fullscreen"
             className="relative z-0 size-full border-0"
@@ -212,3 +223,5 @@ export function BrowserLivePreview({
     </div>
   )
 }
+
+export { DesktopLivePreview as BrowserLivePreview }

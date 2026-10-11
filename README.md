@@ -91,12 +91,12 @@ Agents don't only react when you prompt them — they can run autonomously on th
 
 ![Browser Automation](./apps/web/public/preview-browser-use.png)
 
-Empower your agents with a dedicated, isolated cloud desktop environment powered by Browserbase:
+Empower your agents with a dedicated, isolated cloud desktop sandbox powered by Daytona:
 
-- **Live Interactive Desktop Preview**: Watch your agent browse, fill out complex forms, click elements, run JavaScript, and extract structured web data in real time side-by-side with your chat. Toggle or resize the desktop panel on demand.
+- **Live Interactive Desktop Preview**: Watch your agent browse, fill out complex forms, click elements, run commands, and extract structured web data in real time side-by-side with your chat via noVNC/VNC. Toggle or resize the desktop panel on demand.
 - **Human-in-the-Loop (HITL) Takeover**: When your agent encounters Captchas, MFA/2FA challenges, or payment confirmations, it pauses and prompts you to interact directly in the cloud desktop to finish the verification before handing control back.
-- **Persistent Cloud Sessions**: Isolated desktop environments survive across conversation turns and background tasks, persisting login sessions, cookies, and browsing state.
-- **Anti-Detect & Stealth Capabilities**: Built-in automated captcha solving, ad-blocking, and proxying ensure reliable web automation without IP blocks or bot detection headaches.
+- **Dedicated Sandbox per Agent**: Each bot/agent is provisioned with its own isolated Daytona cloud sandbox with persistent state, dedicated compute, and automatic lifecycle management (created on agent creation, deleted on agent deletion).
+- **Full Desktop Computer Use**: Programmatic mouse, keyboard, window, and screenshot controls powered by Daytona's Computer Use API.
 
 ### 7. 200+ SaaS Integrations via Composio & MCP
 
@@ -129,7 +129,7 @@ Connect your agents to the real world:
    cp .env.example .env
    ```
 
-   Add your PostgreSQL database URL, your LLM provider key (e.g. `GEMINI_API_KEY`), and optionally `BROWSERBASE_API_KEY` for the Cloud Isolated Desktop (or configure them via Web UI > Settings).
+   Add your PostgreSQL database URL, your LLM provider key (e.g. `GEMINI_API_KEY`), and optionally `DAYTONA_API_KEY` for the Cloud Isolated Desktop (or configure them via Web UI > Settings).
 
 3. **Initialize the database**:
 

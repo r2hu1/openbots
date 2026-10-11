@@ -115,9 +115,11 @@ export function DesktopLivePreview({
           <Button
             variant="ghost"
             size="icon-xs"
-            onClick={() =>
-              window.open(liveViewUrl, "_blank", "noopener,noreferrer")
-            }
+            onClick={() => {
+              if (iframeSrc || liveViewUrl) {
+                window.open(iframeSrc || liveViewUrl!, "_blank", "noopener,noreferrer")
+              }
+            }}
             title="Open Live View in full window"
             aria-label="Open Live View in full window"
             className="rounded-full text-muted-foreground hover:text-foreground"

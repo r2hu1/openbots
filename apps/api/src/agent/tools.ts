@@ -2781,9 +2781,9 @@ export async function buildAgentTools(params: {
     }
   }
 
-  // Fetch agent to get associated Daytona sandbox ID
+  // Fetch agent to get associated Daytona sandbox ID and name
   const [agentRecord] = await db
-    .select({ sandboxId: agents.sandboxId })
+    .select({ sandboxId: agents.sandboxId, name: agents.name })
     .from(agents)
     .where(eq(agents.id, agentId));
 
@@ -2791,6 +2791,8 @@ export async function buildAgentTools(params: {
   const desktopContextKey = conversationId || agentId || userId;
   const desktopTools = createDaytonaTools({
     sandboxId: agentRecord?.sandboxId,
+    agentId,
+    agentName: agentRecord?.name,
     contextKey: desktopContextKey,
   });
 

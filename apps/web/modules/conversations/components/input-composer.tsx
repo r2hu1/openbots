@@ -808,7 +808,7 @@ export function InputComposer({
                       ? "Add a message or press enter to send..."
                       : placeholder
                 }
-                disabled={disabled || isActiveRun}
+                disabled={disabled}
                 rows={1}
                 className={cn(
                   "block field-sizing-fixed max-h-60 min-h-0 w-full resize-none rounded-none border-0 bg-transparent! py-1.5 text-[14px] leading-5 shadow-none transition-[height] duration-200 ease-out placeholder:text-muted-foreground/70 focus-visible:ring-0 focus-visible:ring-offset-0 motion-reduce:transition-none",

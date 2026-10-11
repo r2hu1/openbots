@@ -16,6 +16,8 @@ import {
 
 export interface CreateDaytonaToolsOptions {
   sandboxId?: string | null;
+  agentId?: string;
+  agentName?: string;
   contextKey: string;
 }
 
@@ -24,21 +26,56 @@ export interface CreateDaytonaToolsOptions {
  * and desktop screen tools powered by Daytona Sandboxes.
  */
 export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<string, any> {
-  const { sandboxId, contextKey } = options;
+  const { sandboxId: initialSandboxId, agentId, agentName, contextKey } = options;
+  let currentSandboxId = initialSandboxId;
 
   async function getSandbox(): Promise<Sandbox> {
-    if (!sandboxId) {
-      throw new Error(
-        "This agent does not have an active Daytona sandbox configured. Ensure DAYTONA_API_KEY is set and the agent has a sandbox.",
+    // 1. Try existing sandbox if ID is present
+    if (currentSandboxId) {
+      const existingSandbox = await getAgentSandbox(currentSandboxId);
+      if (existingSandbox) {
+        return existingSandbox;
+      }
+      console.warn(
+        `Daytona sandbox '${currentSandboxId}' not found or unreachable. Attempting auto-recreation...`,
       );
     }
-    const sandbox = await getAgentSandbox(sandboxId);
-    if (!sandbox) {
+
+    // 2. Auto-provision / self-heal sandbox if missing or expired
+    const effectiveName = agentName || "agent";
+    const { createAgentSandbox } = await import("./sandbox.js");
+    const newSandboxId = await createAgentSandbox(effectiveName);
+
+    if (!newSandboxId) {
       throw new Error(
-        `Failed to connect to Daytona sandbox '${sandboxId}'.`,
+        "Daytona sandbox is not available. Please ensure DAYTONA_API_KEY is configured in your environment.",
       );
     }
-    return sandbox;
+
+    currentSandboxId = newSandboxId;
+
+    // Persist new sandboxId to database if agentId is available
+    if (agentId) {
+      try {
+        const { db, agents } = await import("@openbots/db");
+        const { eq } = await import("drizzle-orm");
+        await db
+          .update(agents)
+          .set({ sandboxId: newSandboxId })
+          .where(eq(agents.id, agentId));
+      } catch (dbErr) {
+        console.warn("Failed to update agent with new Daytona sandbox ID:", dbErr);
+      }
+    }
+
+    const newSandbox = await getAgentSandbox(newSandboxId);
+    if (!newSandbox) {
+      throw new Error(
+        `Failed to connect to newly created Daytona sandbox '${newSandboxId}'.`,
+      );
+    }
+
+    return newSandbox;
   }
 
   async function getLiveView(sandbox: Sandbox): Promise<string | undefined> {
@@ -196,11 +233,14 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
         const sandbox = await getSandbox();
         await sandbox.computerUse.start().catch(() => {});
 
+        const liveViewUrl = await getLiveView(sandbox);
+
         if (x !== undefined && y !== undefined) {
           await sandbox.computerUse.mouse.click(x, y, button, doubleClick);
           return {
             success: true,
             message: `Mouse ${doubleClick ? "double-" : ""}${button}-clicked at (${x}, ${y})`,
+            liveViewUrl,
             sandboxId: sandbox.id,
           };
         }
@@ -217,12 +257,14 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
             return {
               success: true,
               message: `Clicked accessibility element '${elementName}' (ID: ${node.id})`,
+              liveViewUrl,
               sandboxId: sandbox.id,
             };
           }
           return {
             success: false,
             error: `Element '${elementName}' not found in desktop accessibility tree`,
+            liveViewUrl,
           };
         }
 
@@ -249,6 +291,7 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
       try {
         const sandbox = await getSandbox();
         await sandbox.computerUse.start().catch(() => {});
+        const liveViewUrl = await getLiveView(sandbox);
         const res = await sandbox.computerUse.mouse.move(x, y);
 
         return {
@@ -256,6 +299,7 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
           message: `Moved mouse cursor to (${res.x}, ${res.y})`,
           x: res.x,
           y: res.y,
+          liveViewUrl,
           sandboxId: sandbox.id,
         };
       } catch (err: any) {
@@ -279,11 +323,13 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
       try {
         const sandbox = await getSandbox();
         await sandbox.computerUse.start().catch(() => {});
+        const liveViewUrl = await getLiveView(sandbox);
         await sandbox.computerUse.mouse.scroll(x, y, direction, amount);
 
         return {
           success: true,
           message: `Scrolled ${direction} by ${amount} ticks at (${x}, ${y})`,
+          liveViewUrl,
           sandboxId: sandbox.id,
         };
       } catch (err: any) {
@@ -306,6 +352,7 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
       try {
         const sandbox = await getSandbox();
         await sandbox.computerUse.start().catch(() => {});
+        const liveViewUrl = await getLiveView(sandbox);
         await sandbox.computerUse.keyboard.type(text, delayMs);
         if (pressEnter) {
           await sandbox.computerUse.keyboard.press("enter");
@@ -314,6 +361,7 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
         return {
           success: true,
           message: `Typed text into desktop (${text.length} characters)`,
+          liveViewUrl,
           sandboxId: sandbox.id,
         };
       } catch (err: any) {
@@ -487,6 +535,9 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
         const sandbox = await getSandbox();
         await sandbox.computerUse.start().catch(() => {});
 
+        // Eagerly ensure desktop live view & active session info so preview sidebar is immediately active
+        const liveViewUrl = await getLiveView(sandbox);
+
         // Launch browser with DISPLAY=:0 in the background
         const launchCmd = `DISPLAY=:0 sh -c '
 if command -v google-chrome >/dev/null 2>&1; then
@@ -507,7 +558,6 @@ fi
         await new Promise((r) => setTimeout(r, 3500));
         const windows = await sandbox.computerUse.display.getWindows().catch(() => ({ windows: [] }));
         const activeTitle = windows.windows?.[0]?.title || url;
-        const liveViewUrl = await getLiveView(sandbox);
 
         return {
           success: true,

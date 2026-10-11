@@ -354,14 +354,18 @@ const ChatPane = React.memo(function ChatPane({
 
     // 3. Check conversation-level active browser session from server / Redis
     const conversationActiveBrowser =
-      conversationInfiniteData?.pages?.[0]?.activeBrowser
+      conversationInfiniteData?.pages?.[0]?.activeBrowser as Record<string, any> | undefined | null
     if (
       conversationActiveBrowser?.liveDebuggerFullscreenUrl ||
-      conversationActiveBrowser?.liveDebuggerUrl
+      conversationActiveBrowser?.liveDebuggerUrl ||
+      conversationActiveBrowser?.liveViewUrl ||
+      conversationActiveBrowser?.vncUrl
     ) {
       const result = {
         liveViewUrl: (conversationActiveBrowser.liveDebuggerFullscreenUrl ||
-          conversationActiveBrowser.liveDebuggerUrl) as string,
+          conversationActiveBrowser.liveDebuggerUrl ||
+          conversationActiveBrowser.liveViewUrl ||
+          conversationActiveBrowser.vncUrl) as string,
         currentUrl: undefined,
         title: undefined,
       }
@@ -391,42 +395,39 @@ const ChatPane = React.memo(function ChatPane({
   const [previewManuallyClosed, setPreviewManuallyClosed] =
     React.useState(false)
 
-  // Detect whether the agent is currently using screen or user requested screen
+  // Detect whether the agent is currently using screen or browser tools during an active run
   const isAgentUsingScreen = React.useMemo(() => {
     // If run is not running or no active run steps, agent is not using screen
     if (!isActiveRun && !isOptimisticRunning) return false
 
-    // 1. Check if any running step is a computer use, screen or navigation tool
+    const screenToolNames = [
+      "mouse_click",
+      "mouse_move",
+      "mouse_scroll",
+      "keyboard_type",
+      "show_screen",
+      "take_screenshot",
+      "browser_screenshot",
+      "browser_navigate",
+      "browser_click",
+      "browser_type",
+      "browser_scroll",
+      "browser_extract_content",
+      "browser_wait_for_user",
+    ]
+
+    // 1. Check if any step in the active run is currently running a browser/screen tool
     const activeScreenTool = activeRunSteps.find(
-      (s) =>
-        s.status === "running" &&
-        [
-          "mouse_click",
-          "mouse_move",
-          "mouse_scroll",
-          "keyboard_type",
-          "show_screen",
-          "take_screenshot",
-          "browser_screenshot",
-          "browser_navigate",
-          "browser_wait_for_user",
-        ].includes(s.toolName || "")
+      (s) => s.status === "running" && screenToolNames.includes(s.toolName || "")
     )
     if (activeScreenTool) return true
 
-    // 2. While the run is in progress, check if the most recent step called screen tools
-    const lastStep = activeRunSteps[activeRunSteps.length - 1]
-    if (
-      lastStep &&
-      lastStep.status === "running" &&
-      (lastStep.toolName === "show_screen" ||
-        lastStep.toolName === "browser_wait_for_user" ||
-        lastStep.toolName === "take_screenshot" ||
-        lastStep.toolName === "browser_screenshot" ||
-        lastStep.toolName === "browser_navigate")
-    ) {
-      return true
-    }
+    // 2. While the run is in progress, check if any browser/screen tool was invoked in this run
+    // This keeps the live preview sidebar open continuously as the agent operates the browser
+    const invokedScreenTool = activeRunSteps.find(
+      (s) => screenToolNames.includes(s.toolName || "")
+    )
+    if (invokedScreenTool) return true
 
     return false
   }, [isActiveRun, isOptimisticRunning, activeRunSteps])

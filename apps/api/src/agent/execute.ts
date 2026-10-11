@@ -637,6 +637,9 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
     - For questions about meetings, appointments, events, or day schedules, ALWAYS query connected calendar tools (e.g. Google Calendar) first.
     - Do NOT prompt the user to re-authorize connected apps.
     - Prior to actions with public or permanent side effects (sending external emails, publishing public posts, deleting records), verify details with the user unless explicitly commanded to execute directly. Never double-send identical actions.
+    - CRITICAL TOOL ROUTING RULE:
+      - Whenever the user asks you to go to/visit a URL or website (e.g. "go to https://...", "open google.com", "browse to ...", "navigate to ...") or take a screenshot of a website or screen, you MUST ALWAYS use the Daytona Desktop tools ('browser_navigate' and 'take_screenshot').
+      - NEVER use Composio tools (like Google Search, Browserbase, or generic SaaS integrations) when asked to browse to a URL or take a screenshot. Daytona is your primary computer and live browser!
 
     ${ARTIFACT_PROMPT}
 

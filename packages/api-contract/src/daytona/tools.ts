@@ -478,7 +478,7 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
   // ==========================================
   const browserNavigate = tool({
     description:
-      "Navigates the desktop browser in the Daytona sandbox to a URL and waits for the page to load.",
+      "Navigates the live desktop browser in the Daytona sandbox to any web URL. ALWAYS use this tool whenever the user asks to go to, open, visit, browse, or view any website or URL (e.g. google.com, github.com, any domain) or before taking a screenshot of a webpage.",
     inputSchema: z.object({
       url: z.string().url().describe("The web URL to open"),
     }),

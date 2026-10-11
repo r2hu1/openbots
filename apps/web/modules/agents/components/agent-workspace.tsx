@@ -71,7 +71,7 @@ const SchedulesSheet = dynamic(
 )
 const BrowserLivePreview = dynamic(
   () =>
-    import("@/modules/browserbase/browser-live-preview").then(
+    import("@/modules/desktop/desktop-live-preview").then(
       (m) => m.BrowserLivePreview
     ),
   { ssr: false }
@@ -276,7 +276,7 @@ const ChatPane = React.memo(function ChatPane({
     }
   }, [activeConversationId])
 
-  // Inspect active run steps and recent messages for any Browserbase live view metadata
+  // Inspect active run steps and recent messages for any Daytona desktop live view metadata
   const liveBrowserData = React.useMemo(() => {
     // 1. Check active streaming run steps first (live execution)
     for (let i = activeRunSteps.length - 1; i >= 0; i--) {
@@ -391,27 +391,41 @@ const ChatPane = React.memo(function ChatPane({
   const [previewManuallyClosed, setPreviewManuallyClosed] =
     React.useState(false)
 
-  // Auto-open live preview whenever a browser action produces a live view URL
-  React.useEffect(() => {
-    if (liveBrowserData?.liveViewUrl) {
-      setPreviewManuallyClosed(false)
+  // Detect whether the agent is currently using screen or user requested screen
+  const isAgentUsingScreen = React.useMemo(() => {
+    // 1. Check if any running step is a computer use, screen or navigation tool
+    const activeScreenTool = activeRunSteps.find(
+      (s) =>
+        s.status === "running" &&
+        [
+          "mouse_click",
+          "mouse_move",
+          "mouse_scroll",
+          "keyboard_type",
+          "show_screen",
+          "take_screenshot",
+          "browser_screenshot",
+          "browser_navigate",
+          "browser_wait_for_user",
+        ].includes(s.toolName || "")
+    )
+    if (activeScreenTool) return true
+
+    // 2. Check if the most recent completed step explicitly called show_screen, browser_wait_for_user, take_screenshot, or browser_navigate
+    const lastStep = activeRunSteps[activeRunSteps.length - 1]
+    if (
+      lastStep &&
+      (lastStep.toolName === "show_screen" ||
+        lastStep.toolName === "browser_wait_for_user" ||
+        lastStep.toolName === "take_screenshot" ||
+        lastStep.toolName === "browser_screenshot" ||
+        lastStep.toolName === "browser_navigate")
+    ) {
+      return true
     }
-  }, [liveBrowserData?.liveViewUrl])
 
-  const hasLiveBrowser = Boolean(liveBrowserData?.liveViewUrl)
-  const isLivePreviewOpen = Boolean(hasLiveBrowser && !previewManuallyClosed)
-
-  const toggleBrowser = React.useCallback(() => {
-    setPreviewManuallyClosed((prev) => !prev)
-  }, [])
-
-  React.useEffect(() => {
-    onBrowserStateChange?.({
-      isActive: hasLiveBrowser,
-      isOpen: isLivePreviewOpen,
-      toggle: toggleBrowser,
-    })
-  }, [hasLiveBrowser, isLivePreviewOpen, toggleBrowser, onBrowserStateChange])
+    return false
+  }, [activeRunSteps])
 
   const hitlMutation = useHitlResponseMutation()
 
@@ -437,12 +451,32 @@ const ChatPane = React.memo(function ChatPane({
     }
   }, [activeRun?.id, activeRunSteps])
 
-  // If there is an active HITL request, ensure browser panel is open
+  // Auto-open live preview ONLY when Human-in-the-Loop is waiting or agent is actively using the screen / show_screen
   React.useEffect(() => {
-    if (activeHitlPrompt && hasLiveBrowser) {
+    if (liveBrowserData?.liveViewUrl && (isAgentUsingScreen || activeHitlPrompt)) {
       setPreviewManuallyClosed(false)
     }
-  }, [activeHitlPrompt, hasLiveBrowser])
+  }, [liveBrowserData?.liveViewUrl, isAgentUsingScreen, activeHitlPrompt])
+
+  const hasLiveBrowser = Boolean(liveBrowserData?.liveViewUrl)
+  // Only show the live preview panel if liveViewUrl exists AND (user hasn't closed it OR HITL requires attention)
+  const isLivePreviewOpen = Boolean(
+    hasLiveBrowser &&
+      (!previewManuallyClosed || Boolean(activeHitlPrompt)) &&
+      (isAgentUsingScreen || Boolean(activeHitlPrompt) || !previewManuallyClosed)
+  )
+
+  const toggleBrowser = React.useCallback(() => {
+    setPreviewManuallyClosed((prev) => !prev)
+  }, [])
+
+  React.useEffect(() => {
+    onBrowserStateChange?.({
+      isActive: hasLiveBrowser,
+      isOpen: isLivePreviewOpen,
+      toggle: toggleBrowser,
+    })
+  }, [hasLiveBrowser, isLivePreviewOpen, toggleBrowser, onBrowserStateChange])
 
   const handleHitlResponse = React.useCallback(
     (runId: string, action: "completed" | "skipped") => {

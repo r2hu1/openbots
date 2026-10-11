@@ -393,6 +393,9 @@ const ChatPane = React.memo(function ChatPane({
 
   // Detect whether the agent is currently using screen or user requested screen
   const isAgentUsingScreen = React.useMemo(() => {
+    // If run is not running or no active run steps, agent is not using screen
+    if (!isActiveRun && !isOptimisticRunning) return false
+
     // 1. Check if any running step is a computer use, screen or navigation tool
     const activeScreenTool = activeRunSteps.find(
       (s) =>
@@ -411,10 +414,11 @@ const ChatPane = React.memo(function ChatPane({
     )
     if (activeScreenTool) return true
 
-    // 2. Check if the most recent completed step explicitly called show_screen, browser_wait_for_user, take_screenshot, or browser_navigate
+    // 2. While the run is in progress, check if the most recent step called screen tools
     const lastStep = activeRunSteps[activeRunSteps.length - 1]
     if (
       lastStep &&
+      lastStep.status === "running" &&
       (lastStep.toolName === "show_screen" ||
         lastStep.toolName === "browser_wait_for_user" ||
         lastStep.toolName === "take_screenshot" ||
@@ -425,7 +429,7 @@ const ChatPane = React.memo(function ChatPane({
     }
 
     return false
-  }, [activeRunSteps])
+  }, [isActiveRun, isOptimisticRunning, activeRunSteps])
 
   const hitlMutation = useHitlResponseMutation()
 
@@ -451,23 +455,39 @@ const ChatPane = React.memo(function ChatPane({
     }
   }, [activeRun?.id, activeRunSteps])
 
-  // Auto-open live preview ONLY when Human-in-the-Loop is waiting or agent is actively using the screen / show_screen
+  // Auto-open live preview when HITL is waiting or agent is actively running screen tools.
+  // When the run finishes or agent is not using the screen, close live preview unless user explicitly toggled it open.
+  const [userExplicitlyToggled, setUserExplicitlyToggled] = React.useState(false)
+
   React.useEffect(() => {
-    if (liveBrowserData?.liveViewUrl && (isAgentUsingScreen || activeHitlPrompt)) {
+    if (activeHitlPrompt || isAgentUsingScreen) {
       setPreviewManuallyClosed(false)
     }
-  }, [liveBrowserData?.liveViewUrl, isAgentUsingScreen, activeHitlPrompt])
+  }, [isAgentUsingScreen, activeHitlPrompt])
 
   const hasLiveBrowser = Boolean(liveBrowserData?.liveViewUrl)
-  // Only show the live preview panel if liveViewUrl exists AND (user hasn't closed it OR HITL requires attention)
+
+  // Only open sidebar if:
+  // 1. HITL prompt is waiting (always show)
+  // 2. Agent is currently running screen tools and user hasn't closed it
+  // 3. User explicitly clicked the Desktop toggle button in header
   const isLivePreviewOpen = Boolean(
     hasLiveBrowser &&
-      (!previewManuallyClosed || Boolean(activeHitlPrompt)) &&
-      (isAgentUsingScreen || Boolean(activeHitlPrompt) || !previewManuallyClosed)
+      (Boolean(activeHitlPrompt) ||
+        (isAgentUsingScreen && !previewManuallyClosed) ||
+        (userExplicitlyToggled && !previewManuallyClosed))
   )
 
   const toggleBrowser = React.useCallback(() => {
-    setPreviewManuallyClosed((prev) => !prev)
+    setPreviewManuallyClosed((prev) => {
+      const willClose = !prev
+      if (willClose) {
+        setUserExplicitlyToggled(false)
+      } else {
+        setUserExplicitlyToggled(true)
+      }
+      return willClose
+    })
   }, [])
 
   React.useEffect(() => {

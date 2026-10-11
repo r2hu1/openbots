@@ -34,24 +34,46 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
     "Fetches live global foreign exchange rates and converts currency amounts.",
   dns_lookup:
     "Performs DNS record lookups (A, AAAA, MX, TXT, CNAME, NS) via Google Public DNS.",
+  bash:
+    "Executes shell commands in the Daytona sandbox terminal to run scripts, compile code, or manage processes.",
+  read_file:
+    "Reads file contents directly from the Daytona sandbox filesystem.",
+  write_file:
+    "Writes or modifies files in the Daytona sandbox filesystem.",
+  list_files:
+    "Lists directory contents and file metadata inside the Daytona sandbox.",
+  mouse_click:
+    "Clicks the mouse at screen coordinates (x, y) or on an accessibility UI element in the desktop.",
+  mouse_move:
+    "Moves the mouse cursor to specified coordinates on the desktop screen.",
+  mouse_scroll:
+    "Scrolls the mouse wheel up or down at screen coordinates.",
+  keyboard_type:
+    "Types text into the active focused window or input field on the desktop.",
+  view_screen:
+    "Captures the desktop screen for the agent's internal visual inspection (without opening user sidebar).",
+  show_screen:
+    "Opens the live desktop preview sidebar so the user can watch the screen or interact.",
+  take_screenshot:
+    "Captures a visual screenshot of the current Daytona desktop.",
   browser_navigate:
-    "Opens and navigates to any URL in a full real cloud browser powered by Browserbase.",
+    "Opens and navigates to any URL in a full real cloud desktop browser powered by Daytona.",
   browser_click:
-    "Clicks buttons, links, dropdowns, and interactive elements on the web page.",
+    "Clicks buttons, links, dropdowns, and interactive elements on the web page or desktop.",
   browser_type:
-    "Fills forms and types inputs, search queries, and credentials in the browser.",
+    "Fills forms and types inputs, search queries, and credentials in the desktop browser.",
   browser_screenshot:
-    "Captures full visual screenshots and live view sessions of web pages.",
+    "Captures full visual screenshots and live view sessions of the Daytona desktop.",
   browser_extract_content:
-    "Extracts structured article text, clean HTML, and links from the web page.",
+    "Extracts structured article text, clean content, and accessibility tree data.",
   browser_scroll:
-    "Scrolls web pages up or down to reveal dynamic lazy-loaded contents.",
+    "Scrolls web pages or desktop windows up or down.",
   browser_evaluate:
-    "Runs custom JavaScript directly in the active browser tab context.",
+    "Runs shell commands or scripts directly in the Daytona sandbox environment.",
   browser_wait_for_user:
-    "Pauses agent execution to allow the human user to interact directly in the live browser (e.g. login, solve CAPTCHA, 2FA).",
+    "Pauses agent execution to allow the human user to interact directly in the live desktop preview (e.g. login, solve CAPTCHA, 2FA).",
   browser_close:
-    "Releases and closes the cloud browser session once browsing is complete.",
+    "Stops desktop computer use processes in the Daytona sandbox.",
 };
 
 export const DEFAULT_MODELS = [

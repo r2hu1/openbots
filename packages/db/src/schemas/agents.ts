@@ -39,6 +39,7 @@ export const agents = pgTable(
     status: agentStatusEnum("status").notNull().default("active"),
     autonomy: agentAutonomyEnum("autonomy").notNull().default("manual"),
     maxSteps: integer("max_steps").notNull().default(10),
+    sandboxId: text("sandbox_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

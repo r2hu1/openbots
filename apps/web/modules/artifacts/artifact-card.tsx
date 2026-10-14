@@ -201,25 +201,38 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
   const isStreaming = artifact.isStreaming;
   const hasContent = artifact.content.trim().length > 0;
 
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div
       data-artifact-card="true"
       data-artifact-mode="inline"
-      role="figure"
-      aria-label={artifact.title}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${artifact.title || "artifact"}`}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
       className={cn(
-        "group/artifact relative inline-block w-full max-w-full align-top transition-all",
+        "group/artifact relative inline-block w-full max-w-full align-top cursor-pointer transition-all",
+        "rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isStreaming && "min-h-[120px]",
       )}
     >
       {hasContent ? (
         <div className="relative w-full overflow-hidden rounded-lg">
-          <ArtifactPreview
-            artifact={artifact}
-            fitContent
-            htmlClassName="border-0 bg-transparent"
-            mediaClassName="block w-fit max-w-full border-0 bg-transparent p-0 [&_svg]:block [&_svg]:max-w-full"
-          />
+          <div className="pointer-events-none">
+            <ArtifactPreview
+              artifact={artifact}
+              fitContent
+              htmlClassName="border-0 bg-transparent"
+              mediaClassName="block w-fit max-w-full border-0 bg-transparent p-0 [&_svg]:block [&_svg]:max-w-full"
+            />
+          </div>
           {isStreaming && (
             <div className="pointer-events-none absolute top-2 right-2 z-10 flex items-center gap-1.5 rounded-full border border-primary/20 bg-background/85 px-2 py-0.5 text-[10px] font-medium text-primary shadow-xs backdrop-blur-md">
               <span className="size-1.5 animate-pulse rounded-full bg-primary" />
@@ -244,15 +257,16 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
       {!isStreaming && (
         <div
           className={cn(
-            "absolute top-1 right-1",
-            "hidden items-center gap-0.5",
+            "absolute top-1 right-1 z-20",
+            "flex items-center gap-0.5",
             "rounded-md bg-background/90 p-0.5",
-            "shadow-sm backdrop-blur-sm",
+            "shadow-xs backdrop-blur-sm",
             "opacity-0 transition-opacity",
             "group-hover/artifact:opacity-100",
             "group-focus-within/artifact:opacity-100",
             "[@media(hover:none)]:opacity-100",
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           <Button
             type="button"

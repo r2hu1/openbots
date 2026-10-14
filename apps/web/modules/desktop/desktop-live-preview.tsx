@@ -54,9 +54,10 @@ export function DesktopLivePreview({
       prevLiveViewUrlRef.current = liveViewUrl
       setIsLoading(true)
     }
+    // Safety fallback: if iframe onLoad does not fire within 1.5s, clear spinner
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 4000)
+    }, 1500)
     return () => clearTimeout(timer)
   }, [liveViewUrl, iframeKey])
 

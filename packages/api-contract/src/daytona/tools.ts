@@ -554,8 +554,8 @@ fi
 '`;
         await sandbox.process.executeCommand(launchCmd).catch(() => {});
 
-        // Allow browser window to open and render content on screen
-        await new Promise((r) => setTimeout(r, 3500));
+        // Allow browser window a brief moment to render content on screen
+        await new Promise((r) => setTimeout(r, 800));
         const windows = await sandbox.computerUse.display.getWindows().catch(() => ({ windows: [] }));
         const activeTitle = windows.windows?.[0]?.title || url;
 

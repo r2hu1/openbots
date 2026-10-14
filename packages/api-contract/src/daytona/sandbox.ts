@@ -141,8 +141,7 @@ export async function ensureDesktopLiveView(sandbox: Sandbox): Promise<string | 
     await sandbox.computerUse.start().catch(() => {});
 
     // Ensure websockify / noVNC on port 6080 is actually accepting connections before returning signed URL
-    // Give desktop services up to 2.5s warm-up if starting fresh
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 400));
 
     // Generate signed preview URL for noVNC (port 6080) valid for 1 hour
     const preview = await sandbox.getSignedPreviewUrl(6080, 3600);

@@ -462,16 +462,72 @@ const ChatPane = React.memo(function ChatPane({
     }
   }, [isAgentUsingScreen, activeHitlPrompt])
 
+  // Check if browser was closed in the active run or recent messages
+  const isBrowserClosed = React.useMemo(() => {
+    // 1. If active run invoked browser_close
+    let closeStepIndex = -1
+    for (let i = activeRunSteps.length - 1; i >= 0; i--) {
+      if (activeRunSteps[i]?.toolName === "browser_close") {
+        closeStepIndex = i
+        break
+      }
+    }
+
+    if (closeStepIndex !== -1) {
+      // Check if any browser opening tool was invoked AFTER browser_close
+      let subsequentOpenIndex = -1
+      for (let i = closeStepIndex + 1; i < activeRunSteps.length; i++) {
+        const name = activeRunSteps[i]?.toolName
+        if (name === "browser_navigate" || name === "show_screen") {
+          subsequentOpenIndex = i
+          break
+        }
+      }
+      if (subsequentOpenIndex === -1) return true
+    }
+
+    // 2. Check recent messages for browser_close
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (!msg) continue
+      const meta = msg.metadata as Record<string, any> | null
+      if (Array.isArray(meta?.steps)) {
+        for (let j = meta.steps.length - 1; j >= 0; j--) {
+          const step = meta.steps[j]
+          if (step?.toolName === "browser_close") return true
+          if (
+            step?.toolName === "browser_navigate" ||
+            step?.toolName === "show_screen"
+          )
+            return false
+        }
+      }
+    }
+    return false
+  }, [activeRunSteps, messages])
+
+  // When browser is closed, clear the cached session ref
+  React.useEffect(() => {
+    if (isBrowserClosed) {
+      lastKnownBrowserRef.current = null
+    }
+  }, [isBrowserClosed])
+
+  const conversationActiveBrowser = conversationInfiniteData?.pages?.[0]
+    ?.activeBrowser as Record<string, any> | undefined | null
+
   // hasLiveBrowser: True when there is an active session or running screen tool or active HITL
+  // and NOT closed by browser_close
   const hasLiveBrowser = Boolean(
+    !isBrowserClosed &&
     liveBrowserData?.liveViewUrl &&
     (Boolean(activeHitlPrompt) ||
-      isAgentUsingScreen ||
+      (isActiveRun && isAgentUsingScreen) ||
       userExplicitlyToggled ||
-      Boolean(lastKnownBrowserRef.current?.data?.liveViewUrl) ||
-      conversationInfiniteData?.pages?.[0]?.activeBrowser
-        ?.liveDebuggerFullscreenUrl ||
-      conversationInfiniteData?.pages?.[0]?.activeBrowser?.liveDebuggerUrl)
+      conversationActiveBrowser?.liveDebuggerFullscreenUrl ||
+      conversationActiveBrowser?.liveDebuggerUrl ||
+      conversationActiveBrowser?.liveViewUrl ||
+      conversationActiveBrowser?.vncUrl)
   )
 
   // Auto-hide preview panel when execution completes and no HITL action is required

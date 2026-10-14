@@ -430,25 +430,13 @@ export function ConversationTimeline({
             isActiveRunOngoing &&
             !isCurrentRunAlreadyRendered &&
             streamingText ? (
-              <MessageScrollerItem
-                key={`run-asst-${activeRun?.id || "current"}`}
-                id={`run-asst-${activeRun?.id || "current"}`}
-                data-message-id={`run-asst-${activeRun?.id || "current"}`}
-                messageId={`run-asst-${activeRun?.id || "current"}`}
-              >
-                <ConversationMessageItem
-                  message={{
-                    id: `run-asst-${activeRun?.id || "current"}`,
-                    conversationId: activeRun?.conversationId || "current",
-                    role: "assistant",
-                    content: { text: streamingText },
-                    createdAt: new Date(),
-                  }}
-                  agentName={agentName}
-                  isStreaming={true}
-                  onOpenArtifact={onOpenArtifact}
-                />
-              </MessageScrollerItem>
+              <StreamingAssistantMessage
+                activeRunId={activeRun?.id}
+                conversationId={activeRun?.conversationId}
+                streamingText={streamingText}
+                agentName={agentName}
+                onOpenArtifact={onOpenArtifact}
+              />
             ) : null}
 
             {/* Terminal failure or cancellation marker */}
@@ -503,3 +491,53 @@ export function ConversationTimeline({
     </MessageScrollerProvider>
   )
 }
+
+/**
+ * Extracted streaming assistant message to stabilise the `createdAt` ref and
+ * prevent the entire timeline from re-rendering on every text-delta frame.
+ */
+const StreamingAssistantMessage = React.memo(function StreamingAssistantMessage({
+  activeRunId,
+  conversationId,
+  streamingText,
+  agentName,
+  onOpenArtifact,
+}: {
+  activeRunId?: string
+  conversationId?: string | null
+  streamingText: string
+  agentName: string
+  onOpenArtifact?: (artifact: ParsedArtifact) => void
+}) {
+  // Pin the createdAt so it doesn't change on every delta
+  const createdAtRef = React.useRef(new Date())
+
+  const msgId = `run-asst-${activeRunId || "current"}`
+
+  const message = React.useMemo(
+    () => ({
+      id: msgId,
+      conversationId: conversationId || "current",
+      role: "assistant" as const,
+      content: { text: streamingText },
+      createdAt: createdAtRef.current,
+    }),
+    [msgId, conversationId, streamingText]
+  )
+
+  return (
+    <MessageScrollerItem
+      key={msgId}
+      id={msgId}
+      data-message-id={msgId}
+      messageId={msgId}
+    >
+      <ConversationMessageItem
+        message={message}
+        agentName={agentName}
+        isStreaming={true}
+        onOpenArtifact={onOpenArtifact}
+      />
+    </MessageScrollerItem>
+  )
+})

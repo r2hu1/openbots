@@ -12,6 +12,7 @@ import {
 } from "@openbots/ui/components/alert-dialog"
 import { Button } from "@openbots/ui/components/button"
 import * as React from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import type { Agent } from "../types"
 import { getClient } from "@/lib/api"
 import { useRouter } from "next/navigation"
@@ -35,7 +36,7 @@ export function DeleteAgentDialog({
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const router = useRouter()
-
+  const queryClient = useQueryClient()
   const handleDelete = async () => {
     if (!agent) return
 
@@ -54,10 +55,14 @@ export function DeleteAgentDialog({
         throw new Error(errData?.error || "Failed to delete agent")
       }
 
+      // Invalidate cache first so the sidebar updates immediately
+      await queryClient.invalidateQueries({ queryKey: ["agents"] })
+
       onSuccess?.(agent.id)
       onOpenChange(false)
+
+      // Navigate after cache is updated
       router.replace("/")
-      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete agent")
     } finally {

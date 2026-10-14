@@ -644,7 +644,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   React.useEffect(() => {
     if (!initialAgentId && agents[0]?.id) {
       router.replace(`/agent/${agents[0].id}`)
-    } else if (!isLoadingAgents && initialAgentId && !selectedAgent) {
+    } else if (!isLoadingAgents && initialAgentId && agents.length > 0 && !selectedAgent) {
       router.replace("/")
     }
   }, [initialAgentId, agents, isLoadingAgents, selectedAgent, router])

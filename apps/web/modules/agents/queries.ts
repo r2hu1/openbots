@@ -111,8 +111,8 @@ export function useCreateAgentMutation(options?: {
 
       return (await res.json()) as { agent: { id: string } };
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: agentKeys.all });
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: agentKeys.all });
       if (data?.agent?.id) {
         options?.onSuccess?.(data.agent.id);
       }

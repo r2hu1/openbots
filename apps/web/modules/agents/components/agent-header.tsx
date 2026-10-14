@@ -45,6 +45,7 @@ import type { Agent } from "../types"
 import { DeleteAgentDialog } from "./delete-agent-dialog"
 import { RenameAgentDialog } from "./rename-agent-dialog"
 import { useIsMobile } from "@openbots/ui/hooks/use-mobile"
+import { ButtonGroup } from "@openbots/ui/components/button-group"
 
 interface AgentHeaderProps {
   selectedAgent: Agent | null
@@ -211,13 +212,13 @@ export function AgentHeader({
 
       <div className="flex items-center gap-1.5 sm:gap-2">
         {selectedAgent && (
-          <>
+          <ButtonGroup className="rounded-full">
             {isBrowserActive && onToggleBrowser && (
               <Button
                 variant={isBrowserOpen ? "default" : "secondary"}
                 size="sm"
                 onClick={onToggleBrowser}
-                className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! text-xs font-medium backdrop-blur-sm transition-all"
+                className="cursor-pointer gap-1.5 text-xs font-medium backdrop-blur-sm transition-all"
                 title={
                   isBrowserOpen
                     ? "Hide Live Cloud Browser"
@@ -234,7 +235,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenSchedules}
-                className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm transition-colors"
+                className="cursor-pointer gap-1.5 bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm"
                 title="Scheduled Autonomous Tasks"
               >
                 <Calendar2Newicons className="size-4" />
@@ -246,23 +247,23 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenHistory}
-              className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm transition-colors"
+              className="cursor-pointer gap-1.5 bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm"
               title="Execution History"
             >
               <History2 className="size-4" />
-              <span className="hidden sm:flex">Runs</span>
+              <span className="hidden sm:inline">Runs</span>
             </Button>
 
             <Button
               variant="secondary"
               size="sm"
               onClick={onOpenConfigure}
-              className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm transition-colors"
+              className="cursor-pointer gap-1.5 bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm"
               title="Agent Settings"
             >
               <Setting className="size-4" />
             </Button>
-          </>
+          </ButtonGroup>
         )}
       </div>
     </header>

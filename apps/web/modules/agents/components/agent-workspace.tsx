@@ -353,8 +353,8 @@ const ChatPane = React.memo(function ChatPane({
     }
 
     // 3. Check conversation-level active browser session from server / Redis
-    const conversationActiveBrowser =
-      conversationInfiniteData?.pages?.[0]?.activeBrowser as Record<string, any> | undefined | null
+    const conversationActiveBrowser = conversationInfiniteData?.pages?.[0]
+      ?.activeBrowser as Record<string, any> | undefined | null
     if (
       conversationActiveBrowser?.liveDebuggerFullscreenUrl ||
       conversationActiveBrowser?.liveDebuggerUrl ||
@@ -452,7 +452,8 @@ const ChatPane = React.memo(function ChatPane({
   }, [activeRun?.id, activeRunSteps])
 
   // Track if user explicitly opened or if screen tools triggered the view
-  const [userExplicitlyToggled, setUserExplicitlyToggled] = React.useState(false)
+  const [userExplicitlyToggled, setUserExplicitlyToggled] =
+    React.useState(false)
 
   // When agent starts using screen or HITL prompts, auto-open the live preview
   React.useEffect(() => {
@@ -464,24 +465,22 @@ const ChatPane = React.memo(function ChatPane({
   // hasLiveBrowser: True when there is an active session or running screen tool or active HITL
   const hasLiveBrowser = Boolean(
     liveBrowserData?.liveViewUrl &&
-      (Boolean(activeHitlPrompt) ||
-        isAgentUsingScreen ||
-        userExplicitlyToggled ||
-        Boolean(lastKnownBrowserRef.current?.data?.liveViewUrl) ||
-        conversationInfiniteData?.pages?.[0]?.activeBrowser?.liveDebuggerFullscreenUrl ||
-        conversationInfiniteData?.pages?.[0]?.activeBrowser?.liveDebuggerUrl)
+    (Boolean(activeHitlPrompt) ||
+      isAgentUsingScreen ||
+      userExplicitlyToggled ||
+      Boolean(lastKnownBrowserRef.current?.data?.liveViewUrl) ||
+      conversationInfiniteData?.pages?.[0]?.activeBrowser
+        ?.liveDebuggerFullscreenUrl ||
+      conversationInfiniteData?.pages?.[0]?.activeBrowser?.liveDebuggerUrl)
   )
 
-  // Keep sidebar open if:
-  // 1. HITL prompt is waiting (always show)
-  // 2. We have a liveViewUrl and screen tools were used or user opened it, and user hasn't explicitly closed it
+  // Auto-hide preview panel when execution completes and no HITL action is required
   const isLivePreviewOpen = Boolean(
     hasLiveBrowser &&
-      !previewManuallyClosed &&
-      (Boolean(activeHitlPrompt) ||
-        isAgentUsingScreen ||
-        userExplicitlyToggled ||
-        Boolean(lastKnownBrowserRef.current?.data?.liveViewUrl))
+    !previewManuallyClosed &&
+    (Boolean(activeHitlPrompt) ||
+      (isActiveRun && isAgentUsingScreen) ||
+      userExplicitlyToggled)
   )
 
   const toggleBrowser = React.useCallback(() => {
@@ -588,8 +587,9 @@ const ChatPane = React.memo(function ChatPane({
 
             {/* Browser Live Preview Panel */}
             <ResizablePanel
-              defaultSize={40}
-              minSize={25}
+              defaultSize={700}
+              minSize={500}
+              maxSize={900}
               className="flex min-w-0 flex-col"
             >
               <BrowserLivePreview
@@ -644,7 +644,12 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   React.useEffect(() => {
     if (!initialAgentId && agents[0]?.id) {
       router.replace(`/agent/${agents[0].id}`)
-    } else if (!isLoadingAgents && initialAgentId && agents.length > 0 && !selectedAgent) {
+    } else if (
+      !isLoadingAgents &&
+      initialAgentId &&
+      agents.length > 0 &&
+      !selectedAgent
+    ) {
       router.replace("/")
     }
   }, [initialAgentId, agents, isLoadingAgents, selectedAgent, router])
@@ -725,7 +730,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
           ) : !selectedAgent ? (
             <EmptyState
               blobatarName="OpenBots"
-              title="Zero Agents Configured"
+              title="Zero Agents Yet"
               description="Create your first autonomous agent to coordinate tools and multi-step tasks."
               actionLabel="Create Agent"
               actionIcon={<IconPlus className="size-4" />}

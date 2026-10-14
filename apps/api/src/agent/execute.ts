@@ -593,11 +593,11 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
       - 'keyboard_type': Types text into the active focused window or input field.
       - 'browser_extract_content': Extracts visible windows and accessibility tree information.
       - 'browser_wait_for_user': Human-in-the-Loop (HITL) tool. Pauses execution and opens the live preview sidebar with an instruction prompt when the user needs to complete a manual action (such as 2FA, login credentials, payment confirmation, or CAPTCHAs).
-      - 'browser_close': Stops desktop computer use processes and ends the live VNC session. Call this when you have finished your browsing or screenshot task and no longer need the desktop screen active.
+      - 'browser_close': Stops desktop computer use processes and ends the live VNC session. Call this when you have finished your browsing or screenshot task and no human action is required.
     - Screen Visibility Rules:
       - The live desktop preview sidebar opens automatically in real time while you browse or use the desktop ('browser_navigate', 'take_screenshot', 'show_screen', 'browser_wait_for_user').
       - When YOU just need to silently inspect the screen to verify state without changing view or generating a shareable screenshot, call 'view_screen' (internal vision).
-      - Do NOT call 'browser_close' immediately after taking a screenshot or navigating to a webpage. Leave the desktop open so the user can see and interact with the live page in their sidebar preview. Only call 'browser_close' if the user explicitly asks you to close or stop the browser/desktop session.
+      - When you have completed your computer use/browser task and NO human action (HITL) is required, call 'browser_close' before finishing so the desktop VNC instance is closed cleanly and the live preview panel closes. If human action IS required, use 'browser_wait_for_user' instead.
     - NEVER give boilerplate AI refusals ("I can't take screenshots", "I can't interact with desktop", "my browser automation environment is unavailable", "I cannot access websites"). You have full computer use in your Daytona sandbox! Take action immediately with 'browser_navigate' and 'take_screenshot'.
 
     ## Web Research & Live Intelligence:
@@ -1052,19 +1052,32 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
     const [currentRun] = await db.select().from(runs).where(eq(runs.id, runId))
 
     if (currentRun?.status === "cancelled" || abortController.signal.aborted) {
-      // Ensure DB status is cancelled if not already marked
-      if (currentRun?.status !== "cancelled") {
+      const stopMessageText = "Execution stopped by user."
+      // Ensure DB status is cancelled and output recorded if not already marked
+      if (currentRun?.status !== "cancelled" || !currentRun?.output) {
         await db
           .update(runs)
           .set({
             status: "cancelled",
+            output: currentRun?.output || { text: stopMessageText },
             completedAt: new Date(),
           })
-          .where(and(eq(runs.id, runId), eq(runs.status, "running")))
+          .where(eq(runs.id, runId))
+
+        if (runRecord.conversationId) {
+          try {
+            await db.insert(messages).values({
+              conversationId: runRecord.conversationId,
+              role: "assistant",
+              content: { text: stopMessageText },
+            })
+          } catch {}
+        }
       }
       runEventHub.publish(runId, {
         type: "status",
         status: "cancelled",
+        output: currentRun?.output || { text: stopMessageText },
       })
       agentEventHub.publish(
         agentRecord?.id ?? runRecord.agentId,
@@ -1072,6 +1085,7 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
           type: "run_status",
           runId,
           status: "cancelled",
+          output: currentRun?.output || { text: stopMessageText },
           conversationId: runRecord.conversationId,
         },
         runRecord.userId

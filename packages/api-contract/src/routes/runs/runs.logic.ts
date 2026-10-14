@@ -1,4 +1,4 @@
-import { db, getRedis, runSteps, runs } from "@openbots/db";
+import { db, getRedis, messages, runSteps, runs } from "@openbots/db";
 import { runs as triggerRuns } from "@trigger.dev/sdk";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
@@ -38,10 +38,13 @@ export async function getRun(runId: string, userId: string) {
 export async function cancelRun(runId: string, userId: string) {
   // Concurrency-safe conditional update: only cancel if run is currently queued or running.
   // Terminal states (completed, failed, cancelled) can NEVER be overwritten.
+  const stopMessageText = "Execution stopped by user.";
+
   const [cancelled] = await db
     .update(runs)
     .set({
       status: "cancelled",
+      output: { text: stopMessageText },
       completedAt: new Date(),
     })
     .where(
@@ -54,6 +57,18 @@ export async function cancelRun(runId: string, userId: string) {
     .returning();
 
   if (cancelled) {
+    // 0. If run has an active conversation, insert a clear assistant message indicating it was stopped
+    if (cancelled.conversationId) {
+      try {
+        await db.insert(messages).values({
+          conversationId: cancelled.conversationId,
+          role: "assistant",
+          content: { text: stopMessageText },
+        });
+      } catch (msgErr) {
+        console.warn("Failed to insert cancellation message:", msgErr);
+      }
+    }
     // 1. Abort local running process immediately if active on this worker
     try {
       directRunCanceller?.(runId, "Run cancelled by user");
@@ -67,12 +82,26 @@ export async function cancelRun(runId: string, userId: string) {
         const cancelEvent = {
           type: "status",
           status: "cancelled",
+          output: { text: stopMessageText },
         };
         const cancelFlagKey = `run_cancelled:${runId}`;
         await Promise.allSettled([
           redis.set(cancelFlagKey, "1", { ex: 3600 }),
           redis.rpush(channelKey, JSON.stringify(cancelEvent)).then(() => redis.expire(channelKey, 3600)),
         ]);
+        if (cancelled.agentId) {
+          agentEventHub.publish(
+            cancelled.agentId,
+            {
+              type: "run_status",
+              runId,
+              status: "cancelled",
+              output: { text: stopMessageText },
+              conversationId: cancelled.conversationId,
+            },
+            userId,
+          );
+        }
       }
     } catch {}
 

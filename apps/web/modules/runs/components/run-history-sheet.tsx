@@ -13,10 +13,11 @@ import { Spinner } from "@openbots/ui/components/spinner"
 import { IconChevronRight, IconHistory } from "@tabler/icons-react"
 import * as React from "react"
 import { useAgentStream } from "@/modules/agents/hooks/use-agent-stream"
-import { useRunsQuery } from "../queries"
+import { runKeys, useRunsQuery } from "../queries"
 import { formatDuration, formatTimestamp, getInputText } from "../utils"
 import { RunDetailView } from "./run-detail-view"
 import { RunStatusBadge } from "./run-status-badge"
+import { useQueryClient } from "@tanstack/react-query"
 
 interface RunHistorySheetProps {
   agentId: string | null
@@ -54,10 +55,27 @@ export function RunHistorySheet({
     [onSelectRunId]
   )
 
+  const queryClient = useQueryClient()
+
   // Connect live SSE stream for real-time run updates when sheet is open
   useAgentStream({
     agentId,
     enabled: open,
+    onRunCreated: () => {
+      if (agentId) {
+        queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) })
+      }
+    },
+    onRunStatus: (event) => {
+      if (agentId) {
+        queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) })
+        if (event.runId) {
+          queryClient.invalidateQueries({
+            queryKey: runKeys.detail(event.runId),
+          })
+        }
+      }
+    },
   })
 
   const {
@@ -70,11 +88,12 @@ export function RunHistorySheet({
   })
 
   React.useEffect(() => {
-    if (!open) {
+    if (open) {
+      refetch()
+    } else {
       handleSelectRun(null)
     }
-    refetch()
-  }, [open, handleSelectRun])
+  }, [open, handleSelectRun, refetch])
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

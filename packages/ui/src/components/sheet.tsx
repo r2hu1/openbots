@@ -159,13 +159,15 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  alwaysDark = true,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
+  alwaysDark?: boolean
 }) {
   return (
-    <SheetPortal className={"dark"}>
+    <SheetPortal className={cn(alwaysDark && "dark")}>
       <SheetOverlay />
       <SheetPrimitive.Popup
         data-slot="sheet-content"

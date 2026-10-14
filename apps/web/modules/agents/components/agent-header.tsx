@@ -135,12 +135,6 @@ export function AgentHeader({
                     <span>Connections</span>
                   </DropdownMenuItem>
                 )}
-                {onOpenSchedules && (
-                  <DropdownMenuItem onClick={onOpenSchedules}>
-                    <Calendar2Newicons className="size-4" />
-                    <span>Schedules</span>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
@@ -251,17 +245,6 @@ export function AgentHeader({
               title="Execution History"
             >
               <History2 className="size-4" />
-              <span className="hidden sm:inline">Runs</span>
-            </Button>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onOpenConfigure}
-              className="cursor-pointer gap-1.5 bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm"
-              title="Agent Settings"
-            >
-              <Setting className="size-4" />
             </Button>
           </ButtonGroup>
         )}

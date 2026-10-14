@@ -71,8 +71,10 @@ export function ConversationLiveStatus({
             <BubbleContent>
               {!hasStreamingContent && !latestToolLabel && (
                 <Marker className="text-xs text-muted-foreground">
-                  <MarkerContent className={"shimmer font-medium"}>
-                    Thinking...
+                  <MarkerContent>
+                    <div className="animate-bounce-pulse size-3 bg-primary" />
+                    <div className="animate-bounce-pulse size-3 bg-primary" />
+                    <div className="animate-bounce-pulse size-3 bg-primary" />
                   </MarkerContent>
                 </Marker>
               )}

@@ -32,6 +32,21 @@ export function useRunStream({
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [status, setStatus] = React.useState<RunStatus | null>(null);
 
+  // Accumulate text in a ref and flush via rAF to batch high-frequency deltas
+  const accTextRef = React.useRef("");
+  const rafRef = React.useRef<number | null>(null);
+
+  const flushText = React.useCallback(() => {
+    rafRef.current = null;
+    setStreamingText(accTextRef.current);
+  }, []);
+
+  const scheduleFlush = React.useCallback(() => {
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(flushText);
+    }
+  }, [flushText]);
+
   // Keep latest callbacks in refs to avoid reconnection loops
   const onDeltaRef = React.useRef(onDelta);
   onDeltaRef.current = onDelta;
@@ -48,6 +63,7 @@ export function useRunStream({
 
   React.useEffect(() => {
     if (!runId) {
+      accTextRef.current = "";
       setStreamingText("");
       setStreamingSteps([]);
       setIsStreaming(false);
@@ -57,7 +73,7 @@ export function useRunStream({
 
     const abortController = new AbortController();
     let isTerminated = false;
-    let accumulatedText = "";
+    accTextRef.current = "";
     let retryCount = 0;
     const MAX_RETRIES = 4;
     let retryTimeout: any = null;
@@ -160,9 +176,9 @@ export function useRunStream({
               if (eventType === "delta") {
                 const chunk = data.text ?? "";
                 if (chunk) {
-                  accumulatedText += chunk;
-                  setStreamingText(accumulatedText);
-                  onDeltaRef.current?.(chunk, accumulatedText);
+                  accTextRef.current += chunk;
+                  scheduleFlush();
+                  onDeltaRef.current?.(chunk, accTextRef.current);
                 }
               } else if (eventType === "tool_start") {
                 setStreamingSteps((prev) => {
@@ -232,9 +248,9 @@ export function useRunStream({
                 if (Array.isArray(data.steps) && data.steps.length > 0) {
                   setStreamingSteps(data.steps);
                 }
-                if (!accumulatedText && data.output?.text) {
-                  accumulatedText = data.output.text;
-                  setStreamingText(accumulatedText);
+                if (!accTextRef.current && data.output?.text) {
+                  accTextRef.current = data.output.text;
+                  setStreamingText(accTextRef.current);
                 }
                 onStatusRef.current?.(data);
 
@@ -250,9 +266,9 @@ export function useRunStream({
                 isTerminated = true;
                 setIsStreaming(false);
                 setStatus((data.status as RunStatus) || "completed");
-                if (!accumulatedText && data.output?.text) {
-                  accumulatedText = data.output.text;
-                  setStreamingText(accumulatedText);
+                if (!accTextRef.current && data.output?.text) {
+                  accTextRef.current = data.output.text;
+                  setStreamingText(accTextRef.current);
                 }
                 onDoneRef.current?.(data);
               }
@@ -318,7 +334,7 @@ export function useRunStream({
               isTerminated = true;
               setIsStreaming(false);
               setStatus(run.status);
-              const finalText = run.output?.text || accumulatedText;
+              const finalText = run.output?.text || accTextRef.current;
               if (finalText) {
                 setStreamingText(finalText);
               }
@@ -354,9 +370,12 @@ export function useRunStream({
 
     return () => {
       if (retryTimeout) clearTimeout(retryTimeout);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
       abortController.abort();
     };
-  }, [runId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId, scheduleFlush]);
 
   return {
     streamingText,
@@ -364,6 +383,9 @@ export function useRunStream({
     isStreaming,
     status,
     resetStream: () => {
+      accTextRef.current = "";
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
       setStreamingText("");
       setStreamingSteps([]);
       setIsStreaming(false);

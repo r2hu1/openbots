@@ -71,10 +71,10 @@ export function ConversationLiveStatus({
             <BubbleContent>
               {!hasStreamingContent && !latestToolLabel && (
                 <Marker className="text-xs text-muted-foreground">
-                  <MarkerContent className="flex items-center gap-2">
-                    <div className="animate-bounce-pulse size-2 rounded-full bg-foreground/30 delay-75" />
-                    <div className="animate-bounce-pulse size-2 rounded-full bg-foreground/30 delay-150" />
-                    <div className="animate-bounce-pulse size-2 rounded-full bg-foreground/30 delay-200" />
+                  <MarkerContent className="flex items-center gap-2 py-0">
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-75" />
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-150" />
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-200" />
                   </MarkerContent>
                 </Marker>
               )}

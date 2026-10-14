@@ -455,20 +455,58 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
         // Give the X11 desktop display a moment to flush changes and render active windows
         await new Promise((r) => setTimeout(r, 1000));
 
-        const screenshot = await sandbox.computerUse.screenshot.takeCompressed({
-          format: "jpeg",
-          quality: 85,
-          showCursor: true,
-        });
+        let screenshotBase64: string | undefined;
 
-        if (!screenshot.screenshot) {
+        try {
+          const screenshot = await sandbox.computerUse.screenshot.takeCompressed({
+            format: "jpeg",
+            quality: 85,
+            showCursor: true,
+          });
+          screenshotBase64 = screenshot.screenshot;
+        } catch (sdkCaptureErr: any) {
+          console.warn("Daytona computerUse.screenshot failed, attempting restart and fallback:", sdkCaptureErr?.message);
+          // 1. Restart computerUse daemon if connection dropped
+          await sandbox.computerUse.start().catch(() => {});
+          await new Promise((r) => setTimeout(r, 600));
+
+          try {
+            const retryScreenshot = await sandbox.computerUse.screenshot.takeCompressed({
+              format: "jpeg",
+              quality: 80,
+              showCursor: true,
+            });
+            screenshotBase64 = retryScreenshot.screenshot;
+          } catch {
+            // 2. Direct X11 scrot/xwd fallback via sandbox terminal
+            const tmpFile = `/tmp/screenshot_${Date.now()}.jpg`;
+            const shotCmd = `DISPLAY=:0 sh -c '
+if command -v scrot >/dev/null 2>&1; then
+  scrot -q 85 "${tmpFile}"
+elif command -v import >/dev/null 2>&1; then
+  import -window root "${tmpFile}"
+elif command -v xwd >/dev/null 2>&1; then
+  xwd -root -silent | convert xwd:- "${tmpFile}"
+fi
+'`;
+            await sandbox.process.executeCommand(shotCmd).catch(() => {});
+            try {
+              const fileBuffer = await sandbox.fs.downloadFile(tmpFile);
+              if (fileBuffer && fileBuffer.length > 0) {
+                screenshotBase64 = fileBuffer.toString("base64");
+              }
+            } catch {}
+          }
+        }
+
+        if (!screenshotBase64) {
           return {
             success: false,
-            error: "Failed to capture desktop screenshot: empty frame data returned",
+            error: "Failed to capture desktop screenshot: empty frame data returned or display connection interrupted",
           };
         }
 
-        const buffer = Buffer.from(screenshot.screenshot, "base64");
+        const buffer = Buffer.from(screenshotBase64, "base64");
         const timestamp = Date.now();
         const filePath = `/home/daytona/screenshots/screenshot_${timestamp}.jpg`;
 

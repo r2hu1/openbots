@@ -47,12 +47,16 @@ export function DesktopLivePreview({
   const [isFullscreen, setIsFullscreen] = React.useState(false)
   const [iframeKey, setIframeKey] = React.useState(0)
   const [isLoading, setIsLoading] = React.useState(true)
+  const prevLiveViewUrlRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
-    setIsLoading(true)
+    if (liveViewUrl && liveViewUrl !== prevLiveViewUrlRef.current) {
+      prevLiveViewUrlRef.current = liveViewUrl
+      setIsLoading(true)
+    }
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 6000)
+    }, 4000)
     return () => clearTimeout(timer)
   }, [liveViewUrl, iframeKey])
 
@@ -163,7 +167,7 @@ export function DesktopLivePreview({
 
       {/* Human in the Loop (HITL) Alert Banner */}
       {hitlPrompt && (
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-primary px-3 py-1.5 text-primary-foreground transition-all">
+        <div className="flex shrink-0 items-center justify-between gap-3 bg-red-700 px-3 py-1.5 text-primary-foreground text-white transition-all">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="flex size-6 shrink-0 items-center justify-center rounded-full">
               <Hand className="size-3.5 animate-pulse" />

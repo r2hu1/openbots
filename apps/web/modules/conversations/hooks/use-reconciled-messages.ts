@@ -13,6 +13,13 @@ interface UseReconciledMessagesOptions {
   onClearOptimistic: () => void;
 }
 
+/**
+ * Normalise text for dedup comparison: trim, collapse whitespace, lowercase.
+ */
+function normalizeForComparison(text: string): string {
+  return text.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export function useReconciledMessages({
   serverMessages,
   optimisticMessages,
@@ -20,27 +27,48 @@ export function useReconciledMessages({
   activeConversationId,
   onClearOptimistic,
 }: UseReconciledMessagesOptions) {
+  // Track the latest server timestamp so optimistic messages are placed after it
+  const latestServerTs = React.useMemo(() => {
+    let max = 0;
+    for (const m of serverMessages) {
+      const t = new Date(m.createdAt).getTime();
+      if (t > max) max = t;
+    }
+    return max;
+  }, [serverMessages]);
+
   const messages = React.useMemo(() => {
     const result: MessageItem[] = [...serverMessages];
 
-    // Append optimistic user messages that are not yet in serverMessages FIRST
+    // Build a set of normalised server user-message texts for fast lookup
+    const serverUserTexts = new Set<string>();
+    for (const srv of serverMessages) {
+      if (srv.role === "user") {
+        const t = normalizeForComparison(getMessageText(srv.content));
+        if (t) serverUserTexts.add(t);
+      }
+    }
+
+    // Append optimistic user messages that haven't been persisted yet
     if (optimisticMessages.length > 0) {
-      for (const opt of optimisticMessages) {
+      for (let i = 0; i < optimisticMessages.length; i++) {
+        const opt = optimisticMessages[i]!;
         if (opt.role !== "user") continue;
-        const optText = getMessageText(opt.content).trim();
+        const optText = normalizeForComparison(getMessageText(opt.content));
+        if (!optText) continue;
 
-        const existsInServer = result.some((srv) => {
-          if (srv.role !== "user") return false;
-          return getMessageText(srv.content).trim() === optText;
-        });
-
-        if (!existsInServer) {
-          result.push(opt);
+        if (!serverUserTexts.has(optText)) {
+          // Place optimistic messages after all server messages with a stable
+          // offset so they stay ordered among themselves
+          result.push({
+            ...opt,
+            createdAt: new Date(latestServerTs + 1 + i),
+          });
         }
       }
     }
 
-    // If an active run has just completed and serverMessages hasn't updated yet, show output AFTER user messages
+    // If an active run has just completed and serverMessages hasn't caught up, show the output
     if (activeRun && activeRun.status === "completed") {
       const output = activeRun.output;
       const completedOutputText =
@@ -52,9 +80,10 @@ export function useReconciledMessages({
           : null;
 
       if (completedOutputText) {
+        const normalizedOutput = normalizeForComparison(completedOutputText);
         const hasResponseAlready = result.some((m) => {
           if (m.role !== "assistant") return false;
-          return getMessageText(m.content).trim() === completedOutputText;
+          return normalizeForComparison(getMessageText(m.content)) === normalizedOutput;
         });
 
         if (!hasResponseAlready) {
@@ -77,8 +106,7 @@ export function useReconciledMessages({
       return true;
     });
 
-    // Ensure strictly chronological ordering with role tie-breaker
-    // (user messages precede assistant messages if timestamps match)
+    // Chronological ordering with role tie-breaker
     return deduplicated.sort((a, b) => {
       const timeA = new Date(a.createdAt).getTime();
       const timeB = new Date(b.createdAt).getTime();
@@ -87,27 +115,30 @@ export function useReconciledMessages({
       if (a.role === "assistant" && b.role === "user") return 1;
       return 0;
     });
-  }, [serverMessages, optimisticMessages, activeRun, activeConversationId]);
+  }, [serverMessages, optimisticMessages, activeRun, activeConversationId, latestServerTs]);
 
-  // Clear optimistic messages once server messages actually catch up with them
+  // Clear optimistic messages once server messages catch up
   React.useEffect(() => {
     if (optimisticMessages.length === 0) return;
+    if (serverMessages.length === 0) return;
 
-    if (serverMessages.length > 0) {
-      const allUserMessagesSaved = optimisticMessages.every((opt) => {
-        if (opt.role !== "user") return true;
-        const optText = getMessageText(opt.content).trim();
-        if (!optText) return true;
-
-        return serverMessages.some((srv) => {
-          if (srv.role !== "user") return false;
-          return getMessageText(srv.content).trim() === optText;
-        });
-      });
-
-      if (allUserMessagesSaved) {
-        onClearOptimistic();
+    const serverUserTexts = new Set<string>();
+    for (const srv of serverMessages) {
+      if (srv.role === "user") {
+        const t = normalizeForComparison(getMessageText(srv.content));
+        if (t) serverUserTexts.add(t);
       }
+    }
+
+    const allSaved = optimisticMessages.every((opt) => {
+      if (opt.role !== "user") return true;
+      const optText = normalizeForComparison(getMessageText(opt.content));
+      if (!optText) return true;
+      return serverUserTexts.has(optText);
+    });
+
+    if (allSaved) {
+      onClearOptimistic();
     }
   }, [serverMessages, optimisticMessages, onClearOptimistic]);
 

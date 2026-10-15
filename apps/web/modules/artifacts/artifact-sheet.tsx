@@ -187,7 +187,25 @@ export function ArtifactSheet({
 
         pdf.setFont("helvetica", "bold")
         pdf.setFontSize(18)
-        pdf.text(artifact.title || "Document", margin, 50)
+        const cleanMarkdown = (text: string) => {
+          return text
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)")
+            .replace(/\*\*([^*]+)\*\*/g, "$1")
+            .replace(/__([^_]+)__/g, "$1")
+            .replace(/\*([^*]+)\*/g, "$1")
+            .replace(/_([^_]+)_/g, "$1")
+            .replace(/`([^`]+)`/g, "$1")
+            .trim()
+        }
+
+        const docTitle = cleanMarkdown(artifact.title || "Document")
+        pdf.setFont("helvetica", "bold")
+        pdf.setFontSize(18)
+        pdf.text(docTitle, margin, 50)
+
+        pdf.setDrawColor(220, 225, 235)
+        pdf.setLineWidth(0.8)
+        pdf.line(margin, 60, pageWidth - margin, 60)
 
         pdf.setFont("helvetica", "normal")
         pdf.setFontSize(10)
@@ -205,27 +223,48 @@ export function ArtifactSheet({
             continue
           }
 
-          const isHeader =
-            rawLine.startsWith("#") ||
-            (rawLine.endsWith(":") && rawLine.length < 50)
-          const cleanText = rawLine.replace(/^#+\s*/, "").replace(/\*\*/g, "")
+          const isH1 = rawLine.startsWith("# ")
+          const isH2 = rawLine.startsWith("## ")
+          const isH3 = rawLine.startsWith("### ")
+          const isBullet = /^\s*[-*•]\s+/.test(rawLine)
 
-          if (isHeader) {
+          let cleanText = cleanMarkdown(
+            rawLine.replace(/^#+\s*/, "").replace(/^\s*[-*•]\s+/, "")
+          )
+
+          let indent = margin
+          if (isH1) {
+            pdf.setFont("helvetica", "bold")
+            pdf.setFontSize(14)
+            y += 12
+          } else if (isH2) {
             pdf.setFont("helvetica", "bold")
             pdf.setFontSize(12)
+            y += 10
+          } else if (isH3) {
+            pdf.setFont("helvetica", "bold")
+            pdf.setFontSize(10.5)
             y += 8
+          } else if (isBullet) {
+            pdf.setFont("helvetica", "normal")
+            pdf.setFontSize(10)
+            indent = margin + 12
+            cleanText = `•  ${cleanText}`
           } else {
             pdf.setFont("helvetica", "normal")
             pdf.setFontSize(10)
           }
 
-          const splitLines = pdf.splitTextToSize(cleanText, maxLineWidth)
+          const splitLines = pdf.splitTextToSize(
+            cleanText,
+            maxLineWidth - (indent - margin)
+          )
           for (const sLine of splitLines) {
             if (y > 780) {
               pdf.addPage()
               y = 50
             }
-            pdf.text(sLine, margin, y)
+            pdf.text(sLine, indent, y)
             y += 14
           }
         }
@@ -587,10 +626,24 @@ function FileViewer({
     )
   }
 
-  // Rich Markdown / Formatted Document Content Preview (when content was passed without binary source)
-  if (artifact.content && artifact.content.trim().length > 0) {
+  // Text & Markdown Document Preview (md, txt, json, csv, etc. via content or source fetch)
+  const isTextDoc = [
+    "md",
+    "markdown",
+    "txt",
+    "text",
+    "json",
+    "log",
+    "yaml",
+    "yml",
+    "xml",
+    "toml",
+  ].includes(ext)
+
+  if (isTextDoc || (artifact.content && artifact.content.trim().length > 0)) {
     return (
       <MarkdownDocumentViewer
+        source={artifact.source}
         content={artifact.content}
         title={artifact.title}
         ext={ext}
@@ -774,7 +827,7 @@ function DocxViewer({
       ) : (
         <div
           ref={containerRef}
-          className="mx-auto max-w-4xl rounded-xl border border-border bg-background p-8 shadow-sm select-text [&_.docx-wrapper]:bg-transparent [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2"
+          className="mx-auto max-w-4xl bg-transparent p-6 select-text sm:p-10 [&_.docx-document]:bg-transparent [&_.docx-document]:p-0 [&_.docx-wrapper]:bg-transparent [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border/60 [&_td]:p-2.5 [&_th]:border [&_th]:border-border/60 [&_th]:p-2.5"
         />
       )}
     </div>
@@ -995,20 +1048,20 @@ function PdfCanvasViewer({
 
           const pageWrapper = document.createElement("div")
           pageWrapper.className =
-            "mb-6 flex flex-col items-center rounded-lg bg-background p-2 shadow-sm border border-border/80"
+            "mb-8 flex flex-col items-center bg-transparent p-0"
 
           const canvas = document.createElement("canvas")
           const context = canvas.getContext("2d")
           canvas.height = viewport.height
           canvas.width = viewport.width
-          canvas.className = "max-w-full h-auto rounded"
+          canvas.className = "max-w-full h-auto rounded-none"
 
           pageWrapper.appendChild(canvas)
 
           const pageLabel = document.createElement("div")
           pageLabel.className =
-            "mt-2 text-[11px] text-muted-foreground font-mono"
-          pageLabel.innerText = `Page ${pageNum} of ${pdf.numPages}`
+            "mt-3 text-[11px] text-muted-foreground/70 font-mono"
+          pageLabel.innerText = `${pageNum} / ${pdf.numPages}`
           pageWrapper.appendChild(pageLabel)
 
           containerRef.current.appendChild(pageWrapper)
@@ -1037,7 +1090,7 @@ function PdfCanvasViewer({
   }, [source, content])
 
   return (
-    <div className="relative size-full overflow-auto bg-muted/20 p-4 sm:p-8">
+    <div className="relative size-full overflow-auto bg-background p-4 sm:p-10">
       {loading && (
         <div className="flex size-full items-center justify-center">
           <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
@@ -1090,37 +1143,85 @@ function PdfCanvasViewer({
 }
 
 function MarkdownDocumentViewer({
-  content,
+  source,
+  content: initialContent,
   title,
   ext,
   onDownload,
 }: {
-  content: string
+  source?: string
+  content?: string
   title: string
   ext: string
   onDownload: () => void
 }) {
-  return (
-    <div className="size-full overflow-auto bg-muted/20 p-4 sm:p-8">
-      <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-background p-6 shadow-sm select-text sm:p-10">
-        <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              {title}
-            </h2>
-            <span className="font-mono text-xs text-muted-foreground uppercase">
-              {ext} Document
-            </span>
-          </div>
-          <Button size="sm" onClick={onDownload}>
-            <IconDownload className="mr-1.5 size-3.5" />
-            Download {ext.toUpperCase()}
-          </Button>
-        </div>
+  const [text, setText] = React.useState<string>(initialContent || "")
+  const [loading, setLoading] = React.useState<boolean>(
+    !initialContent && !!source
+  )
+  const [error, setError] = React.useState<string | null>(null)
 
-        <div className="prose prose-sm dark:prose-invert max-w-none text-foreground [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_blockquote]:italic [&_h1]:border-b [&_h1]:border-border [&_h1]:pb-2 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-medium [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:p-2 [&_ul]:list-disc [&_ul]:pl-5">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-        </div>
+  React.useEffect(() => {
+    if (initialContent) {
+      setText(initialContent)
+      setLoading(false)
+      return
+    }
+
+    if (!source) {
+      setLoading(false)
+      return
+    }
+
+    let active = true
+    setLoading(true)
+    setError(null)
+
+    fetch(source)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load file`)
+        return res.text()
+      })
+      .then((data) => {
+        if (active) {
+          setText(data)
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setError(err.message || "Failed to load document content")
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [source, initialContent])
+
+  return (
+    <div className="size-full overflow-auto bg-background px-6 py-8 sm:px-12 sm:py-10">
+      <div className="mx-auto max-w-3xl select-text">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
+              <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <span>Loading document...</span>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="py-12 text-center text-xs text-muted-foreground">
+            <p className="mb-3 font-medium text-destructive">{error}</p>
+            <Button size="sm" onClick={onDownload}>
+              Download {ext.toUpperCase()}
+            </Button>
+          </div>
+        ) : (
+          <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed text-foreground/90 [&_blockquote]:my-4 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/60 [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted/40 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_h1]:mt-8 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-tight [&_h1]:text-foreground [&_h2]:mt-7 [&_h2]:mb-2.5 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-foreground [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-foreground [&_hr]:my-6 [&_hr]:border-border/40 [&_li]:text-sm [&_li]:leading-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ol]:pl-5 [&_p]:my-3.5 [&_p]:text-sm [&_p]:leading-7 [&_p]:text-foreground/90 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted/30 [&_pre]:p-4 [&_strong]:font-semibold [&_strong]:text-foreground [&_table]:my-5 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_td]:border-b [&_td]:border-border/30 [&_td]:px-3 [&_td]:py-2.5 [&_td]:text-foreground/80 [&_th]:border-b [&_th]:border-border/60 [&_th]:px-3 [&_th]:pt-1 [&_th]:pb-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          </div>
+        )}
       </div>
     </div>
   )

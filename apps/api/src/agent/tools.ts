@@ -2773,6 +2773,18 @@ export function createDownloadableFileTool(userId: string) {
           ? fileName.split(".").pop()!.toLowerCase()
           : "txt";
 
+        // Helper to clean raw markdown tokens while preserving readability
+        const cleanMarkdown = (text: string) => {
+          return text
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)") // convert [text](url) to text (url)
+            .replace(/\*\*([^*]+)\*\*/g, "$1") // bold **text** -> text
+            .replace(/__([^_]+)__/g, "$1") // bold __text__ -> text
+            .replace(/\*([^*]+)\*/g, "$1") // italic *text* -> text
+            .replace(/_([^_]+)_/g, "$1") // italic _text_ -> text
+            .replace(/`([^`]+)`/g, "$1") // code `text` -> text
+            .trim();
+        };
+
         let rawBuffer: Buffer;
 
         // Auto-compile plain text into a valid PDF binary if user requested a .pdf file with text
@@ -2782,7 +2794,8 @@ export function createDownloadableFileTool(userId: string) {
           const font = await doc.embedFont(StandardFonts.Helvetica);
           const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
 
-          const margin = 50;
+          const docTitle = title || fileName.replace(/\.pdf$/i, "");
+          const margin = 48;
           const pageWidth = 595.28;
           const pageHeight = 841.89;
           const printableWidth = pageWidth - margin * 2;
@@ -2792,40 +2805,80 @@ export function createDownloadableFileTool(userId: string) {
           let page = doc.addPage([pageWidth, pageHeight]);
           let y = pageHeight - margin;
 
-          const docTitle = title || fileName.replace(/\.pdf$/i, "");
           if (docTitle) {
-            page.drawText(docTitle, {
+            page.drawText(cleanMarkdown(docTitle), {
               x: margin,
-              y,
-              size: 18,
+              y: y - 8,
+              size: 20,
               font: boldFont,
-              color: rgb(0.12, 0.12, 0.14),
+              color: rgb(0.08, 0.1, 0.16),
             });
-            y -= 32;
+            y -= 26;
+            // Elegant thin rule below title
+            page.drawLine({
+              start: { x: margin, y: y },
+              end: { x: pageWidth - margin, y: y },
+              thickness: 1,
+              color: rgb(0.85, 0.88, 0.92),
+            });
+            y -= 20;
           }
 
           const lines = content.split("\n");
           for (const rawLine of lines) {
-            if (y < margin + lineHeight) {
-              page = doc.addPage([pageWidth, pageHeight]);
-              y = pageHeight - margin;
-            }
+            const trimmed = rawLine.trim();
 
-            if (!rawLine.trim()) {
-              y -= lineHeight * 0.75;
+            if (!trimmed) {
+              y -= lineHeight * 0.8;
               continue;
             }
 
-            const isHeader =
-              rawLine.startsWith("#") ||
-              (rawLine.endsWith(":") && rawLine.length < 60);
-            const lineText = rawLine.replace(/^#+\s*/, "");
-            const currentFont = isHeader ? boldFont : font;
-            const currentSize = isHeader ? 12 : fontSize;
-            const currentLineHeight = isHeader ? 22 : lineHeight;
+            const isH1 = rawLine.startsWith("# ");
+            const isH2 = rawLine.startsWith("## ");
+            const isH3 = rawLine.startsWith("### ");
+            const isHeader = isH1 || isH2 || isH3;
+            const isBullet = /^\s*[-*•]\s+/.test(rawLine);
+            const isSubBullet = /^\s{2,}[-*•]\s+/.test(rawLine);
 
-            // Word wrap lines so text stays within page margins
-            const words = lineText.split(" ");
+            let cleanLine = cleanMarkdown(
+              rawLine
+                .replace(/^#+\s*/, "")
+                .replace(/^\s*[-*•]\s+/, "")
+            );
+
+            let currentFont = font;
+            let currentSize = fontSize;
+            let currentLineHeight = lineHeight;
+            let textColor = rgb(0.18, 0.2, 0.24);
+            let indent = margin;
+
+            if (isH1) {
+              currentFont = boldFont;
+              currentSize = 14;
+              currentLineHeight = 24;
+              textColor = rgb(0.08, 0.1, 0.16);
+              y -= 10; // Extra spacing before major header
+            } else if (isH2) {
+              currentFont = boldFont;
+              currentSize = 12;
+              currentLineHeight = 20;
+              textColor = rgb(0.12, 0.14, 0.2);
+              y -= 8;
+            } else if (isH3) {
+              currentFont = boldFont;
+              currentSize = 10.5;
+              currentLineHeight = 18;
+              textColor = rgb(0.15, 0.18, 0.25);
+              y -= 6;
+            } else if (isBullet) {
+              indent = margin + (isSubBullet ? 24 : 14);
+              cleanLine = `•  ${cleanLine}`;
+            }
+
+            const availableWidth = printableWidth - (indent - margin);
+
+            // Word wrap lines
+            const words = cleanLine.split(" ");
             let currentLine = "";
 
             for (const word of words) {
@@ -2834,17 +2887,17 @@ export function createDownloadableFileTool(userId: string) {
                 testLine,
                 currentSize,
               );
-              if (textWidth > printableWidth && currentLine) {
+              if (textWidth > availableWidth && currentLine) {
                 if (y < margin + currentLineHeight) {
                   page = doc.addPage([pageWidth, pageHeight]);
                   y = pageHeight - margin;
                 }
                 page.drawText(currentLine, {
-                  x: margin,
+                  x: indent,
                   y,
                   size: currentSize,
                   font: currentFont,
-                  color: rgb(0.15, 0.15, 0.18),
+                  color: textColor,
                 });
                 y -= currentLineHeight;
                 currentLine = word;
@@ -2859,11 +2912,11 @@ export function createDownloadableFileTool(userId: string) {
                 y = pageHeight - margin;
               }
               page.drawText(currentLine, {
-                x: margin,
+                x: indent,
                 y,
                 size: currentSize,
                 font: currentFont,
-                color: rgb(0.15, 0.15, 0.18),
+                color: textColor,
               });
               y -= currentLineHeight;
             }
@@ -2902,7 +2955,7 @@ export function createDownloadableFileTool(userId: string) {
             if (line.startsWith("# ")) {
               paragraphs.push(
                 new Paragraph({
-                  text: line.replace(/^#\s+/, ""),
+                  text: cleanMarkdown(line.replace(/^#\s+/, "")),
                   heading: HeadingLevel.HEADING_1,
                   spacing: { before: 200, after: 120 },
                 }),
@@ -2910,7 +2963,7 @@ export function createDownloadableFileTool(userId: string) {
             } else if (line.startsWith("## ")) {
               paragraphs.push(
                 new Paragraph({
-                  text: line.replace(/^##\s+/, ""),
+                  text: cleanMarkdown(line.replace(/^##\s+/, "")),
                   heading: HeadingLevel.HEADING_2,
                   spacing: { before: 160, after: 80 },
                 }),
@@ -2918,7 +2971,7 @@ export function createDownloadableFileTool(userId: string) {
             } else if (line.startsWith("### ")) {
               paragraphs.push(
                 new Paragraph({
-                  text: line.replace(/^###\s+/, ""),
+                  text: cleanMarkdown(line.replace(/^###\s+/, "")),
                   heading: HeadingLevel.HEADING_3,
                   spacing: { before: 120, after: 60 },
                 }),
@@ -2927,14 +2980,14 @@ export function createDownloadableFileTool(userId: string) {
               paragraphs.push(
                 new Paragraph({
                   bullet: { level: 0 },
-                  children: [new TextRun(line.replace(/^[-*]\s+/, ""))],
+                  children: [new TextRun(cleanMarkdown(line.replace(/^[-*]\s+/, "")))],
                   spacing: { after: 60 },
                 }),
               );
             } else {
               paragraphs.push(
                 new Paragraph({
-                  children: [new TextRun(line)],
+                  children: [new TextRun(cleanMarkdown(line))],
                   spacing: { after: 100 },
                 }),
               );

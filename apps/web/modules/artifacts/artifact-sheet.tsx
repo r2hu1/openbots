@@ -24,7 +24,12 @@ import {
   IconCheck,
   IconChevronDown,
   IconCode,
+  IconDownload,
   IconEye,
+  IconFile,
+  IconFileSpreadsheet,
+  IconFileText,
+  IconFileTypePdf,
   IconX,
 } from "@tabler/icons-react"
 import * as React from "react"
@@ -46,6 +51,7 @@ const FILE_META: Record<string, { ext: string; mime: string }> = {
   html: { ext: "html", mime: "text/html" },
   svg: { ext: "svg", mime: "image/svg+xml" },
   mermaid: { ext: "mmd", mime: "text/plain" },
+  file: { ext: "bin", mime: "application/octet-stream" },
 }
 
 const TOKEN_RE = new RegExp(
@@ -149,8 +155,20 @@ export function ArtifactSheet({
 
   const handleDownload = React.useCallback(() => {
     if (!artifact) return
+
+    // If a direct source URL is provided (e.g. Supabase storage public URL)
+    if (artifact.source) {
+      const link = document.createElement("a")
+      link.href = artifact.source
+      link.download = artifact.title
+      link.target = "_blank"
+      link.rel = "noopener noreferrer"
+      link.click()
+      return
+    }
+
     const meta = FILE_META[artifact.type] ?? {
-      ext: artifact.type,
+      ext: artifact.fileType || artifact.type,
       mime: "text/plain",
     }
     const blob = new Blob([artifact.content], { type: meta.mime })
@@ -164,7 +182,12 @@ export function ArtifactSheet({
 
   if (!artifact) return null
 
-  const typeLabel = artifact.type.toUpperCase()
+  const typeLabel =
+    artifact.type === "file"
+      ? (artifact.fileType || "File").toUpperCase()
+      : artifact.type.toUpperCase()
+
+  const hasCode = artifact.type !== "file" || !!artifact.content
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -179,30 +202,36 @@ export function ArtifactSheet({
         )}
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">
-          <Tabs
-            value={view}
-            onValueChange={(value) => setView(value as View)}
-            className="shrink-0"
-          >
-            <TabsList className="h-fit! px-1!">
-              <TabsTrigger
-                className="size-7"
-                value="preview"
-                aria-label="Preview"
-                title="Preview"
-              >
-                <IconEye className="size-3.5" />
-              </TabsTrigger>
-              <TabsTrigger
-                className="size-7"
-                value="code"
-                aria-label="Code"
-                title="Code"
-              >
-                <IconCode className="size-3.5" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {hasCode ? (
+            <Tabs
+              value={view}
+              onValueChange={(value) => setView(value as View)}
+              className="shrink-0"
+            >
+              <TabsList className="h-fit! px-1!">
+                <TabsTrigger
+                  className="size-7"
+                  value="preview"
+                  aria-label="Preview"
+                  title="Preview"
+                >
+                  <IconEye className="size-3.5" />
+                </TabsTrigger>
+                <TabsTrigger
+                  className="size-7"
+                  value="code"
+                  aria-label="Code"
+                  title="Code"
+                >
+                  <IconCode className="size-3.5" />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          ) : (
+            <div className="flex size-7 items-center justify-center rounded-md border border-border bg-muted/30 text-muted-foreground">
+              <IconEye className="size-3.5" />
+            </div>
+          )}
 
           <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
             <SheetTitle className="truncate text-sm font-medium">
@@ -298,6 +327,9 @@ export function ArtifactSheet({
                 className="flex size-full items-center justify-center overflow-auto border-0 bg-background p-6 [&_svg]:max-h-full [&_svg]:max-w-full"
               />
             )}
+            {artifact.type === "file" && (
+              <FileViewer artifact={artifact} onDownload={handleDownload} />
+            )}
           </div>
 
           <div
@@ -330,5 +362,130 @@ export function ArtifactSheet({
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+function FileViewer({
+  artifact,
+  onDownload,
+}: {
+  artifact: ParsedArtifact
+  onDownload: () => void
+}) {
+  const ext = (
+    artifact.fileType ||
+    artifact.source?.split(".").pop() ||
+    artifact.title?.split(".").pop() ||
+    "file"
+  ).toLowerCase()
+
+  const isPdf = ext === "pdf"
+  const isImage = ["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)
+  const isSpreadsheet = ["xlsx", "xls", "csv"].includes(ext)
+
+  const formattedSize = React.useMemo(() => {
+    if (!artifact.size) return null
+    const num = Number(artifact.size)
+    if (isNaN(num)) return artifact.size
+    if (num < 1024) return `${num} B`
+    if (num < 1024 * 1024) return `${(num / 1024).toFixed(1)} KB`
+    return `${(num / (1024 * 1024)).toFixed(1)} MB`
+  }, [artifact.size])
+
+  // PDF Preview
+  if (isPdf && artifact.source) {
+    return (
+      <div className="relative flex size-full flex-col bg-background">
+        <iframe
+          src={`${artifact.source}#toolbar=1`}
+          className="size-full border-0 bg-background"
+          title={artifact.title}
+        />
+      </div>
+    )
+  }
+
+  // Image Preview
+  if (isImage && (artifact.source || artifact.content)) {
+    const imgSrc = artifact.source || (artifact.content.startsWith("data:") ? artifact.content : `data:image/${ext};base64,${artifact.content}`)
+    return (
+      <div className="flex size-full items-center justify-center overflow-auto bg-muted/20 p-6">
+        <img
+          src={imgSrc}
+          alt={artifact.title}
+          className="max-h-full max-w-full rounded-md object-contain shadow-sm border border-border"
+        />
+      </div>
+    )
+  }
+
+  // Generic & Document Preview / Download Screen
+  return (
+    <div className="flex size-full flex-col items-center justify-center p-8 text-center bg-background">
+      <div className="flex max-w-md flex-col items-center rounded-2xl border border-border bg-card p-8 shadow-sm">
+        <div className="flex size-16 items-center justify-center rounded-2xl border border-border/80 bg-muted/60 text-primary shadow-xs">
+          {isPdf ? (
+            <IconFileTypePdf className="size-8 text-red-500 dark:text-red-400" />
+          ) : isSpreadsheet ? (
+            <IconFileSpreadsheet className="size-8 text-emerald-600 dark:text-emerald-400" />
+          ) : ext === "txt" || ext === "md" || ext === "json" ? (
+            <IconFileText className="size-8 text-blue-500 dark:text-blue-400" />
+          ) : (
+            <IconFile className="size-8 text-primary" />
+          )}
+        </div>
+
+        <h3 className="mt-4 font-semibold text-lg text-foreground tracking-tight line-clamp-2">
+          {artifact.title}
+        </h3>
+
+        <div className="mt-1.5 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <span className="font-mono uppercase font-semibold text-foreground/80 tracking-wide">
+            {ext}
+          </span>
+          {formattedSize && (
+            <>
+              <span>·</span>
+              <span>{formattedSize}</span>
+            </>
+          )}
+          {artifact.createdAt && (
+            <>
+              <span>·</span>
+              <span>{new Date(artifact.createdAt).toLocaleDateString()}</span>
+            </>
+          )}
+        </div>
+
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          This file was generated and safely stored. Click below to download or view it in your preferred application.
+        </p>
+
+        <div className="mt-6 flex w-full flex-col gap-2.5">
+          <Button
+            size="lg"
+            className="w-full gap-2 font-medium"
+            onClick={onDownload}
+          >
+            <IconDownload className="size-4" />
+            Download {ext.toUpperCase()}
+          </Button>
+
+          {artifact.source && (
+            <a
+              href={artifact.source}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "w-full text-xs text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Open source link in new tab
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

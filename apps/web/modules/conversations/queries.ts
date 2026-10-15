@@ -192,6 +192,9 @@ export function useUploadConversationImageMutation() {
         success: boolean;
         url: string;
         path: string;
+        name: string;
+        mimeType: string;
+        sizeBytes?: number;
       };
     },
   });

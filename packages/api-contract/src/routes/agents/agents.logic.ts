@@ -180,6 +180,8 @@ export const ALL_INTERNAL_TOOLS = [
   "wikipedia_search",
   "currency_converter",
   "dns_lookup",
+  "parse_document",
+  "create_downloadable_file",
   "react_to_message",
   "bash",
   "read_file",
@@ -339,11 +341,15 @@ export async function createAgentRun(
 
   const hasUserMessage = !!(
     data.prompt ||
-    (data.images && data.images.length > 0)
+    (data.images && data.images.length > 0) ||
+    (data.attachments && data.attachments.length > 0)
   );
   const userContent = {
     text: data.prompt || "",
     ...(data.images && data.images.length > 0 ? { images: data.images } : {}),
+    ...(data.attachments && data.attachments.length > 0
+      ? { attachments: data.attachments }
+      : {}),
   };
 
   const runInput = hasUserMessage

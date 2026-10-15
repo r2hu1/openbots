@@ -49,6 +49,11 @@ Attributes:
   - createdAt / updatedAt: ISO timestamps (optional)
   - Content: You can include the file's formatted text/content inside the tag: \`<openbots-artifact type="file" source="..." fileType="docx" title="Report.docx">...formatted content...</openbots-artifact>\`.
   - Self-closing is also valid if only source is provided: \`<openbots-artifact type="file" source="https://..." fileType="pdf" title="Quarterly Financial Report.pdf" size="248100" />\`
+  - HIGH-QUALITY DOCUMENT GENERATION (HTML/CSS): When creating formatted documents, reports, executive summaries, resumes, or brochures via \`create_downloadable_file\`, you can write modern HTML & CSS in the \`content\` parameter! The backend compiler automatically renders the HTML into a crisp, print-accurate vector PDF (or a styled Word document for \`.docx\`).
+    - Use clean semantic HTML (headers, paragraphs, tables, grids, cards).
+    - Style using inline styles or a \`<style>\` tag (colors, typography, margins, flexbox).
+    - Avoid raw JavaScript or external interactive canvas scripts in downloadable files.
+  - CRITICAL FILE CONTENT RULE: When using the tool \`create_downloadable_file\`, NEVER put \`<openbots-artifact ...>\` tags inside the \`content\` parameter. Emit \`<openbots-artifact>\` tags ONLY in your conversational message response for live interactive widgets in the chat.
   - You have total freedom over layouts, styling, structure, and design. For interactive or bespoke visual reports and custom styled documents, you can also output rich \`type="html"\` artifacts styled with Tailwind classes.
   - The UI provides interactive in-sheet live previewing for PDFs, Word DOCX documents, Excel spreadsheets, images, text, and rich downloads.
 

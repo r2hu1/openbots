@@ -1,49 +1,80 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
-import * as React from "react";
+import { Button } from "@openbots/ui/components/button"
+import * as React from "react"
 import {
   ChartSquare,
   Check,
   Code,
+  CodeFile,
   Copy,
+  DocumentText,
+  Download,
+  FilePdf,
   Maximize,
   VectorSquare,
-} from "reicon-react";
-import { cn } from "@/lib/utils";
-import type { ParsedArtifact } from "./parser";
-import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes";
+} from "reicon-react"
+import { cn } from "@/lib/utils"
+import type { ParsedArtifact } from "./parser"
+import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes"
 
 interface ArtifactCardProps {
-  artifact: ParsedArtifact;
-  onClick: () => void;
+  artifact: ParsedArtifact
+  onClick: () => void
 }
 
 const TYPE_LABEL: Record<string, string> = {
   html: "Interactive UI",
   svg: "SVG",
   mermaid: "Diagram",
-};
+  file: "File",
+}
 
 const THUMB_SIZE: Record<string, { w: number; h: number }> = {
   html: { w: 1280, h: 800 },
   svg: { w: 640, h: 400 },
   mermaid: { w: 640, h: 400 },
-};
+}
 
 const MEDIA_CENTER =
-  "flex items-center justify-center overflow-auto border-0 bg-background p-6 [&_svg]:max-h-full [&_svg]:max-w-full";
+  "flex items-center justify-center overflow-auto border-0 bg-background p-6 [&_svg]:max-h-full [&_svg]:max-w-full"
 
-function ArtifactIcon({ type }: { type: ParsedArtifact["type"] }) {
+function ArtifactIcon({
+  type,
+  fileType,
+}: {
+  type: ParsedArtifact["type"]
+  fileType?: string
+}) {
+  if (type === "file") {
+    const ext = fileType?.toLowerCase()
+    if (ext === "pdf") {
+      return <FilePdf className="size-4" />
+    }
+    if (ext === "xlsx" || ext === "xls" || ext === "csv" || ext === "sheet") {
+      return <DocumentText className="size-4" />
+    }
+    if (
+      ext === "json" ||
+      ext === "js" ||
+      ext === "ts" ||
+      ext === "py" ||
+      ext === "code"
+    ) {
+      return <CodeFile className="size-4" />
+    }
+    return <DocumentText className="size-4" />
+  }
+
   switch (type) {
     case "svg":
-      return <VectorSquare className="size-4" />;
+      return <VectorSquare className="size-4" />
 
     case "mermaid":
-      return <ChartSquare className="size-4" />;
+      return <ChartSquare className="size-4" />
 
     default:
-      return <Code className="size-4" />;
+      return <Code className="size-4" />
   }
 }
 
@@ -57,10 +88,10 @@ function ArtifactPreview({
   mediaClassName,
   fitContent = false,
 }: {
-  artifact: ParsedArtifact;
-  htmlClassName?: string;
-  mediaClassName?: string;
-  fitContent?: boolean;
+  artifact: ParsedArtifact
+  htmlClassName?: string
+  mediaClassName?: string
+  fitContent?: boolean
 }) {
   switch (artifact.type) {
     case "html":
@@ -71,7 +102,7 @@ function ArtifactPreview({
           fitContent={fitContent}
           isStreaming={artifact.isStreaming}
         />
-      );
+      )
 
     case "svg":
       return (
@@ -80,7 +111,7 @@ function ArtifactPreview({
           className={mediaClassName}
           isStreaming={artifact.isStreaming}
         />
-      );
+      )
 
     case "mermaid":
       return (
@@ -89,10 +120,10 @@ function ArtifactPreview({
           className={mediaClassName}
           isStreaming={artifact.isStreaming}
         />
-      );
+      )
 
     default:
-      return null;
+      return null
   }
 }
 
@@ -101,45 +132,45 @@ function ArtifactPreview({
 /* -------------------------------------------------------------------------- */
 
 function useCopy(content: string) {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = React.useState(false)
 
-  const timeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeout = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   React.useEffect(() => {
     return () => {
       if (timeout.current) {
-        clearTimeout(timeout.current);
+        clearTimeout(timeout.current)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   const copy = React.useCallback(
     async (event: React.MouseEvent) => {
-      event.stopPropagation();
+      event.stopPropagation()
 
       try {
-        await navigator.clipboard.writeText(content);
+        await navigator.clipboard.writeText(content)
 
-        setCopied(true);
+        setCopied(true)
 
         if (timeout.current) {
-          clearTimeout(timeout.current);
+          clearTimeout(timeout.current)
         }
 
         timeout.current = setTimeout(() => {
-          setCopied(false);
-        }, 2000);
+          setCopied(false)
+        }, 2000)
       } catch (error) {
-        console.error("Failed to copy artifact code:", error);
+        console.error("Failed to copy artifact code:", error)
       }
     },
-    [content],
-  );
+    [content]
+  )
 
   return {
     copied,
     copy,
-  };
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -147,49 +178,49 @@ function useCopy(content: string) {
 /* -------------------------------------------------------------------------- */
 
 function useThumbnailFrame() {
-  const ref = React.useRef<HTMLDivElement>(null);
+  const ref = React.useRef<HTMLDivElement>(null)
 
-  const [width, setWidth] = React.useState(0);
-  const [visible, setVisible] = React.useState(false);
+  const [width, setWidth] = React.useState(0)
+  const [visible, setVisible] = React.useState(false)
 
   React.useEffect(() => {
-    const element = ref.current;
+    const element = ref.current
 
     if (!element) {
-      return;
+      return
     }
 
     const resizeObserver = new ResizeObserver(([entry]) => {
-      setWidth(entry?.contentRect.width ?? 0);
-    });
+      setWidth(entry?.contentRect.width ?? 0)
+    })
 
-    resizeObserver.observe(element);
+    resizeObserver.observe(element)
 
     const intersectionObserver = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          setVisible(true);
-          intersectionObserver.disconnect();
+          setVisible(true)
+          intersectionObserver.disconnect()
         }
       },
       {
         rootMargin: "300px",
-      },
-    );
+      }
+    )
 
-    intersectionObserver.observe(element);
+    intersectionObserver.observe(element)
 
     return () => {
-      resizeObserver.disconnect();
-      intersectionObserver.disconnect();
-    };
-  }, []);
+      resizeObserver.disconnect()
+      intersectionObserver.disconnect()
+    }
+  }, [])
 
   return {
     ref,
     width,
     visible,
-  };
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -197,16 +228,16 @@ function useThumbnailFrame() {
 /* -------------------------------------------------------------------------- */
 
 function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
-  const { copied, copy } = useCopy(artifact.content);
-  const isStreaming = artifact.isStreaming;
-  const hasContent = artifact.content.trim().length > 0;
+  const { copied, copy } = useCopy(artifact.content)
+  const isStreaming = artifact.isStreaming
+  const hasContent = artifact.content.trim().length > 0
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onClick();
+      event.preventDefault()
+      onClick()
     }
-  };
+  }
 
   return (
     <div
@@ -218,9 +249,9 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
       onClick={onClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group/artifact relative inline-block w-full max-w-full align-top cursor-pointer transition-all",
-        "rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        isStreaming && "min-h-[120px]",
+        "group/artifact relative inline-block w-full max-w-full cursor-pointer align-top transition-all",
+        "rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        isStreaming && "min-h-[120px]"
       )}
     >
       {hasContent ? (
@@ -264,7 +295,7 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
             "opacity-0 transition-opacity",
             "group-hover/artifact:opacity-100",
             "group-focus-within/artifact:opacity-100",
-            "[@media(hover:none)]:opacity-100",
+            "[@media(hover:none)]:opacity-100"
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -294,7 +325,7 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
         </div>
       )}
     </div>
-  );
+  )
 }
 
 /* -------------------------------------------------------------------------- */
@@ -302,21 +333,21 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
 /* -------------------------------------------------------------------------- */
 
 function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
-  const { ref, width, visible } = useThumbnailFrame();
-  const isStreaming = artifact.isStreaming;
+  const { ref, width, visible } = useThumbnailFrame()
+  const isStreaming = artifact.isStreaming
 
-  const base = THUMB_SIZE[artifact.type] ?? THUMB_SIZE.html;
+  const base = THUMB_SIZE[artifact.type] ?? THUMB_SIZE.html
 
-  const scale = base && width ? width / base.w : 0;
+  const scale = base && width ? width / base.w : 0
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onClick();
+      event.preventDefault()
+      onClick()
     }
-  };
+  }
 
-  const hasContent = artifact.content.trim().length > 0;
+  const hasContent = artifact.content.trim().length > 0
 
   return (
     <div
@@ -334,7 +365,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
         "transition-all outline-none",
         isStreaming
           ? "border-primary/35 shadow-xs ring-1 ring-primary/20"
-          : "border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-ring",
+          : "border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-ring"
       )}
     >
       <div
@@ -342,7 +373,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
         className={cn(
           "relative aspect-[16/10] w-full",
           "overflow-hidden border-b border-border",
-          "bg-muted/40",
+          "bg-muted/40"
         )}
       >
         {isStreaming && (
@@ -393,7 +424,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
           className={cn(
             "absolute inset-0",
             "transition-colors",
-            "group-hover/artifact:bg-foreground/[0.03]",
+            "group-hover/artifact:bg-foreground/[0.03]"
           )}
         />
       </div>
@@ -404,7 +435,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
             "flex size-7 shrink-0",
             "items-center justify-center",
             "rounded-md text-foreground",
-            isStreaming ? "bg-primary/15 text-primary" : "bg-muted",
+            isStreaming ? "bg-primary/15 text-primary" : "bg-muted"
           )}
         >
           <ArtifactIcon type={artifact.type} />
@@ -415,7 +446,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
             className={cn(
               "truncate text-[13px]",
               "leading-tight font-medium",
-              "text-foreground",
+              "text-foreground"
             )}
           >
             {artifact.title}
@@ -438,12 +469,133 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
             "size-4 shrink-0",
             "text-muted-foreground/50",
             "transition-colors",
-            "group-hover/artifact:text-foreground",
+            "group-hover/artifact:text-foreground"
           )}
         />
       </div>
     </div>
-  );
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* File artifact (minimal, responsive, light/dark mode card with download)    */
+/* -------------------------------------------------------------------------- */
+
+function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
+  const isStreaming = artifact.isStreaming
+  const ext = (
+    artifact.fileType ||
+    artifact.source?.split(".").pop() ||
+    artifact.title?.split(".").pop() ||
+    "file"
+  ).toUpperCase()
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      onClick()
+    }
+  }
+
+  const handleDownload = (event: React.MouseEvent) => {
+    event.stopPropagation()
+    if (artifact.source) {
+      const link = document.createElement("a")
+      link.href = artifact.source
+      link.download = artifact.title
+      link.target = "_blank"
+      link.rel = "noopener noreferrer"
+      link.click()
+    } else {
+      onClick()
+    }
+  }
+
+  return (
+    <div
+      data-artifact-card="true"
+      data-artifact-type="file"
+      role="button"
+      tabIndex={0}
+      aria-label={`Open file ${artifact.title}`}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      className={cn(
+        "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
+        "rounded-xl border border-border/70 bg-muted text-muted-foreground shadow-xs transition-all duration-200",
+        "cursor-pointer hover:border-primary/40 hover:bg-muted/40 hover:shadow-sm",
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/50",
+            "bg-muted/70 text-foreground transition-colors group-hover/artifact:border-primary/30 group-hover/artifact:bg-primary/10"
+          )}
+        >
+          <ArtifactIcon type="file" fileType={artifact.fileType} />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium tracking-tight text-foreground transition-colors group-hover/artifact:text-primary">
+            {artifact.title}
+          </p>
+
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="text-[10px] font-semibold tracking-wide text-muted-foreground/80 uppercase">
+              {ext}
+            </span>
+            {artifact.size && (
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                <span>{artifact.size}</span>
+              </>
+            )}
+            {isStreaming && (
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+                  generating...
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1">
+        {artifact.source && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={handleDownload}
+            className="size-7 rounded-md text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
+            title="Download file"
+            aria-label="Download file"
+          >
+            <Download className="size-3.5" />
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick()
+          }}
+          className="size-7 rounded-md text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
+          title="Open preview"
+          aria-label="Open preview"
+        >
+          <Maximize className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 /* -------------------------------------------------------------------------- */
@@ -451,9 +603,13 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
 /* -------------------------------------------------------------------------- */
 
 export function ArtifactCard(props: ArtifactCardProps) {
+  if (props.artifact.type === "file") {
+    return <FileArtifact {...props} />
+  }
+
   return props.artifact.mode === "inline" ? (
     <InlineArtifact {...props} />
   ) : (
     <CardArtifact {...props} />
-  );
+  )
 }

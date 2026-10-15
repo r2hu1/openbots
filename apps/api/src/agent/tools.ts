@@ -2871,6 +2871,86 @@ export function createDownloadableFileTool(userId: string) {
 
           const pdfBytes = await doc.save();
           rawBuffer = Buffer.from(pdfBytes);
+        } else if (
+          (ext === "docx" || ext === "doc") &&
+          !isBase64 &&
+          !content.startsWith("PK")
+        ) {
+          const { Document, Packer, Paragraph, TextRun, HeadingLevel } =
+            await import("docx");
+          const docTitle = title || fileName.replace(/\.(docx|doc)$/i, "");
+          const paragraphs: any[] = [];
+
+          if (docTitle) {
+            paragraphs.push(
+              new Paragraph({
+                text: docTitle,
+                heading: HeadingLevel.TITLE,
+                spacing: { after: 240 },
+              }),
+            );
+          }
+
+          const rawLines = content.split("\n");
+          for (const line of rawLines) {
+            const trimmed = line.trim();
+            if (!trimmed) {
+              paragraphs.push(new Paragraph({ text: "" }));
+              continue;
+            }
+
+            if (line.startsWith("# ")) {
+              paragraphs.push(
+                new Paragraph({
+                  text: line.replace(/^#\s+/, ""),
+                  heading: HeadingLevel.HEADING_1,
+                  spacing: { before: 200, after: 120 },
+                }),
+              );
+            } else if (line.startsWith("## ")) {
+              paragraphs.push(
+                new Paragraph({
+                  text: line.replace(/^##\s+/, ""),
+                  heading: HeadingLevel.HEADING_2,
+                  spacing: { before: 160, after: 80 },
+                }),
+              );
+            } else if (line.startsWith("### ")) {
+              paragraphs.push(
+                new Paragraph({
+                  text: line.replace(/^###\s+/, ""),
+                  heading: HeadingLevel.HEADING_3,
+                  spacing: { before: 120, after: 60 },
+                }),
+              );
+            } else if (line.startsWith("- ") || line.startsWith("* ")) {
+              paragraphs.push(
+                new Paragraph({
+                  bullet: { level: 0 },
+                  children: [new TextRun(line.replace(/^[-*]\s+/, ""))],
+                  spacing: { after: 60 },
+                }),
+              );
+            } else {
+              paragraphs.push(
+                new Paragraph({
+                  children: [new TextRun(line)],
+                  spacing: { after: 100 },
+                }),
+              );
+            }
+          }
+
+          const doc = new Document({
+            sections: [
+              {
+                properties: {},
+                children: paragraphs,
+              },
+            ],
+          });
+
+          rawBuffer = await Packer.toBuffer(doc);
         } else {
           rawBuffer = isBase64
             ? Buffer.from(content, "base64")

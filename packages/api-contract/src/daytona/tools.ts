@@ -212,6 +212,85 @@ export function createDaytonaTools(options: CreateDaytonaToolsOptions): Record<s
     },
   });
 
+  const saveAndShareFile = tool({
+    description:
+      "Exports or saves a file from the Daytona sandbox to downloadable storage, generating an interactive file card snippet that the user can download and preview in chat.",
+    inputSchema: z.object({
+      path: z.string().describe("Path to the file inside the Daytona sandbox (e.g. '/home/daytona/report.pdf')"),
+      title: z.string().optional().describe("User-friendly title for the file card"),
+    }),
+    execute: async ({ path, title }) => {
+      try {
+        const sandbox = await getSandbox();
+        const fileBuffer = await sandbox.fs.downloadFile(path);
+        const fileName = path.split("/").pop() || "document.bin";
+        const ext = fileName.includes(".")
+          ? fileName.split(".").pop()!.toLowerCase()
+          : "bin";
+
+        const uniqueId = crypto.randomUUID();
+        const bucket =
+          process.env.SUPABASE_STORAGE_BUCKET || "conversation-attachments";
+        const storagePath = `shared/${uniqueId}_${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+
+        const mimeMap: Record<string, string> = {
+          pdf: "application/pdf",
+          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          csv: "text/csv",
+          png: "image/png",
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          txt: "text/plain",
+          json: "application/json",
+          html: "text/html",
+        };
+
+        const contentType = mimeMap[ext] || "application/octet-stream";
+
+        const { uploadStorageObject, getStoragePublicUrl } = await import(
+          "@openbots/db"
+        );
+
+        let downloadUrl = "";
+        const { error } = await uploadStorageObject({
+          bucket,
+          path: storagePath,
+          fileBody: fileBuffer,
+          contentType,
+          upsert: false,
+        });
+
+        if (!error) {
+          const { data: publicUrlData } = getStoragePublicUrl(bucket, storagePath);
+          downloadUrl = publicUrlData.publicUrl;
+        } else if (agentId) {
+          // Fallback to agent direct sandbox download route
+          downloadUrl = `/api/agents/${agentId}/files?path=${encodeURIComponent(path)}`;
+        }
+
+        const nowIso = new Date().toISOString();
+        const displayTitle = title || fileName;
+        const artifactSnippet = `<openbots-artifact type="file" source="${downloadUrl}" fileType="${ext}" title="${displayTitle.replace(/"/g, '&quot;')}" size="${fileBuffer.length}" createdAt="${nowIso}" updatedAt="${nowIso}" />`;
+
+        return {
+          success: true,
+          fileName,
+          downloadUrl,
+          sizeBytes: fileBuffer.length,
+          inlineArtifactSnippet: artifactSnippet,
+          instruction:
+            "Include the `inlineArtifactSnippet` directly into your assistant markdown text response so the user gets an interactive file card in chat.",
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          error: `Failed to save and share file: ${err.message}`,
+        };
+      }
+    },
+  });
+
   // ==========================================
   // 3. COMPUTER USE: MOUSE & KEYBOARD
   // ==========================================
@@ -733,6 +812,7 @@ fi
     read_file: readFile,
     write_file: writeFile,
     list_files: listFiles,
+    save_and_share_file: saveAndShareFile,
 
     // Mouse & Keyboard (Computer Use)
     mouse_click: mouseClick,

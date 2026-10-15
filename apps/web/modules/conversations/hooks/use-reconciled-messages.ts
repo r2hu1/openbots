@@ -41,14 +41,9 @@ export function useReconciledMessages({
     const result: MessageItem[] = [...serverMessages];
 
     // Append optimistic user messages that haven't been persisted to serverMessages yet.
-    // NOTE: Only compare against the most recent server message or server messages that arrived
-    // AFTER the optimistic message was created. Checking the entire conversation history causes
-    // repeated prompts (e.g. "hi", "test", "run again") to falsely match older messages and vanish!
     if (optimisticMessages.length > 0) {
-      // Find user messages in serverMessages that are at the very end of the conversation
-      // (created around or after the optimistic message)
       const recentServerUserMsgs = serverMessages
-        .slice(-Math.max(optimisticMessages.length + 3, 5))
+        .slice(-Math.max(optimisticMessages.length + 5, 8))
         .filter((m) => m.role === "user");
 
       for (let i = 0; i < optimisticMessages.length; i++) {
@@ -59,22 +54,27 @@ export function useReconciledMessages({
 
         const optTime = new Date(opt.createdAt).getTime();
 
-        // An optimistic message is considered already persisted ONLY if a server user message
-        // with the exact same content was created around or after the optimistic timestamp (within 60s)
+        // Synchronously check if serverMessages already has this user message
         const isPersistedInRecent = recentServerUserMsgs.some((srv) => {
           const srvText = normalizeForComparison(getMessageText(srv.content));
           if (srvText !== optText) return false;
           const srvTime = new Date(srv.createdAt).getTime();
-          // Allow loose clock skew: server message created within 60s of optTime or newer
           return Math.abs(srvTime - optTime) < 60000 || srvTime >= optTime;
         });
 
         if (!isPersistedInRecent) {
-          // Place optimistic messages after all server messages with a stable
-          // offset so they stay ordered at the bottom of the chat
+          // Never inflate the optimistic message timestamp beyond the server assistant's timestamp.
+          // Keep the optimistic message's own creation timestamp if it's already after server messages,
+          // or place it strictly right after earlier messages, but never re-bump it to Date.now()
+          // after an assistant response has arrived.
+          const optTimestamp = Math.max(
+            new Date(opt.createdAt).getTime(),
+            latestServerTs > 0 ? latestServerTs + 1 + i : Date.now() + i
+          );
+
           result.push({
             ...opt,
-            createdAt: new Date(Math.max(latestServerTs, Date.now()) + 1 + i),
+            createdAt: new Date(optTimestamp),
           });
         }
       }
@@ -93,13 +93,24 @@ export function useReconciledMessages({
 
       if (completedOutputText) {
         const normalizedOutput = normalizeForComparison(completedOutputText);
+
+        // Check if ANY assistant message in the conversation already matches this output
+        // or if serverMessages already has an assistant message created at or after run start/completion
         const hasResponseAlready = result.some((m) => {
           if (m.role !== "assistant") return false;
-          return normalizeForComparison(getMessageText(m.content)) === normalizedOutput;
+          if (
+            m.id === `run-asst-${activeRun.id}` ||
+            m.id === `opt-assistant-${activeRun.id}` ||
+            m.id.includes(activeRun.id)
+          ) {
+            return true;
+          }
+          const text = normalizeForComparison(getMessageText(m.content));
+          if (!text) return false;
+          return text === normalizedOutput || text.includes(normalizedOutput) || normalizedOutput.includes(text);
         });
 
         if (!hasResponseAlready) {
-          // Find the latest timestamp currently in result (including any optimistic user message)
           let latestResultTs = latestServerTs;
           for (const m of result) {
             const t = new Date(m.createdAt).getTime();
@@ -109,7 +120,6 @@ export function useReconciledMessages({
             ? new Date(activeRun.completedAt).getTime()
             : Date.now();
 
-          // Ensure the assistant output timestamp is strictly after the latest user message
           const assistantCreatedAt = new Date(
             Math.max(latestResultTs + 1, runCompletedTs)
           );
@@ -148,12 +158,27 @@ export function useReconciledMessages({
         return serverIdxA - serverIdxB;
       }
 
-      // 2. Otherwise sort by timestamp
+      // 2. If one is a server assistant message and the other is an optimistic user message that arrived
+      // around the same time or before, ensure user message stays BEFORE assistant message
+      if (a.role === "user" && b.role === "assistant") {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        // If user message is <= or within 2 seconds of assistant message, user message comes first
+        if (timeA <= timeB + 2000) return -1;
+      }
+      if (a.role === "assistant" && b.role === "user") {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        // If user message is >= or within 2 seconds of assistant message, user message comes first
+        if (timeB <= timeA + 2000) return 1;
+      }
+
+      // 3. Otherwise sort by timestamp
       const timeA = new Date(a.createdAt).getTime();
       const timeB = new Date(b.createdAt).getTime();
       if (timeA !== timeB) return timeA - timeB;
 
-      // 3. Sub-second / equal timestamp tie-breaker: user messages always precede assistant messages
+      // 4. Sub-second / equal timestamp tie-breaker: user messages always precede assistant messages
       if (a.role === "user" && b.role === "assistant") return -1;
       if (a.role === "assistant" && b.role === "user") return 1;
 

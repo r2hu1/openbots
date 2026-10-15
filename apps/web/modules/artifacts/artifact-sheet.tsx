@@ -393,31 +393,14 @@ function FileViewer({
   }, [artifact.size])
 
   // PDF Preview
-  if (isPdf && artifact.source) {
+  if (isPdf && (artifact.source || artifact.content)) {
     return (
-      <div className="relative flex size-full flex-col bg-background">
-        <object
-          data={artifact.source}
-          type="application/pdf"
-          className="size-full border-0 bg-background"
-        >
-          <iframe
-            src={`${artifact.source}#toolbar=1`}
-            className="size-full border-0 bg-background"
-            title={artifact.title}
-          >
-            <div className="flex size-full flex-col items-center justify-center p-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Unable to display PDF directly in your browser.
-              </p>
-              <Button size="sm" className="mt-3" onClick={onDownload}>
-                <IconDownload className="mr-1.5 size-4" />
-                Download PDF
-              </Button>
-            </div>
-          </iframe>
-        </object>
-      </div>
+      <PdfCanvasViewer
+        source={artifact.source}
+        content={artifact.content}
+        title={artifact.title}
+        onDownload={onDownload}
+      />
     )
   }
 
@@ -798,6 +781,157 @@ function SpreadsheetViewer({
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+function PdfCanvasViewer({
+  source,
+  content,
+  title,
+  onDownload,
+}: {
+  source?: string
+  content?: string
+  title: string
+  onDownload: () => void
+}) {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+  const [numPages, setNumPages] = React.useState(0)
+
+  React.useEffect(() => {
+    let active = true
+
+    async function renderPdf() {
+      if (!containerRef.current) return
+      setLoading(true)
+      setError(null)
+
+      try {
+        const pdfjsLib = await import("pdfjs-dist")
+        // Configure standard cdn worker to avoid bundler asset issues
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+
+        let dataSrc: any = null
+        if (source) {
+          const res = await fetch(source)
+          if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch PDF`)
+          const ab = await res.arrayBuffer()
+          dataSrc = { data: new Uint8Array(ab) }
+        } else if (content) {
+          if (content.startsWith("data:")) {
+            const base64 = content.split(",")[1] || ""
+            const bin = atob(base64)
+            const bytes = new Uint8Array(bin.length)
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+            dataSrc = { data: bytes }
+          } else {
+            const bin = atob(content)
+            const bytes = new Uint8Array(bin.length)
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+            dataSrc = { data: bytes }
+          }
+        }
+
+        if (!dataSrc) throw new Error("No PDF source provided")
+
+        const loadingTask = pdfjsLib.getDocument(dataSrc)
+        const pdf = await loadingTask.promise
+        if (!active || !containerRef.current) return
+
+        setNumPages(pdf.numPages)
+        containerRef.current.innerHTML = ""
+
+        // Render all pages sequentially on high-DPI canvases
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          if (!active || !containerRef.current) return
+          const page = await pdf.getPage(pageNum)
+          const viewport = page.getViewport({ scale: 1.5 })
+
+          const pageWrapper = document.createElement("div")
+          pageWrapper.className =
+            "mb-6 flex flex-col items-center rounded-lg bg-background p-2 shadow-sm border border-border/80"
+
+          const canvas = document.createElement("canvas")
+          const context = canvas.getContext("2d")
+          canvas.height = viewport.height
+          canvas.width = viewport.width
+          canvas.className = "max-w-full h-auto rounded"
+
+          pageWrapper.appendChild(canvas)
+
+          const pageLabel = document.createElement("div")
+          pageLabel.className = "mt-2 text-[11px] text-muted-foreground font-mono"
+          pageLabel.innerText = `Page ${pageNum} of ${pdf.numPages}`
+          pageWrapper.appendChild(pageLabel)
+
+          containerRef.current.appendChild(pageWrapper)
+
+          if (context) {
+            await page.render({
+              canvasContext: context,
+              viewport,
+            }).promise
+          }
+        }
+
+        setLoading(false)
+      } catch (err: any) {
+        if (!active) return
+        setError(err?.message || "Failed to render PDF")
+        setLoading(false)
+      }
+    }
+
+    renderPdf()
+
+    return () => {
+      active = false
+    }
+  }, [source, content])
+
+  return (
+    <div className="relative size-full overflow-auto bg-muted/20 p-4 sm:p-8">
+      {loading && (
+        <div className="flex size-full items-center justify-center">
+          <div className="flex flex-col items-center gap-2 text-muted-foreground text-xs">
+            <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span>Rendering PDF document...</span>
+          </div>
+        </div>
+      )}
+
+      {error ? (
+        <div className="mx-auto flex max-w-md flex-col items-center justify-center rounded-2xl border border-border bg-card p-6 text-center shadow-xs">
+          <IconFileTypePdf className="size-10 text-red-500 dark:text-red-400" />
+          <h4 className="mt-3 font-semibold text-sm text-foreground">{title}</h4>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {error.includes("Invalid PDF structure") || error.includes("Missing PDF")
+              ? "Unable to parse PDF data directly. You can download the file below."
+              : error}
+          </p>
+          <div className="mt-5 flex gap-2 w-full">
+            <Button size="sm" className="w-full gap-1.5" onClick={onDownload}>
+              <IconDownload className="size-3.5" />
+              Download PDF
+            </Button>
+            {source && (
+              <a
+                href={source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}
+              >
+                Open in tab
+              </a>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div ref={containerRef} className="mx-auto flex max-w-3xl flex-col items-center" />
+      )}
     </div>
   )
 }

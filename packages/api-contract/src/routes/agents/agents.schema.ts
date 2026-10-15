@@ -22,9 +22,19 @@ export const configureToolSchema = z.object({
 });
 export type ConfigureToolInput = z.infer<typeof configureToolSchema>;
 
+export const conversationAttachmentSchema = z.object({
+  url: z.string().url(),
+  path: z.string().min(1),
+  name: z.string().min(1),
+  mimeType: z.string().min(1),
+  sizeBytes: z.number().int().nonnegative().optional(),
+});
+export type ConversationAttachment = z.infer<typeof conversationAttachmentSchema>;
+
 export const createAgentRunSchema = z.object({
   prompt: z.string().optional(),
   images: z.array(z.string().url()).max(10).optional(),
+  attachments: z.array(conversationAttachmentSchema).max(10).optional(),
   input: z.any().optional(),
   conversationId: z.string().uuid().optional(),
   clientContext: z
@@ -40,3 +50,4 @@ export const createAgentRunSchema = z.object({
 });
 
 export type CreateAgentRunInput = z.infer<typeof createAgentRunSchema>;
+

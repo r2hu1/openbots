@@ -33,6 +33,8 @@ import {
   IconX,
 } from "@tabler/icons-react"
 import * as React from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
 import type { ParsedArtifact } from "./parser"
 import { HtmlSandbox, MermaidSandbox, SvgSandbox } from "./sandboxes"
@@ -153,7 +155,7 @@ export function ArtifactSheet({
     }
   }, [artifact])
 
-  const handleDownload = React.useCallback(() => {
+  const handleDownload = React.useCallback(async () => {
     if (!artifact) return
 
     // If a direct source URL is provided (e.g. Supabase storage public URL)
@@ -167,8 +169,144 @@ export function ArtifactSheet({
       return
     }
 
+    const effectiveExt = (
+      artifact.fileType ||
+      artifact.title?.split(".").pop() ||
+      artifact.type ||
+      "txt"
+    ).toLowerCase()
+
+    // 1. Client-side PDF Generation from Markdown
+    if (effectiveExt === "pdf" && artifact.content) {
+      try {
+        const { jsPDF } = await import("jspdf")
+        const pdf = new jsPDF({ unit: "pt", format: "a4" })
+        const margin = 40
+        const pageWidth = pdf.internal.pageSize.getWidth()
+        const maxLineWidth = pageWidth - margin * 2
+
+        pdf.setFont("helvetica", "bold")
+        pdf.setFontSize(18)
+        pdf.text(artifact.title || "Document", margin, 50)
+
+        pdf.setFont("helvetica", "normal")
+        pdf.setFontSize(10)
+        let y = 80
+
+        const lines = artifact.content.split("\n")
+        for (const rawLine of lines) {
+          if (y > 780) {
+            pdf.addPage()
+            y = 50
+          }
+
+          if (!rawLine.trim()) {
+            y += 10
+            continue
+          }
+
+          const isHeader =
+            rawLine.startsWith("#") ||
+            (rawLine.endsWith(":") && rawLine.length < 50)
+          const cleanText = rawLine.replace(/^#+\s*/, "").replace(/\*\*/g, "")
+
+          if (isHeader) {
+            pdf.setFont("helvetica", "bold")
+            pdf.setFontSize(12)
+            y += 8
+          } else {
+            pdf.setFont("helvetica", "normal")
+            pdf.setFontSize(10)
+          }
+
+          const splitLines = pdf.splitTextToSize(cleanText, maxLineWidth)
+          for (const sLine of splitLines) {
+            if (y > 780) {
+              pdf.addPage()
+              y = 50
+            }
+            pdf.text(sLine, margin, y)
+            y += 14
+          }
+        }
+
+        pdf.save(`${slugify(artifact.title)}.pdf`)
+        return
+      } catch (e) {
+        console.warn("Client jsPDF export failed, falling back to text blob", e)
+      }
+    }
+
+    // 2. Client-side DOCX Generation from Markdown
+    if (
+      (effectiveExt === "docx" || effectiveExt === "doc") &&
+      artifact.content
+    ) {
+      try {
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel } =
+          await import("docx")
+        const paragraphs: any[] = []
+        paragraphs.push(
+          new Paragraph({
+            text: artifact.title,
+            heading: HeadingLevel.TITLE,
+            spacing: { after: 240 },
+          })
+        )
+
+        const rawLines = artifact.content.split("\n")
+        for (const line of rawLines) {
+          if (!line.trim()) {
+            paragraphs.push(new Paragraph({ text: "" }))
+            continue
+          }
+          if (line.startsWith("# ")) {
+            paragraphs.push(
+              new Paragraph({
+                text: line.replace(/^#\s+/, ""),
+                heading: HeadingLevel.HEADING_1,
+              })
+            )
+          } else if (line.startsWith("## ")) {
+            paragraphs.push(
+              new Paragraph({
+                text: line.replace(/^##\s+/, ""),
+                heading: HeadingLevel.HEADING_2,
+              })
+            )
+          } else if (line.startsWith("- ") || line.startsWith("* ")) {
+            paragraphs.push(
+              new Paragraph({
+                bullet: { level: 0 },
+                children: [new TextRun(line.replace(/^[-*]\s+/, ""))],
+              })
+            )
+          } else {
+            paragraphs.push(
+              new Paragraph({
+                children: [new TextRun(line)],
+                spacing: { after: 100 },
+              })
+            )
+          }
+        }
+
+        const doc = new Document({ sections: [{ children: paragraphs }] })
+        const blob = await Packer.toBlob(doc)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.download = `${slugify(artifact.title)}.docx`
+        link.click()
+        URL.revokeObjectURL(url)
+        return
+      } catch (e) {
+        console.warn("Client docx export failed, falling back", e)
+      }
+    }
+
     const meta = FILE_META[artifact.type] ?? {
-      ext: artifact.fileType || artifact.type,
+      ext: effectiveExt,
       mime: "text/plain",
     }
     const blob = new Blob([artifact.content], { type: meta.mime })
@@ -423,7 +561,10 @@ function FileViewer({
   }
 
   // DOCX / Word Document Preview
-  if ((ext === "docx" || ext === "doc") && (artifact.source || artifact.content)) {
+  if (
+    (ext === "docx" || ext === "doc") &&
+    (artifact.source || artifact.content)
+  ) {
     return (
       <DocxViewer
         source={artifact.source}
@@ -446,33 +587,22 @@ function FileViewer({
     )
   }
 
-  // Raw Text / Markdown / Code Content Preview (when content was passed)
+  // Rich Markdown / Formatted Document Content Preview (when content was passed without binary source)
   if (artifact.content && artifact.content.trim().length > 0) {
     return (
-      <div className="size-full overflow-auto bg-background p-6">
-        <div className="mx-auto max-w-3xl rounded-xl border border-border bg-card p-6 shadow-xs">
-          <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-            <div>
-              <h3 className="font-semibold text-foreground text-sm">{artifact.title}</h3>
-              <span className="text-xs text-muted-foreground uppercase">{ext} Document Preview</span>
-            </div>
-            <Button size="sm" variant="secondary" onClick={onDownload}>
-              <IconDownload className="mr-1 size-3.5" />
-              Download
-            </Button>
-          </div>
-          <div className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground select-text">
-            {artifact.content}
-          </div>
-        </div>
-      </div>
+      <MarkdownDocumentViewer
+        content={artifact.content}
+        title={artifact.title}
+        ext={ext}
+        onDownload={onDownload}
+      />
     )
   }
 
   // Generic & Document Preview / Download Screen
   return (
     <div className="flex size-full flex-col items-center justify-center bg-background p-8 text-center">
-      <div className="flex max-w-md flex-col items-center rounded-2xl border border-border bg-card p-8 shadow-sm">
+      <div className="flex max-w-md flex-col items-center p-8 shadow-sm">
         <div className="flex size-16 items-center justify-center rounded-2xl border border-border/80 bg-muted/60 text-primary shadow-xs">
           {isPdf ? (
             <IconFileTypePdf className="size-8 text-red-500 dark:text-red-400" />
@@ -562,7 +692,8 @@ function DocxViewer({
 
         if (source) {
           const res = await fetch(source)
-          if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch file`)
+          if (!res.ok)
+            throw new Error(`HTTP ${res.status}: Failed to fetch file`)
           buffer = await res.arrayBuffer()
         } else if (content) {
           // If content is base64 or text
@@ -607,10 +738,10 @@ function DocxViewer({
   }, [source, content])
 
   return (
-    <div className="relative size-full overflow-auto bg-muted/20 p-4 sm:p-8">
+    <div className="relative size-full overflow-auto">
       {loading && (
         <div className="flex size-full items-center justify-center">
-          <div className="flex flex-col items-center gap-2 text-muted-foreground text-xs">
+          <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
             <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span>Rendering document preview...</span>
           </div>
@@ -618,11 +749,15 @@ function DocxViewer({
       )}
 
       {error ? (
-        <div className="mx-auto flex max-w-md flex-col items-center justify-center rounded-2xl border border-border bg-card p-6 text-center shadow-xs">
+        <div className="flex flex-col items-center justify-center p-6 text-center">
           <IconFile className="size-10 text-muted-foreground" />
-          <h4 className="mt-3 font-semibold text-sm text-foreground">{title}</h4>
+          <h4 className="mt-3 text-sm font-semibold text-foreground">
+            {title}
+          </h4>
           <p className="mt-1 text-xs text-muted-foreground">
-            {error.includes("PK") || error.includes("zip") || error.includes("binary")
+            {error.includes("PK") ||
+            error.includes("zip") ||
+            error.includes("binary")
               ? "This document contains plain formatted text or custom layout."
               : error}
           </p>
@@ -639,7 +774,7 @@ function DocxViewer({
       ) : (
         <div
           ref={containerRef}
-          className="mx-auto max-w-4xl rounded-xl border border-border bg-background p-8 shadow-sm select-text [&_.docx-wrapper]:bg-transparent [&_table]:border-collapse [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:p-2"
+          className="mx-auto max-w-4xl rounded-xl border border-border bg-background p-8 shadow-sm select-text [&_.docx-wrapper]:bg-transparent [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2"
         />
       )}
     </div>
@@ -676,7 +811,8 @@ function SpreadsheetViewer({
 
         if (source) {
           const res = await fetch(source)
-          if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch file`)
+          if (!res.ok)
+            throw new Error(`HTTP ${res.status}: Failed to fetch file`)
           const ab = await res.arrayBuffer()
           workbook = XLSX.read(ab, { type: "array" })
         } else if (content) {
@@ -712,7 +848,7 @@ function SpreadsheetViewer({
   if (loading) {
     return (
       <div className="flex size-full items-center justify-center">
-        <div className="flex flex-col items-center gap-2 text-muted-foreground text-xs">
+        <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
           <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <span>Loading spreadsheet...</span>
         </div>
@@ -724,7 +860,9 @@ function SpreadsheetViewer({
     return (
       <div className="flex size-full flex-col items-center justify-center p-6 text-center">
         <IconFileSpreadsheet className="size-10 text-emerald-600 dark:text-emerald-400" />
-        <p className="mt-2 text-sm text-foreground font-medium">Unable to preview spreadsheet data directly</p>
+        <p className="mt-2 text-sm font-medium text-foreground">
+          Unable to preview spreadsheet data directly
+        </p>
         <p className="mt-1 text-xs text-muted-foreground">{error}</p>
         <Button size="sm" className="mt-4" onClick={onDownload}>
           <IconDownload className="mr-1.5 size-4" />
@@ -746,7 +884,7 @@ function SpreadsheetViewer({
               className={cn(
                 "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 activeSheet === name
-                  ? "bg-background text-foreground shadow-xs border border-border"
+                  ? "border border-border bg-background text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -763,8 +901,9 @@ function SpreadsheetViewer({
               <tr
                 key={rIdx}
                 className={cn(
-                  "border-b border-border/60 hover:bg-muted/20 transition-colors",
-                  rIdx === 0 && "bg-muted/40 font-semibold text-foreground sticky top-0"
+                  "border-b border-border/60 transition-colors hover:bg-muted/20",
+                  rIdx === 0 &&
+                    "sticky top-0 bg-muted/40 font-semibold text-foreground"
                 )}
               >
                 <td className="w-10 border-r border-border/40 bg-muted/20 px-2 py-1.5 text-center text-[10px] text-muted-foreground select-none">
@@ -772,7 +911,10 @@ function SpreadsheetViewer({
                 </td>
                 {Array.isArray(row) &&
                   row.map((cell, cIdx) => (
-                    <td key={cIdx} className="border-r border-border/40 px-3 py-1.5 truncate max-w-xs">
+                    <td
+                      key={cIdx}
+                      className="max-w-xs truncate border-r border-border/40 px-3 py-1.5"
+                    >
                       {cell !== undefined && cell !== null ? String(cell) : ""}
                     </td>
                   ))}
@@ -817,7 +959,8 @@ function PdfCanvasViewer({
         let dataSrc: any = null
         if (source) {
           const res = await fetch(source)
-          if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch PDF`)
+          if (!res.ok)
+            throw new Error(`HTTP ${res.status}: Failed to fetch PDF`)
           const ab = await res.arrayBuffer()
           dataSrc = { data: new Uint8Array(ab) }
         } else if (content) {
@@ -863,7 +1006,8 @@ function PdfCanvasViewer({
           pageWrapper.appendChild(canvas)
 
           const pageLabel = document.createElement("div")
-          pageLabel.className = "mt-2 text-[11px] text-muted-foreground font-mono"
+          pageLabel.className =
+            "mt-2 text-[11px] text-muted-foreground font-mono"
           pageLabel.innerText = `Page ${pageNum} of ${pdf.numPages}`
           pageWrapper.appendChild(pageLabel)
 
@@ -896,7 +1040,7 @@ function PdfCanvasViewer({
     <div className="relative size-full overflow-auto bg-muted/20 p-4 sm:p-8">
       {loading && (
         <div className="flex size-full items-center justify-center">
-          <div className="flex flex-col items-center gap-2 text-muted-foreground text-xs">
+          <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
             <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span>Rendering PDF document...</span>
           </div>
@@ -904,15 +1048,18 @@ function PdfCanvasViewer({
       )}
 
       {error ? (
-        <div className="mx-auto flex max-w-md flex-col items-center justify-center rounded-2xl border border-border bg-card p-6 text-center shadow-xs">
+        <div className="mx-auto flex max-w-md flex-col items-center justify-center p-6 text-center shadow-xs">
           <IconFileTypePdf className="size-10 text-red-500 dark:text-red-400" />
-          <h4 className="mt-3 font-semibold text-sm text-foreground">{title}</h4>
+          <h4 className="mt-3 text-sm font-semibold text-foreground">
+            {title}
+          </h4>
           <p className="mt-1 text-xs text-muted-foreground">
-            {error.includes("Invalid PDF structure") || error.includes("Missing PDF")
+            {error.includes("Invalid PDF structure") ||
+            error.includes("Missing PDF")
               ? "Unable to parse PDF data directly. You can download the file below."
               : error}
           </p>
-          <div className="mt-5 flex gap-2 w-full">
+          <div className="mt-5 flex w-full gap-2">
             <Button size="sm" className="w-full gap-1.5" onClick={onDownload}>
               <IconDownload className="size-3.5" />
               Download PDF
@@ -922,7 +1069,10 @@ function PdfCanvasViewer({
                 href={source}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "w-full"
+                )}
               >
                 Open in tab
               </a>
@@ -930,8 +1080,48 @@ function PdfCanvasViewer({
           </div>
         </div>
       ) : (
-        <div ref={containerRef} className="mx-auto flex max-w-3xl flex-col items-center" />
+        <div
+          ref={containerRef}
+          className="mx-auto flex max-w-3xl flex-col items-center"
+        />
       )}
+    </div>
+  )
+}
+
+function MarkdownDocumentViewer({
+  content,
+  title,
+  ext,
+  onDownload,
+}: {
+  content: string
+  title: string
+  ext: string
+  onDownload: () => void
+}) {
+  return (
+    <div className="size-full overflow-auto bg-muted/20 p-4 sm:p-8">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-background p-6 shadow-sm select-text sm:p-10">
+        <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              {title}
+            </h2>
+            <span className="font-mono text-xs text-muted-foreground uppercase">
+              {ext} Document
+            </span>
+          </div>
+          <Button size="sm" onClick={onDownload}>
+            <IconDownload className="mr-1.5 size-3.5" />
+            Download {ext.toUpperCase()}
+          </Button>
+        </div>
+
+        <div className="prose prose-sm dark:prose-invert max-w-none text-foreground [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_blockquote]:italic [&_h1]:border-b [&_h1]:border-border [&_h1]:pb-2 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-medium [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:p-2 [&_ul]:list-disc [&_ul]:pl-5">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        </div>
+      </div>
     </div>
   )
 }

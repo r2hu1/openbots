@@ -11,6 +11,7 @@ import {
   DocumentText,
   Download,
   FilePdf,
+  Import,
   Maximize,
   VectorSquare,
 } from "reicon-react"
@@ -522,16 +523,16 @@ function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
       onKeyDown={handleKeyDown}
       className={cn(
         "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
-        "rounded-xl border border-border/70 bg-muted text-muted-foreground transition-all duration-200",
-        "cursor-pointer hover:border-primary/40 hover:bg-muted/40 hover:shadow-md",
+        "rounded-xl border bg-card text-card-foreground transition-all duration-200",
+        "cursor-pointer ring-muted hover:ring-3",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
         <div
           className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/50",
-            "bg-muted/70 text-foreground transition-colors group-hover/artifact:border-primary/30 group-hover/artifact:bg-primary/10"
+            "flex size-10 shrink-0 items-center justify-center rounded-lg border",
+            "bg-muted text-foreground transition-colors"
           )}
         >
           <ArtifactIcon type="file" fileType={artifact.fileType} />
@@ -569,19 +570,19 @@ function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
         {artifact.source && (
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="icon-xs"
             onClick={handleDownload}
             className="size-7 rounded-md text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
             title="Download file"
             aria-label="Download file"
           >
-            <Download className="size-3.5" />
+            <Import className="size-3.5" />
           </Button>
         )}
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="icon-xs"
           onClick={(e) => {
             e.stopPropagation()

@@ -409,11 +409,27 @@ export async function executeAgentRun(
         const images: string[] = Array.isArray(contentObj.images)
           ? contentObj.images
           : []
+        const attachments: Array<any> = Array.isArray(contentObj.attachments)
+          ? contentObj.attachments
+          : []
+
+        let combinedText = textContent
+        if (attachments.length > 0) {
+          const docNotes = attachments
+            .map(
+              (a) =>
+                `[Attached document: "${a.name}" (${a.mimeType || "document"})\nURL: ${a.url}\nUse parse_document tool with this URL to extract its text, structure, sheets, slides, or styles]`,
+            )
+            .join("\n\n")
+          combinedText = combinedText
+            ? `${combinedText}\n\n${docNotes}`
+            : docNotes
+        }
 
         if (images.length > 0) {
           const parts: Array<any> = []
-          if (textContent) {
-            parts.push({ type: "text", text: textContent })
+          if (combinedText) {
+            parts.push({ type: "text", text: combinedText })
           }
           for (const imgUrl of images) {
             parts.push(await fetchImagePart(imgUrl))
@@ -426,7 +442,7 @@ export async function executeAgentRun(
           inputMessages.push({
             role: "user",
             content:
-              textContent ||
+              combinedText ||
               (typeof m.content === "string"
                 ? m.content
                 : JSON.stringify(m.content)),
@@ -460,12 +476,28 @@ export async function executeAgentRun(
     const runImages: string[] = Array.isArray(inputObj?.images)
       ? inputObj.images
       : []
+    const runAttachments: Array<any> = Array.isArray(inputObj?.attachments)
+      ? inputObj.attachments
+      : []
 
-    if (promptText || runImages.length > 0) {
+    let promptWithDocs = promptText
+    if (runAttachments.length > 0) {
+      const docNotes = runAttachments
+        .map(
+          (a) =>
+            `[Attached document: "${a.name}" (${a.mimeType || "document"})\nURL: ${a.url}\nUse parse_document tool with this URL to extract its text, structure, sheets, slides, or styles]`,
+        )
+        .join("\n\n")
+      promptWithDocs = promptWithDocs
+        ? `${promptWithDocs}\n\n${docNotes}`
+        : docNotes
+    }
+
+    if (promptWithDocs || runImages.length > 0) {
       const isScheduleTrigger = runRecord.triggerType === "schedule"
       const effectiveUserPrompt = isScheduleTrigger
-        ? `[SYSTEM NOTIFICATION: The timer/scheduled alarm for this task has elapsed now.]\nDeliver this reminder/scheduled alert directly to the user:\n"${promptText}"`
-        : promptText
+        ? `[SYSTEM NOTIFICATION: The timer/scheduled alarm for this task has elapsed now.]\nDeliver this reminder/scheduled alert directly to the user:\n"${promptWithDocs}"`
+        : promptWithDocs
 
       // Check if already in history as the last message
       const lastMsg = inputMessages[inputMessages.length - 1]

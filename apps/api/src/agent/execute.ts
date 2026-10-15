@@ -979,8 +979,33 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
     }
 
     if (!finalText) {
-      finalText =
-        "I finished executing the requested tool actions and reached the step limit."
+      // If tool execution produced artifacts or results (e.g. create_downloadable_file, web_search, write_file),
+      // synthesize a helpful conclusion rather than a blunt technical error.
+      const allRunSteps = await db
+        .select()
+        .from(runSteps)
+        .where(eq(runSteps.runId, runRecord.id))
+        .orderBy(asc(runSteps.stepNumber));
+
+      const fileStep = allRunSteps.find(
+        (s) =>
+          s.toolName === "create_downloadable_file" ||
+          s.toolName === "save_and_share_file"
+      );
+
+      if (fileStep?.toolOutput) {
+        const out = fileStep.toolOutput as Record<string, any>;
+        if (out.inlineArtifactSnippet) {
+          finalText = `I have generated your file.\n\n${out.inlineArtifactSnippet}`;
+        } else if (out.downloadUrl) {
+          finalText = `I have generated and saved your file: [${out.fileName || "Download file"}](${out.downloadUrl})`;
+        }
+      }
+
+      if (!finalText) {
+        finalText =
+          "I have completed the requested actions. Please let me know if you would like me to adjust or expand anything!";
+      }
     }
 
     // Wait for any remaining background step writes before completing

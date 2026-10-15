@@ -18,12 +18,17 @@
     "better-auth": "^1.7.0",
     "drizzle-orm": "^0.45.3",
     "hono": "^4.7.11",
+    "jszip": "^3.10.2",
+    "mammoth": "^1.13.0",
+    "pdf-parse": "1.1.1",
     "web-push": "^3.6.7",
+    "xlsx": "^0.18.5",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@openbots/typescript-config": "workspace:*",
     "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.5",
     "@types/web-push": "^3.6.4",
     "typescript": "^5"
   },

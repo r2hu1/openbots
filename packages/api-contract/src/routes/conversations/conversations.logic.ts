@@ -77,7 +77,13 @@ export async function getConversation(
       .select()
       .from(messages)
       .where(and(...queryConditions))
-      .orderBy(desc(messages.createdAt), desc(messages.id))
+      .orderBy(
+        desc(messages.createdAt),
+        // In descending order (newest first), assistant should come before user
+        // so that when reversed into chronological order (oldest first), user comes before assistant
+        sql`CASE WHEN ${messages.role} = 'assistant' THEN 0 WHEN ${messages.role} = 'tool' THEN 1 ELSE 2 END`,
+        desc(messages.id),
+      )
       .limit(limit + 1),
   ]);
 
@@ -224,30 +230,46 @@ export async function uploadConversationImage(
   file: File | Blob,
   fileName?: string,
 ) {
-  // Validate file size: 5MB maximum
-  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  // Validate file size: 25MB maximum for docs/media
+  const MAX_FILE_SIZE = 25 * 1024 * 1024;
   if (file.size > MAX_FILE_SIZE) {
     return {
-      error: "File size exceeds the 5MB maximum limit.",
+      error: "File size exceeds the 25MB maximum limit.",
       status: 400 as const,
     };
   }
 
-  // Validate mime type: images only
-  const contentType = file.type || "image/jpeg";
-  if (!contentType.startsWith("image/")) {
-    return {
-      error: "Only image files (JPEG, PNG, WebP, GIF, SVG) are allowed.",
-      status: 400 as const,
-    };
-  }
+  const rawName = fileName || (file as any).name || "file.bin";
+  const extension = rawName.includes(".")
+    ? rawName.split(".").pop()!.toLowerCase()
+    : "bin";
 
-  const extension =
-    fileName?.split(".").pop() || contentType.split("/")[1] || "png";
+  const mimeMap: Record<string, string> = {
+    pdf: "application/pdf",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    doc: "application/msword",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ppt: "application/vnd.ms-powerpoint",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    xls: "application/vnd.ms-excel",
+    csv: "text/csv",
+    txt: "text/plain",
+    md: "text/markdown",
+    json: "application/json",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    gif: "image/gif",
+    svg: "image/svg+xml",
+  };
+
+  const contentType =
+    file.type || mimeMap[extension] || "application/octet-stream";
   const uniqueId = crypto.randomUUID();
   const bucket =
     process.env.SUPABASE_STORAGE_BUCKET || "conversation-attachments";
-  const path = `${userId}/${uniqueId}.${extension}`;
+  const path = `${userId}/${uniqueId}_${rawName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
   const { uploadStorageObject, getStoragePublicUrl } = await import(
     "@openbots/db"
@@ -263,9 +285,9 @@ export async function uploadConversationImage(
   });
 
   if (error || !data) {
-    console.error("Failed to upload image to Supabase storage:", error);
+    console.error("Failed to upload file to Supabase storage:", error);
     return {
-      error: error?.message || "Failed to upload image to storage.",
+      error: error?.message || "Failed to upload file to storage.",
       status: 500 as const,
     };
   }
@@ -276,6 +298,9 @@ export async function uploadConversationImage(
     success: true,
     url: publicUrlData.publicUrl,
     path,
+    name: rawName,
+    mimeType: contentType,
+    sizeBytes: file.size,
     status: 200 as const,
   };
 }

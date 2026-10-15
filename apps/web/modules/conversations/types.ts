@@ -6,6 +6,14 @@ export type ReplyTarget = {
   text: string;
 };
 
+export type AttachmentItem = {
+  url: string;
+  path: string;
+  name: string;
+  mimeType: string;
+  sizeBytes?: number;
+};
+
 export type MessageItem = {
   id: string;
   conversationId: string;

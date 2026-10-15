@@ -20,6 +20,35 @@ export function getMessageImages(content: unknown): string[] {
   return [];
 }
 
+export interface MessageAttachment {
+  url: string;
+  path: string;
+  name: string;
+  mimeType: string;
+  sizeBytes?: number;
+}
+
+export function getMessageAttachments(content: unknown): MessageAttachment[] {
+  if (!content || typeof content !== "object") return [];
+  const obj = content as Record<string, unknown>;
+  if (Array.isArray(obj.attachments)) {
+    return obj.attachments.filter(
+      (att): att is MessageAttachment =>
+        typeof att === "object" &&
+        att !== null &&
+        typeof (att as any).url === "string",
+    );
+  }
+  return [];
+}
+
+export function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function formatMsgTime(dateVal: string | Date): string {
   try {
     const d = new Date(dateVal);

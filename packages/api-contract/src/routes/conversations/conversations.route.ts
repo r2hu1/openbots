@@ -49,7 +49,7 @@ export const conversationsRoute = new Hono<Env>()
     }
 
     if (!file || typeof file === "string" || !(file instanceof Blob)) {
-      return c.json({ error: "No image file provided." }, 400);
+      return c.json({ error: "No file provided." }, 400);
     }
 
     const fileName = (file as any).name || "image.png";

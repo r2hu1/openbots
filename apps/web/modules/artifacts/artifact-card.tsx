@@ -522,8 +522,8 @@ function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
       onKeyDown={handleKeyDown}
       className={cn(
         "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
-        "rounded-xl border border-border/70 bg-muted text-muted-foreground shadow-xs transition-all duration-200",
-        "cursor-pointer hover:border-primary/40 hover:bg-muted/40 hover:shadow-sm",
+        "rounded-xl border border-border/70 bg-muted text-muted-foreground transition-all duration-200",
+        "cursor-pointer hover:border-primary/40 hover:bg-muted/40 hover:shadow-md",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       )}
     >

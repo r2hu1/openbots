@@ -114,7 +114,7 @@ export function UserMenu({
                 {resolvedTheme === "dark" ? <Moon3 /> : <Sun2 />}
                 Theme
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="min-w-36 rounded-xl">
+              <DropdownMenuSubContent className="min-w-36">
                 <DropdownMenuItem onClick={() => setTheme("light")}>
                   <Sun2 />
                   Light

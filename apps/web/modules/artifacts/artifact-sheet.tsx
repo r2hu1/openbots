@@ -396,32 +396,99 @@ function FileViewer({
   if (isPdf && artifact.source) {
     return (
       <div className="relative flex size-full flex-col bg-background">
-        <iframe
-          src={`${artifact.source}#toolbar=1`}
+        <object
+          data={artifact.source}
+          type="application/pdf"
           className="size-full border-0 bg-background"
-          title={artifact.title}
-        />
+        >
+          <iframe
+            src={`${artifact.source}#toolbar=1`}
+            className="size-full border-0 bg-background"
+            title={artifact.title}
+          >
+            <div className="flex size-full flex-col items-center justify-center p-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Unable to display PDF directly in your browser.
+              </p>
+              <Button size="sm" className="mt-3" onClick={onDownload}>
+                <IconDownload className="mr-1.5 size-4" />
+                Download PDF
+              </Button>
+            </div>
+          </iframe>
+        </object>
       </div>
     )
   }
 
   // Image Preview
   if (isImage && (artifact.source || artifact.content)) {
-    const imgSrc = artifact.source || (artifact.content.startsWith("data:") ? artifact.content : `data:image/${ext};base64,${artifact.content}`)
+    const imgSrc =
+      artifact.source ||
+      (artifact.content.startsWith("data:")
+        ? artifact.content
+        : `data:image/${ext};base64,${artifact.content}`)
     return (
       <div className="flex size-full items-center justify-center overflow-auto bg-muted/20 p-6">
         <img
           src={imgSrc}
           alt={artifact.title}
-          className="max-h-full max-w-full rounded-md object-contain shadow-sm border border-border"
+          className="max-h-full max-w-full rounded-md border border-border object-contain shadow-sm"
         />
+      </div>
+    )
+  }
+
+  // DOCX / Word Document Preview
+  if ((ext === "docx" || ext === "doc") && (artifact.source || artifact.content)) {
+    return (
+      <DocxViewer
+        source={artifact.source}
+        content={artifact.content}
+        title={artifact.title}
+        onDownload={onDownload}
+      />
+    )
+  }
+
+  // Spreadsheet (XLSX, XLS, CSV) Preview
+  if (isSpreadsheet && (artifact.source || artifact.content)) {
+    return (
+      <SpreadsheetViewer
+        source={artifact.source}
+        content={artifact.content}
+        ext={ext}
+        onDownload={onDownload}
+      />
+    )
+  }
+
+  // Raw Text / Markdown / Code Content Preview (when content was passed)
+  if (artifact.content && artifact.content.trim().length > 0) {
+    return (
+      <div className="size-full overflow-auto bg-background p-6">
+        <div className="mx-auto max-w-3xl rounded-xl border border-border bg-card p-6 shadow-xs">
+          <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+            <div>
+              <h3 className="font-semibold text-foreground text-sm">{artifact.title}</h3>
+              <span className="text-xs text-muted-foreground uppercase">{ext} Document Preview</span>
+            </div>
+            <Button size="sm" variant="secondary" onClick={onDownload}>
+              <IconDownload className="mr-1 size-3.5" />
+              Download
+            </Button>
+          </div>
+          <div className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground select-text">
+            {artifact.content}
+          </div>
+        </div>
       </div>
     )
   }
 
   // Generic & Document Preview / Download Screen
   return (
-    <div className="flex size-full flex-col items-center justify-center p-8 text-center bg-background">
+    <div className="flex size-full flex-col items-center justify-center bg-background p-8 text-center">
       <div className="flex max-w-md flex-col items-center rounded-2xl border border-border bg-card p-8 shadow-sm">
         <div className="flex size-16 items-center justify-center rounded-2xl border border-border/80 bg-muted/60 text-primary shadow-xs">
           {isPdf ? (
@@ -435,12 +502,12 @@ function FileViewer({
           )}
         </div>
 
-        <h3 className="mt-4 font-semibold text-lg text-foreground tracking-tight line-clamp-2">
+        <h3 className="mt-4 line-clamp-2 text-lg font-semibold tracking-tight text-foreground">
           {artifact.title}
         </h3>
 
         <div className="mt-1.5 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <span className="font-mono uppercase font-semibold text-foreground/80 tracking-wide">
+          <span className="font-mono font-semibold tracking-wide text-foreground/80 uppercase">
             {ext}
           </span>
           {formattedSize && (
@@ -458,15 +525,12 @@ function FileViewer({
         </div>
 
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-          This file was generated and safely stored. Click below to download or view it in your preferred application.
+          This file was generated and safely stored. Click below to download or
+          view it in your preferred application.
         </p>
 
         <div className="mt-6 flex w-full flex-col gap-2.5">
-          <Button
-            size="lg"
-            className="w-full gap-2 font-medium"
-            onClick={onDownload}
-          >
+          <Button onClick={onDownload}>
             <IconDownload className="size-4" />
             Download {ext.toUpperCase()}
           </Button>
@@ -476,15 +540,263 @@ function FileViewer({
               href={artifact.source}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "w-full text-xs text-muted-foreground hover:text-foreground"
-              )}
+              className={cn(buttonVariants({ variant: "outline" }))}
             >
               Open source link in new tab
             </a>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function DocxViewer({
+  source,
+  content,
+  title,
+  onDownload,
+}: {
+  source?: string
+  content?: string
+  title: string
+  onDownload: () => void
+}) {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let active = true
+
+    async function loadDocx() {
+      if (!containerRef.current) return
+      setLoading(true)
+      setError(null)
+
+      try {
+        let buffer: ArrayBuffer | null = null
+
+        if (source) {
+          const res = await fetch(source)
+          if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch file`)
+          buffer = await res.arrayBuffer()
+        } else if (content) {
+          // If content is base64 or text
+          if (content.startsWith("UEsDB") || content.length % 4 === 0) {
+            try {
+              const bin = atob(content)
+              const bytes = new Uint8Array(bin.length)
+              for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+              buffer = bytes.buffer
+            } catch {
+              // Not base64
+            }
+          }
+        }
+
+        if (!buffer) {
+          throw new Error("No binary data available to render document preview")
+        }
+
+        const { renderAsync } = await import("docx-preview")
+        if (!active || !containerRef.current) return
+        containerRef.current.innerHTML = ""
+        await renderAsync(buffer, containerRef.current, undefined, {
+          className: "docx-document",
+          inWrapper: false,
+          ignoreWidth: true,
+          ignoreHeight: true,
+        })
+        setLoading(false)
+      } catch (err: any) {
+        if (!active) return
+        setError(err?.message || "Failed to parse DOCX document")
+        setLoading(false)
+      }
+    }
+
+    loadDocx()
+
+    return () => {
+      active = false
+    }
+  }, [source, content])
+
+  return (
+    <div className="relative size-full overflow-auto bg-muted/20 p-4 sm:p-8">
+      {loading && (
+        <div className="flex size-full items-center justify-center">
+          <div className="flex flex-col items-center gap-2 text-muted-foreground text-xs">
+            <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span>Rendering document preview...</span>
+          </div>
+        </div>
+      )}
+
+      {error ? (
+        <div className="mx-auto flex max-w-md flex-col items-center justify-center rounded-2xl border border-border bg-card p-6 text-center shadow-xs">
+          <IconFile className="size-10 text-muted-foreground" />
+          <h4 className="mt-3 font-semibold text-sm text-foreground">{title}</h4>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {error.includes("PK") || error.includes("zip") || error.includes("binary")
+              ? "This document contains plain formatted text or custom layout."
+              : error}
+          </p>
+          {content && content.trim().length > 0 && (
+            <div className="mt-4 max-h-60 w-full overflow-auto rounded-md bg-muted/30 p-3 text-left font-mono text-xs whitespace-pre-wrap select-text">
+              {content}
+            </div>
+          )}
+          <Button size="sm" className="mt-4" onClick={onDownload}>
+            <IconDownload className="mr-1.5 size-4" />
+            Download File
+          </Button>
+        </div>
+      ) : (
+        <div
+          ref={containerRef}
+          className="mx-auto max-w-4xl rounded-xl border border-border bg-background p-8 shadow-sm select-text [&_.docx-wrapper]:bg-transparent [&_table]:border-collapse [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:p-2"
+        />
+      )}
+    </div>
+  )
+}
+
+function SpreadsheetViewer({
+  source,
+  content,
+  ext,
+  onDownload,
+}: {
+  source?: string
+  content?: string
+  ext: string
+  onDownload: () => void
+}) {
+  const [data, setData] = React.useState<any[][]>([])
+  const [sheetNames, setSheetNames] = React.useState<string[]>([])
+  const [activeSheet, setActiveSheet] = React.useState<string>("")
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let active = true
+
+    async function parseSpreadsheet() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const XLSX = await import("xlsx")
+        let workbook: any = null
+
+        if (source) {
+          const res = await fetch(source)
+          if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch file`)
+          const ab = await res.arrayBuffer()
+          workbook = XLSX.read(ab, { type: "array" })
+        } else if (content) {
+          workbook = XLSX.read(content, { type: "string" })
+        }
+
+        if (!workbook || !workbook.SheetNames?.length) {
+          throw new Error("No sheet data found")
+        }
+
+        if (!active) return
+        setSheetNames(workbook.SheetNames)
+        const firstSheet = workbook.SheetNames[0]
+        setActiveSheet(firstSheet)
+        const sheet = workbook.Sheets[firstSheet]
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
+        setData(rows)
+        setLoading(false)
+      } catch (err: any) {
+        if (!active) return
+        setError(err?.message || "Failed to parse spreadsheet")
+        setLoading(false)
+      }
+    }
+
+    parseSpreadsheet()
+
+    return () => {
+      active = false
+    }
+  }, [source, content])
+
+  if (loading) {
+    return (
+      <div className="flex size-full items-center justify-center">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground text-xs">
+          <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span>Loading spreadsheet...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !data.length) {
+    return (
+      <div className="flex size-full flex-col items-center justify-center p-6 text-center">
+        <IconFileSpreadsheet className="size-10 text-emerald-600 dark:text-emerald-400" />
+        <p className="mt-2 text-sm text-foreground font-medium">Unable to preview spreadsheet data directly</p>
+        <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+        <Button size="sm" className="mt-4" onClick={onDownload}>
+          <IconDownload className="mr-1.5 size-4" />
+          Download {ext.toUpperCase()}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex size-full flex-col overflow-hidden bg-background">
+      {sheetNames.length > 1 && (
+        <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-muted/30 px-3 py-1.5">
+          {sheetNames.map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => setActiveSheet(name)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                activeSheet === name
+                  ? "bg-background text-foreground shadow-xs border border-border"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-auto p-4 select-text">
+        <table className="w-full border-collapse text-left font-mono text-xs">
+          <tbody>
+            {data.map((row, rIdx) => (
+              <tr
+                key={rIdx}
+                className={cn(
+                  "border-b border-border/60 hover:bg-muted/20 transition-colors",
+                  rIdx === 0 && "bg-muted/40 font-semibold text-foreground sticky top-0"
+                )}
+              >
+                <td className="w-10 border-r border-border/40 bg-muted/20 px-2 py-1.5 text-center text-[10px] text-muted-foreground select-none">
+                  {rIdx + 1}
+                </td>
+                {Array.isArray(row) &&
+                  row.map((cell, cIdx) => (
+                    <td key={cIdx} className="border-r border-border/40 px-3 py-1.5 truncate max-w-xs">
+                      {cell !== undefined && cell !== null ? String(cell) : ""}
+                    </td>
+                  ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

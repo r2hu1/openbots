@@ -2,8 +2,13 @@
 
 import {
   Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
   AttachmentGroup,
   AttachmentMedia,
+  AttachmentTitle,
 } from "@openbots/ui/components/attachment"
 import {
   Bubble,
@@ -41,6 +46,7 @@ import {
   Check as IconCheck,
   Copy as IconCopy,
   Download as IconDownload,
+  DocumentText as IconDocumentText,
   EmojiHappy as IconEmojiHappy,
   CodeFile as IconFileCode,
   FilePdf as IconFileTypePdf,
@@ -54,7 +60,9 @@ import { ArtifactCard } from "@/modules/artifacts/artifact-card"
 import { type ParsedArtifact, parseArtifacts } from "@/modules/artifacts/parser"
 import type { MessageItem, ReplyTarget } from "../types"
 import {
+  formatFileSize,
   formatMsgTime,
+  getMessageAttachments,
   getMessageImages,
   getMessageText,
   splitIntoMessageParts,
@@ -102,344 +110,352 @@ interface ConversationMessageItemProps {
 // and React component remounts
 const seenReactionsByMsg = new Map<string, Set<string>>()
 
-export const ConversationMessageItem = React.memo(function ConversationMessageItem({
-  message,
-  agentName,
-  onOpenArtifact,
-  onReply,
-  onReact,
-  isStreaming = false,
-}: ConversationMessageItemProps) {
-  const isUser = message.role === "user"
-  const text = getMessageText(message.content)
-  const images = React.useMemo(
-    () => getMessageImages(message.content),
-    [message.content]
-  )
+export const ConversationMessageItem = React.memo(
+  function ConversationMessageItem({
+    message,
+    agentName,
+    onOpenArtifact,
+    onReply,
+    onReact,
+    isStreaming = false,
+  }: ConversationMessageItemProps) {
+    const isUser = message.role === "user"
+    const text = getMessageText(message.content)
+    const images = React.useMemo(
+      () => getMessageImages(message.content),
+      [message.content]
+    )
+    const attachments = React.useMemo(
+      () => getMessageAttachments(message.content),
+      [message.content]
+    )
 
-  // Message tracking key: combine message.id and message content hash/snippet
-  const msgTrackingKey = React.useMemo(() => {
-    return isUser && text ? `user-${text.trim()}` : `msg-${message.id}`
-  }, [isUser, text, message.id])
+    // Message tracking key: combine message.id and message content hash/snippet
+    const msgTrackingKey = React.useMemo(() => {
+      return isUser && text ? `user-${text.trim()}` : `msg-${message.id}`
+    }, [isUser, text, message.id])
 
-  // Set of reactions recently fired by user click to avoid firing twice on query refetch
-  const userFiredReactionsRef = React.useRef<Set<string>>(new Set())
+    // Set of reactions recently fired by user click to avoid firing twice on query refetch
+    const userFiredReactionsRef = React.useRef<Set<string>>(new Set())
 
-  const handleReaction = React.useCallback(
-    (emoji: string, origin?: { x: number; y: number }) => {
-      // Users can only react to agent messages, not their own
-      if (isUser) return
-      userFiredReactionsRef.current.add(emoji)
-      fireEmojiConfetti(emoji, origin)
-      onReact?.(message.id, emoji)
-    },
-    [isUser, message.id, onReact]
-  )
+    const handleReaction = React.useCallback(
+      (emoji: string, origin?: { x: number; y: number }) => {
+        // Users can only react to agent messages, not their own
+        if (isUser) return
+        userFiredReactionsRef.current.add(emoji)
+        fireEmojiConfetti(emoji, origin)
+        onReact?.(message.id, emoji)
+      },
+      [isUser, message.id, onReact]
+    )
 
-  const reactions = React.useMemo(() => {
-    const meta = (message.metadata as Record<string, any>) || {}
-    if (Array.isArray(meta.reactions)) {
-      return meta.reactions as string[]
-    }
-    return []
-  }, [message.metadata])
+    const reactions = React.useMemo(() => {
+      const meta = (message.metadata as Record<string, any>) || {}
+      if (Array.isArray(meta.reactions)) {
+        return meta.reactions as string[]
+      }
+      return []
+    }, [message.metadata])
 
-  const prevReactionsRef = React.useRef<string[]>(reactions)
-  const isInitialRenderRef = React.useRef(true)
+    const prevReactionsRef = React.useRef<string[]>(reactions)
+    const isInitialRenderRef = React.useRef(true)
 
-  React.useEffect(() => {
-    let seenSet = seenReactionsByMsg.get(msgTrackingKey)
-    if (!seenSet) {
-      // First time we encounter this message ever in session
-      // If it already has reactions on first encounter, record them as already seen
-      seenSet = new Set(reactions)
-      seenReactionsByMsg.set(msgTrackingKey, seenSet)
-      isInitialRenderRef.current = false
-      prevReactionsRef.current = reactions
-      return
-    }
+    React.useEffect(() => {
+      let seenSet = seenReactionsByMsg.get(msgTrackingKey)
+      if (!seenSet) {
+        // First time we encounter this message ever in session
+        // If it already has reactions on first encounter, record them as already seen
+        seenSet = new Set(reactions)
+        seenReactionsByMsg.set(msgTrackingKey, seenSet)
+        isInitialRenderRef.current = false
+        prevReactionsRef.current = reactions
+        return
+      }
 
-    // If message is known, check for any newly added reactions that haven't been shown yet
-    for (const emoji of reactions) {
-      if (!seenSet.has(emoji)) {
-        seenSet.add(emoji)
-        if (userFiredReactionsRef.current.has(emoji)) {
-          userFiredReactionsRef.current.delete(emoji)
-        } else {
-          // Trigger confetti for the newly arrived reaction!
-          const rect = bubbleRef.current?.getBoundingClientRect()
-          const origin = rect
-            ? {
-                x:
-                  (isUser ? rect.right - 40 : rect.left + 40) /
-                  window.innerWidth,
-                y: (rect.bottom - 10) / window.innerHeight,
-              }
-            : isUser
-              ? { x: 0.85, y: 0.7 }
-              : { x: 0.2, y: 0.7 }
-          fireEmojiConfetti(emoji, origin)
+      // If message is known, check for any newly added reactions that haven't been shown yet
+      for (const emoji of reactions) {
+        if (!seenSet.has(emoji)) {
+          seenSet.add(emoji)
+          if (userFiredReactionsRef.current.has(emoji)) {
+            userFiredReactionsRef.current.delete(emoji)
+          } else {
+            // Trigger confetti for the newly arrived reaction!
+            const rect = bubbleRef.current?.getBoundingClientRect()
+            const origin = rect
+              ? {
+                  x:
+                    (isUser ? rect.right - 40 : rect.left + 40) /
+                    window.innerWidth,
+                  y: (rect.bottom - 10) / window.innerHeight,
+                }
+              : isUser
+                ? { x: 0.85, y: 0.7 }
+                : { x: 0.2, y: 0.7 }
+            fireEmojiConfetti(emoji, origin)
+          }
         }
       }
-    }
-    prevReactionsRef.current = reactions
-    isInitialRenderRef.current = false
-  }, [reactions, msgTrackingKey, isUser])
+      prevReactionsRef.current = reactions
+      isInitialRenderRef.current = false
+    }, [reactions, msgTrackingKey, isUser])
 
-  const { messageParts } = React.useMemo(() => {
-    if (isUser) {
-      return {
-        messageParts: [
-          {
-            partId: `usr-${message.id}`,
-            segments: [
-              { id: `usr-${message.id}`, type: "text" as const, text },
-            ],
-          },
-        ],
-      }
-    }
-
-    // Split text into natural conversational parts live as text grows, matching post-stream format
-    const parts = splitIntoMessageParts(text)
-    const formattedParts = parts.map((partText, idx) => {
-      const { segments } = parseArtifacts(partText)
-      return {
-        partId: `asst-${message.id}-p${idx}`,
-        segments,
-      }
-    })
-
-    return { messageParts: formattedParts }
-  }, [isUser, message.id, text])
-
-  const [copied, setCopied] = React.useState(false)
-  const [shared, setShared] = React.useState(false)
-
-  const handleCopy = React.useCallback(async () => {
-    if (!text) return
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("Failed to copy message:", err)
-    }
-  }, [text])
-
-  const handleShare = React.useCallback(async () => {
-    if (!text) return
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({
-          title: `Message from ${isUser ? "User" : agentName}`,
-          text,
-        })
-      } else {
-        await navigator.clipboard.writeText(text)
-      }
-      setShared(true)
-      setTimeout(() => setShared(false), 2000)
-    } catch (err) {
-      if ((err as Error)?.name !== "AbortError") {
-        console.error("Failed to share message:", err)
-      }
-    }
-  }, [text, isUser, agentName])
-
-  const bubbleRef = React.useRef<HTMLDivElement>(null)
-  const [selectedText, setSelectedText] = React.useState<string | null>(null)
-  const [selectionPosition, setSelectionPosition] = React.useState<{
-    top: number
-    left: number
-  } | null>(null)
-
-  // Track text selection inside this message's text bubbles (ignoring artifacts)
-  const handleMouseUp = React.useCallback(() => {
-    // Wait a tick for window.getSelection to update
-    requestAnimationFrame(() => {
-      const selection = window.getSelection()
-      if (!selection || selection.isCollapsed || !bubbleRef.current) {
-        setSelectedText(null)
-        setSelectionPosition(null)
-        return
+    const { messageParts } = React.useMemo(() => {
+      if (isUser) {
+        return {
+          messageParts: [
+            {
+              partId: `usr-${message.id}`,
+              segments: [
+                { id: `usr-${message.id}`, type: "text" as const, text },
+              ],
+            },
+          ],
+        }
       }
 
-      const raw = selection.toString().trim()
-      if (!raw) {
-        setSelectedText(null)
-        setSelectionPosition(null)
-        return
-      }
-
-      // Check if the selection is inside our text content
-      const anchorNode = selection.anchorNode
-      const focusNode = selection.focusNode
-      if (!anchorNode || !focusNode) return
-
-      const isInside =
-        bubbleRef.current.contains(anchorNode) &&
-        bubbleRef.current.contains(focusNode)
-
-      if (!isInside) {
-        setSelectedText(null)
-        setSelectionPosition(null)
-        return
-      }
-
-      // Make sure the selection is NOT inside an artifact card
-      const anchorElement =
-        anchorNode instanceof Element ? anchorNode : anchorNode.parentElement
-      const focusElement =
-        focusNode instanceof Element ? focusNode : focusNode.parentElement
-
-      if (
-        anchorElement?.closest("[data-artifact-card]") ||
-        focusElement?.closest("[data-artifact-card]")
-      ) {
-        setSelectedText(null)
-        setSelectionPosition(null)
-        return
-      }
-
-      const range = selection.getRangeAt(0)
-      const rect = range.getBoundingClientRect()
-      const bubbleRect = bubbleRef.current.getBoundingClientRect()
-
-      setSelectedText(raw)
-      setSelectionPosition({
-        top: rect.top - bubbleRect.top - 36, // position 36px above selection
-        left: rect.left - bubbleRect.left + rect.width / 2,
+      // Split text into natural conversational parts live as text grows, matching post-stream format
+      const parts = splitIntoMessageParts(text)
+      const formattedParts = parts.map((partText, idx) => {
+        const { segments } = parseArtifacts(partText)
+        return {
+          partId: `asst-${message.id}-p${idx}`,
+          segments,
+        }
       })
-    })
-  }, [])
 
-  // Clear floating menu on click away or selection change
-  React.useEffect(() => {
-    const handleDocumentSelectionChange = () => {
-      const selection = window.getSelection()
-      if (!selection || selection.isCollapsed) {
-        setSelectedText(null)
-        setSelectionPosition(null)
+      return { messageParts: formattedParts }
+    }, [isUser, message.id, text])
+
+    const [copied, setCopied] = React.useState(false)
+    const [shared, setShared] = React.useState(false)
+
+    const handleCopy = React.useCallback(async () => {
+      if (!text) return
+      try {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        console.error("Failed to copy message:", err)
       }
-    }
+    }, [text])
 
-    document.addEventListener("selectionchange", handleDocumentSelectionChange)
-    return () => {
-      document.removeEventListener(
+    const handleShare = React.useCallback(async () => {
+      if (!text) return
+      try {
+        if (typeof navigator !== "undefined" && navigator.share) {
+          await navigator.share({
+            title: `Message from ${isUser ? "User" : agentName}`,
+            text,
+          })
+        } else {
+          await navigator.clipboard.writeText(text)
+        }
+        setShared(true)
+        setTimeout(() => setShared(false), 2000)
+      } catch (err) {
+        if ((err as Error)?.name !== "AbortError") {
+          console.error("Failed to share message:", err)
+        }
+      }
+    }, [text, isUser, agentName])
+
+    const bubbleRef = React.useRef<HTMLDivElement>(null)
+    const [selectedText, setSelectedText] = React.useState<string | null>(null)
+    const [selectionPosition, setSelectionPosition] = React.useState<{
+      top: number
+      left: number
+    } | null>(null)
+
+    // Track text selection inside this message's text bubbles (ignoring artifacts)
+    const handleMouseUp = React.useCallback(() => {
+      // Wait a tick for window.getSelection to update
+      requestAnimationFrame(() => {
+        const selection = window.getSelection()
+        if (!selection || selection.isCollapsed || !bubbleRef.current) {
+          setSelectedText(null)
+          setSelectionPosition(null)
+          return
+        }
+
+        const raw = selection.toString().trim()
+        if (!raw) {
+          setSelectedText(null)
+          setSelectionPosition(null)
+          return
+        }
+
+        // Check if the selection is inside our text content
+        const anchorNode = selection.anchorNode
+        const focusNode = selection.focusNode
+        if (!anchorNode || !focusNode) return
+
+        const isInside =
+          bubbleRef.current.contains(anchorNode) &&
+          bubbleRef.current.contains(focusNode)
+
+        if (!isInside) {
+          setSelectedText(null)
+          setSelectionPosition(null)
+          return
+        }
+
+        // Make sure the selection is NOT inside an artifact card
+        const anchorElement =
+          anchorNode instanceof Element ? anchorNode : anchorNode.parentElement
+        const focusElement =
+          focusNode instanceof Element ? focusNode : focusNode.parentElement
+
+        if (
+          anchorElement?.closest("[data-artifact-card]") ||
+          focusElement?.closest("[data-artifact-card]")
+        ) {
+          setSelectedText(null)
+          setSelectionPosition(null)
+          return
+        }
+
+        const range = selection.getRangeAt(0)
+        const rect = range.getBoundingClientRect()
+        const bubbleRect = bubbleRef.current.getBoundingClientRect()
+
+        setSelectedText(raw)
+        setSelectionPosition({
+          top: rect.top - bubbleRect.top - 36, // position 36px above selection
+          left: rect.left - bubbleRect.left + rect.width / 2,
+        })
+      })
+    }, [])
+
+    // Clear floating menu on click away or selection change
+    React.useEffect(() => {
+      const handleDocumentSelectionChange = () => {
+        const selection = window.getSelection()
+        if (!selection || selection.isCollapsed) {
+          setSelectedText(null)
+          setSelectionPosition(null)
+        }
+      }
+
+      document.addEventListener(
         "selectionchange",
         handleDocumentSelectionChange
       )
-    }
-  }, [])
-
-  const handleReplySelected = React.useCallback(
-    (replyText?: string) => {
-      const targetText = replyText || selectedText || text
-      if (!targetText) return
-
-      const sender = isUser ? "You" : agentName
-      if (onReply) {
-        onReply({
-          id: message.id,
-          sender,
-          text: targetText,
-        })
-      } else {
-        const textarea = document.querySelector(
-          "textarea"
-        ) as HTMLTextAreaElement | null
-        if (textarea) {
-          const quoted = targetText
-            .split("\n")
-            .map((line) => `> ${line}`)
-            .join("\n")
-          const current = textarea.value
-          const separator = current
-            ? current.endsWith("\n\n")
-              ? ""
-              : current.endsWith("\n")
-                ? "\n"
-                : "\n\n"
-            : ""
-          textarea.value = `${current}${separator}${quoted}\n\n`
-          textarea.dispatchEvent(new Event("input", { bubbles: true }))
-          textarea.focus()
-        }
-      }
-
-      // Clear selection
-      window.getSelection()?.removeAllRanges()
-      setSelectedText(null)
-      setSelectionPosition(null)
-    },
-    [selectedText, text, isUser, agentName, message.id, onReply]
-  )
-
-  const handleReply = React.useCallback(() => {
-    // If text was selected prior to opening the context menu, reply to that selection
-    if (selectedText) {
-      handleReplySelected(selectedText)
-      return
-    }
-
-    const currentSelection = window.getSelection()?.toString().trim()
-    if (currentSelection) {
-      handleReplySelected(currentSelection)
-      return
-    }
-
-    handleReplySelected(text)
-  }, [selectedText, text, handleReplySelected])
-
-  const handleDownload = React.useCallback(
-    (format: "txt" | "md" | "json") => {
-      if (!text) return
-
-      let content = text
-      let mimeType = "text/plain"
-      const extension = format
-
-      if (format === "json") {
-        content = JSON.stringify(
-          {
-            id: message.id,
-            role: message.role,
-            author: isUser ? "User" : agentName,
-            createdAt: message.createdAt,
-            content: text,
-          },
-          null,
-          2
+      return () => {
+        document.removeEventListener(
+          "selectionchange",
+          handleDocumentSelectionChange
         )
-        mimeType = "application/json"
-      } else if (format === "md") {
-        mimeType = "text/markdown"
+      }
+    }, [])
+
+    const handleReplySelected = React.useCallback(
+      (replyText?: string) => {
+        const targetText = replyText || selectedText || text
+        if (!targetText) return
+
+        const sender = isUser ? "You" : agentName
+        if (onReply) {
+          onReply({
+            id: message.id,
+            sender,
+            text: targetText,
+          })
+        } else {
+          const textarea = document.querySelector(
+            "textarea"
+          ) as HTMLTextAreaElement | null
+          if (textarea) {
+            const quoted = targetText
+              .split("\n")
+              .map((line) => `> ${line}`)
+              .join("\n")
+            const current = textarea.value
+            const separator = current
+              ? current.endsWith("\n\n")
+                ? ""
+                : current.endsWith("\n")
+                  ? "\n"
+                  : "\n\n"
+              : ""
+            textarea.value = `${current}${separator}${quoted}\n\n`
+            textarea.dispatchEvent(new Event("input", { bubbles: true }))
+            textarea.focus()
+          }
+        }
+
+        // Clear selection
+        window.getSelection()?.removeAllRanges()
+        setSelectedText(null)
+        setSelectionPosition(null)
+      },
+      [selectedText, text, isUser, agentName, message.id, onReply]
+    )
+
+    const handleReply = React.useCallback(() => {
+      // If text was selected prior to opening the context menu, reply to that selection
+      if (selectedText) {
+        handleReplySelected(selectedText)
+        return
       }
 
-      const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `message-${message.id}.${extension}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    },
-    [text, message.id, message.role, message.createdAt, isUser, agentName]
-  )
+      const currentSelection = window.getSelection()?.toString().trim()
+      if (currentSelection) {
+        handleReplySelected(currentSelection)
+        return
+      }
 
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger className="block w-full">
-        <Message align={isUser ? "end" : "start"} className="group">
-          {!isUser && (
-            <MessageAvatar className="-mr-0.5">
-              <Blobatar name={agentName} className="size-8" />
-            </MessageAvatar>
-          )}
-          <MessageContent>
+      handleReplySelected(text)
+    }, [selectedText, text, handleReplySelected])
+
+    const handleDownload = React.useCallback(
+      (format: "txt" | "md" | "json") => {
+        if (!text) return
+
+        let content = text
+        let mimeType = "text/plain"
+        const extension = format
+
+        if (format === "json") {
+          content = JSON.stringify(
+            {
+              id: message.id,
+              role: message.role,
+              author: isUser ? "User" : agentName,
+              createdAt: message.createdAt,
+              content: text,
+            },
+            null,
+            2
+          )
+          mimeType = "application/json"
+        } else if (format === "md") {
+          mimeType = "text/markdown"
+        }
+
+        const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `message-${message.id}.${extension}`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      },
+      [text, message.id, message.role, message.createdAt, isUser, agentName]
+    )
+
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger className="block w-full">
+          <Message align={isUser ? "end" : "start"} className="group">
+            {!isUser && (
+              <MessageAvatar className="-mr-0.5">
+                <Blobatar name={agentName} className="size-8" />
+              </MessageAvatar>
+            )}
+            <MessageContent>
               <div
                 ref={bubbleRef}
                 onMouseUp={handleMouseUp}
@@ -476,7 +492,6 @@ export const ConversationMessageItem = React.memo(function ConversationMessageIt
                         {images.map((imgUrl, idx) => (
                           <Attachment
                             key={idx}
-                            size="sm"
                             state="done"
                             orientation="vertical"
                           >
@@ -489,6 +504,76 @@ export const ConversationMessageItem = React.memo(function ConversationMessageIt
                             </AttachmentMedia>
                           </Attachment>
                         ))}
+                      </AttachmentGroup>
+                    )}
+                    {attachments.length > 0 && (
+                      <AttachmentGroup className="max-w-full justify-end">
+                        {attachments.map((att, idx) => {
+                          const isPdf =
+                            att.mimeType === "application/pdf" ||
+                            att.name.endsWith(".pdf")
+                          const isCode =
+                            att.mimeType.includes("json") ||
+                            att.mimeType.includes("code") ||
+                            att.name.endsWith(".json") ||
+                            att.name.endsWith(".js") ||
+                            att.name.endsWith(".ts") ||
+                            att.name.endsWith(".py")
+                          const isSpreadsheet =
+                            att.mimeType.includes("spreadsheet") ||
+                            att.mimeType.includes("excel") ||
+                            att.mimeType.includes("csv") ||
+                            att.name.endsWith(".xlsx") ||
+                            att.name.endsWith(".xls") ||
+                            att.name.endsWith(".csv")
+
+                          return (
+                            <Attachment
+                              key={att.path || idx}
+                              state="done"
+                              size="default"
+                              orientation="horizontal"
+                              className="bg-card text-card-foreground shadow-xs"
+                            >
+                              <AttachmentMedia variant="icon">
+                                {isPdf ? (
+                                  <IconFileTypePdf className="text-red-500" />
+                                ) : isCode ? (
+                                  <IconFileCode className="text-blue-500" />
+                                ) : isSpreadsheet ? (
+                                  <IconDocumentText className="text-emerald-500" />
+                                ) : (
+                                  <IconDocumentText className="text-primary" />
+                                )}
+                              </AttachmentMedia>
+                              <AttachmentContent className="max-w-48">
+                                <AttachmentTitle title={att.name}>
+                                  {att.name}
+                                </AttachmentTitle>
+                                {att.sizeBytes ? (
+                                  <AttachmentDescription>
+                                    {formatFileSize(att.sizeBytes)}
+                                  </AttachmentDescription>
+                                ) : null}
+                              </AttachmentContent>
+                              <AttachmentActions>
+                                <AttachmentAction
+                                  render={
+                                    <a
+                                      href={att.url}
+                                      download={att.name}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    />
+                                  }
+                                  title="Download file"
+                                >
+                                  <IconDownload className="size-3.5" />
+                                </AttachmentAction>
+                              </AttachmentActions>
+                            </Attachment>
+                          )
+                        })}
                       </AttachmentGroup>
                     )}
                     {text && (
@@ -635,7 +720,7 @@ export const ConversationMessageItem = React.memo(function ConversationMessageIt
               <MessageFooter className="items-center gap-2 px-0">
                 {isUser ? (
                   <>
-                    <div className="flex items-center gap-0.5 opacity-80 md:opacity-0 transition-opacity md:group-hover/message:opacity-100 md:group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex items-center gap-0.5 opacity-80 transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-hover/message:opacity-100">
                       <Button
                         type="button"
                         variant="ghost"
@@ -673,7 +758,7 @@ export const ConversationMessageItem = React.memo(function ConversationMessageIt
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-0.5 opacity-80 md:opacity-0 transition-opacity md:group-hover/message:opacity-100 md:group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex items-center gap-0.5 opacity-80 transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-hover/message:opacity-100">
                       <span className="mr-1 text-[10px] text-muted-foreground">
                         {formatMsgTime(message.createdAt)}
                       </span>
@@ -758,71 +843,72 @@ export const ConversationMessageItem = React.memo(function ConversationMessageIt
               </MessageFooter>
             </MessageContent>
           </Message>
-      </ContextMenuTrigger>
+        </ContextMenuTrigger>
 
-      <ContextMenuContent className="w-48">
-        {!isUser && (
+        <ContextMenuContent className="w-48">
+          {!isUser && (
+            <ContextMenuSub>
+              <ContextMenuSubTrigger>
+                <SmileCircle className="mr-2" />
+                <span>React</span>
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="flex min-w-0 flex-row items-center gap-1 p-1">
+                {QUICK_REACTIONS.map((emoji) => (
+                  <ContextMenuItem
+                    key={emoji}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      handleReaction(emoji, {
+                        x: (rect.left + rect.width / 2) / window.innerWidth,
+                        y: (rect.top + rect.height / 2) / window.innerHeight,
+                      })
+                    }}
+                    className="cursor-pointer text-base"
+                  >
+                    {emoji}
+                  </ContextMenuItem>
+                ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+          )}
+
+          <ContextMenuItem onClick={handleCopy}>
+            <IconCopy />
+            <span>Copy</span>
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleReply}>
+            <IconMessageReply />
+            <span>{selectedText ? "Reply to selection" : "Reply"}</span>
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleShare}>
+            <IconShare />
+            <span>Share</span>
+          </ContextMenuItem>
+
+          <ContextMenuSeparator />
+
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <SmileCircle className="mr-2" />
-              <span>React</span>
+              <IconDownload className="mr-2" />
+              <span>Download</span>
             </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="flex min-w-0 flex-row items-center gap-1 p-1">
-              {QUICK_REACTIONS.map((emoji) => (
-                <ContextMenuItem
-                  key={emoji}
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    handleReaction(emoji, {
-                      x: (rect.left + rect.width / 2) / window.innerWidth,
-                      y: (rect.top + rect.height / 2) / window.innerHeight,
-                    })
-                  }}
-                  className="cursor-pointer text-base"
-                >
-                  {emoji}
-                </ContextMenuItem>
-              ))}
+            <ContextMenuSubContent className="w-40">
+              <ContextMenuItem onClick={() => handleDownload("txt")}>
+                <IconFileTypeTxt />
+                <span>Plain Text (.txt)</span>
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => handleDownload("md")}>
+                <IconFileCode />
+                <span>Markdown (.md)</span>
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => handleDownload("json")}>
+                <IconFileCode />
+                <span>JSON (.json)</span>
+              </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
-        )}
-
-        <ContextMenuItem onClick={handleCopy}>
-          <IconCopy />
-          <span>Copy</span>
-        </ContextMenuItem>
-        <ContextMenuItem onClick={handleReply}>
-          <IconMessageReply />
-          <span>{selectedText ? "Reply to selection" : "Reply"}</span>
-        </ContextMenuItem>
-        <ContextMenuItem onClick={handleShare}>
-          <IconShare />
-          <span>Share</span>
-        </ContextMenuItem>
-
-        <ContextMenuSeparator />
-
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>
-            <IconDownload className="mr-2" />
-            <span>Download</span>
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-40">
-            <ContextMenuItem onClick={() => handleDownload("txt")}>
-              <IconFileTypeTxt />
-              <span>Plain Text (.txt)</span>
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => handleDownload("md")}>
-              <IconFileCode />
-              <span>Markdown (.md)</span>
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => handleDownload("json")}>
-              <IconFileCode />
-              <span>JSON (.json)</span>
-            </ContextMenuItem>
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-      </ContextMenuContent>
-    </ContextMenu>
-  )
-})
+        </ContextMenuContent>
+      </ContextMenu>
+    )
+  }
+)

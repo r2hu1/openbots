@@ -171,6 +171,27 @@ Handles OAuth connections, tool discovery, and tool execution for external apps 
 - **Connection:** `COMPOSIO_API_KEY`
 - **Access:** `import { getComposio } from "./lib/composio.js"`
 
+### Daytona — Cloud Desktop Sandboxes & Computer Use
+
+Dedicated isolated cloud sandbox per agent running desktop environments with X11, noVNC, and browser automation:
+
+- **Lifecycle:** Automated sandbox provisioning (`createAgentSandbox`) on agent creation, auto-reconnect on paused state, and deletion on agent teardown.
+- **Tools:** Computer use (`browser_navigate`, `take_screenshot`, `mouse_click`, `keyboard_type`) and live web interaction.
+- **HITL Takeover:** `browser_wait_for_user` pauses execution and prompts user interaction in the live noVNC desktop preview.
+- **Connection:** `DAYTONA_API_KEY` + `DAYTONA_SERVER_URL`
+
+### Artifacts & Document Rendering Engine
+
+Comprehensive artifact renderer mounted in `apps/web/modules/artifacts/`:
+
+- **Interactive Previews:** HTML Sandboxes (`HtmlSandbox`), SVGs (`SvgSandbox`), and Mermaid diagrams (`MermaidSandbox`).
+- **Rich Document Viewers:**
+  - Multi-page PDF canvas renderer (`pdfjs-dist`) with word-wrapped synthesis (`pdf-lib`).
+  - Microsoft Word document renderer (`docx-preview`, `docx`).
+  - Native Spreadsheet viewer (`xlsx`) with sheet switching and formatted tables.
+  - Formatted text & markdown viewer (`react-markdown` + `remark-gfm`) with automatic remote content fetching.
+- **Client & Server Generation:** Multi-format file creation tool (`create_downloadable_file`) and client-side zero-roundtrip export (`jspdf`, `docx`).
+
 ### Trigger.dev — Background Tasks
 
 Durable background execution in `apps/api`. Task definitions in `apps/api/src/trigger/`.
@@ -193,6 +214,9 @@ Handles long-running agent runs, scheduled tasks, retries, and human-in-the-loop
 | `UPSTASH_REDIS_REST_URL` | Server only (`packages/db`) | Upstash Redis endpoint |
 | `UPSTASH_REDIS_REST_TOKEN` | Server only (`packages/db`) | Upstash Redis auth token |
 | `GEMINI_API_KEY` | Server only (`apps/api`) | Google Generative AI / Gemini API key |
+| `DAYTONA_API_KEY` | Server only (`api-contract`) | Daytona cloud sandbox API key |
+| `DAYTONA_SERVER_URL` | Server only (`api-contract`) | Daytona server API endpoint |
+| `SUPABASE_STORAGE_BUCKET`| Server only (`apps/api`) | Storage bucket for generated files |
 | `COMPOSIO_API_KEY` | Server only (`api-contract`) | Composio API key |
 | `BETTER_AUTH_SECRET` | Server only (`api-contract`) | Auth encryption secret |
 | `BETTER_AUTH_URL` | Server only (`api-contract`) | Auth base URL |

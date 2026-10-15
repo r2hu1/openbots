@@ -64,18 +64,23 @@ When autonomous agents think and work, you shouldn't have to decipher walls of r
   - **"Sent the email"** _(to the requested recipient)_
 - Need to look under the hood? Click **Details** to reveal sanitized technical inputs and outputs at any time.
 
-### 4. Interactive Artifacts & Sandboxes
+### 4. Interactive Artifacts, Documents & Sandboxes
 
 ![Artifacts-Inline](./apps/web/public/preview-artifacts-inline.png)
 
 ![Artifacts](./apps/web/public/preview-artifacts.png)
 
-When your agent creates code, designs, or diagrams, it doesn't just print raw text — it generates living **Artifacts**:
+When your agent creates code, designs, diagrams, or downloadable reports, it doesn't just print raw text — it generates living **Artifacts**:
 
 - **Interactive HTML/CSS**: Live preview responsive web interfaces, dashboards, and UI prototypes directly in an expandable side sheet.
 - **Mermaid Flowcharts & Architectures**: Automatically render system flows, sequence diagrams, and entity-relationship models.
 - **Vector SVGs**: Render logos, icons, and illustrations.
-- **Copy & Export**: Switch seamlessly between preview and code with one click.
+- **Rich Document Rendering & Generation**:
+  - **PDF Documents**: High-fidelity multi-page PDF rendering via canvas rendering (`pdfjs-dist`) with client-side and server-side PDF generation (`pdf-lib`, `jspdf`).
+  - **Microsoft Word (DOCX)**: In-app Word document parsing and rendering (`docx-preview`, `docx`).
+  - **Formatted Markdown & Text**: Direct rendering of `.md`, `.txt`, `.json`, `.yaml` files with seamless styling that flows naturally into the canvas.
+  - **Spreadsheets (XLSX, CSV)**: Interactive multi-sheet tabular data preview with cell formatting (`xlsx`).
+- **One-Click Export**: Switch seamlessly between preview and raw code, or download as styled PDF, Word, or native formats with zero extra configuration.
 
 ### 5. Durable Background Workflows, Scheduling & Web Push
 

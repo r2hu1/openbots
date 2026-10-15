@@ -507,7 +507,7 @@ export const ConversationMessageItem = React.memo(
                       </AttachmentGroup>
                     )}
                     {attachments.length > 0 && (
-                      <AttachmentGroup className="max-w-full justify-end">
+                      <AttachmentGroup className="max-w-full flex-col">
                         {attachments.map((att, idx) => {
                           const isPdf =
                             att.mimeType === "application/pdf" ||
@@ -531,9 +531,8 @@ export const ConversationMessageItem = React.memo(
                             <Attachment
                               key={att.path || idx}
                               state="done"
-                              size="default"
                               orientation="horizontal"
-                              className="bg-card text-card-foreground shadow-xs"
+                              className="ml-auto"
                             >
                               <AttachmentMedia variant="icon">
                                 {isPdf ? (

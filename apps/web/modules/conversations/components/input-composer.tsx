@@ -27,7 +27,9 @@ import {
   CodeFile,
   Diagram,
   DocumentText,
+  DocumentUpload,
   FilePdf,
+  Gallery,
   ListCheck,
   Plus,
   Scan,
@@ -190,6 +192,8 @@ export function InputComposer({
   const [selectedIndex, setSelectedIndex] = React.useState(0)
   const [isDismissed, setIsDismissed] = React.useState(false)
   const [isExpanded, setIsExpanded] = React.useState(false)
+  const [isDragging, setIsDragging] = React.useState(false)
+  const dragCounterRef = React.useRef(0)
 
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -499,6 +503,61 @@ export function InputComposer({
     }
   }
 
+  // Full-page drag and drop support
+  React.useEffect(() => {
+    const onDragEnter = (event: DragEvent) => {
+      event.preventDefault()
+      dragCounterRef.current += 1
+      if (event.dataTransfer?.types?.includes("Files")) {
+        setIsDragging(true)
+      }
+    }
+
+    const onDragOver = (event: DragEvent) => {
+      event.preventDefault()
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "copy"
+      }
+    }
+
+    const onDragLeave = (event: DragEvent) => {
+      event.preventDefault()
+      dragCounterRef.current -= 1
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0
+        setIsDragging(false)
+      }
+    }
+
+    const onDrop = (event: DragEvent) => {
+      event.preventDefault()
+      dragCounterRef.current = 0
+      setIsDragging(false)
+
+      if (disabled || isSubmitting) return
+
+      const dt = event.dataTransfer
+      if (!dt) return
+
+      const files = dt.files ? Array.from(dt.files) : []
+      if (files.length > 0) {
+        handleProcessFiles(files)
+      }
+    }
+
+    window.addEventListener("dragenter", onDragEnter)
+    window.addEventListener("dragover", onDragOver)
+    window.addEventListener("dragleave", onDragLeave)
+    window.addEventListener("drop", onDrop)
+
+    return () => {
+      window.removeEventListener("dragenter", onDragEnter)
+      window.removeEventListener("dragover", onDragOver)
+      window.removeEventListener("dragleave", onDragLeave)
+      window.removeEventListener("drop", onDrop)
+    }
+  }, [disabled, isSubmitting, handleProcessFiles])
+
   const handleSubmit = React.useCallback(() => {
     if (!canSubmit) return
 
@@ -693,6 +752,27 @@ export function InputComposer({
           </div>
         )}
 
+        {/* Full-Page Drag and Drop Visual Overlay */}
+        {isDragging && (
+          <div className="pointer-events-none fixed inset-0 z-50 flex animate-in flex-col items-center justify-center gap-3 bg-background/75 backdrop-blur-sm duration-150 fade-in-0">
+            <div className="flex size-12 items-center justify-center rounded-xl border border-border bg-muted/50 text-foreground">
+              <DocumentUpload className="size-6" />
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-sm font-medium text-foreground">
+                Drop files to upload
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Images, documents, spreadsheets, or code
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Up to 10 files · 25 MB each
+              </p>
+            </div>
+          </div>
+        )}
+
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -702,7 +782,8 @@ export function InputComposer({
           <div
             onClick={handleContainerClick}
             className={cn(
-              "flex cursor-text flex-col overflow-hidden rounded-2xl border border-border/60 bg-sidebar transition-shadow duration-200 focus-within:border-foreground/20 focus-within:ring-3 focus-within:ring-border"
+              "relative flex cursor-text flex-col overflow-hidden rounded-2xl border border-border/60 bg-sidebar transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-3 focus-within:ring-border",
+              isDragging && "border-primary/80 ring-3 ring-primary/20"
             )}
           >
             {/* Hidden file input */}
@@ -854,7 +935,7 @@ export function InputComposer({
                 title={
                   attachments.length >= MAX_ATTACHMENTS
                     ? `Maximum ${MAX_ATTACHMENTS} files attached`
-                    : "Add files (max 10, up to 5MB each)"
+                    : "Add files (max 10, up to 25MB each)"
                 }
                 aria-label="Attach files"
               >

@@ -24,7 +24,10 @@ import {
   Chart,
   ClipboardCheck,
   Code,
+  CodeFile,
   Diagram,
+  DocumentText,
+  FilePdf,
   ListCheck,
   Plus,
   Scan,
@@ -36,9 +39,10 @@ import {
   useDeleteConversationImageMutation,
   useUploadConversationImageMutation,
 } from "../queries"
-import type { ReplyTarget } from "../types"
+import type { AttachmentItem, ReplyTarget } from "../types"
 import { cn } from "@/lib/utils"
 import { Kbd } from "@openbots/ui/components/kbd"
+import { formatFileSize } from "../utils"
 
 export interface SlashCommand {
   name: string
@@ -135,21 +139,29 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   },
 ]
 
-const MAX_IMAGES = 10
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
+const MAX_ATTACHMENTS = 10
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024 // 25 MB
 
-interface UploadingImage {
+interface UploadingAttachment {
   id: string
   file: File
-  previewUrl: string
+  previewUrl?: string
   uploadedUrl?: string
   uploadedPath?: string
+  name: string
+  mimeType?: string
+  sizeBytes: number
+  isImage: boolean
   status: "uploading" | "done" | "error"
   errorMessage?: string
 }
 
 interface InputComposerProps {
-  onSend: (prompt: string, images?: string[]) => void
+  onSend: (
+    prompt: string,
+    images?: string[],
+    attachments?: AttachmentItem[]
+  ) => void
   isSubmitting?: boolean
   isActiveRun?: boolean
   onCancelRun?: () => void
@@ -172,7 +184,9 @@ export function InputComposer({
   onClearReply,
 }: InputComposerProps) {
   const [text, setText] = React.useState("")
-  const [attachments, setAttachments] = React.useState<UploadingImage[]>([])
+  const [attachments, setAttachments] = React.useState<UploadingAttachment[]>(
+    []
+  )
   const [selectedIndex, setSelectedIndex] = React.useState(0)
   const [isDismissed, setIsDismissed] = React.useState(false)
   const [isExpanded, setIsExpanded] = React.useState(false)
@@ -185,10 +199,10 @@ export function InputComposer({
   const deleteMutation = useDeleteConversationImageMutation()
 
   const isUploadingAny = attachments.some((att) => att.status === "uploading")
-  const hasValidImages = attachments.some((att) => att.status === "done")
+  const hasValidAttachments = attachments.some((att) => att.status === "done")
   const isDisabled = disabled || isSubmitting
   const canSubmit =
-    (text.trim().length > 0 || hasValidImages) &&
+    (text.trim().length > 0 || hasValidAttachments) &&
     !isDisabled &&
     !isActiveRun &&
     !isUploadingAny
@@ -337,56 +351,51 @@ export function InputComposer({
 
   const handleProcessFiles = React.useCallback(
     async (files: File[]) => {
-      const imageFiles = files.filter((f) => f.type.startsWith("image/"))
+      if (files.length === 0) return
 
-      if (imageFiles.length === 0) {
-        toast.add({
-          title: "Invalid file type",
-          description:
-            "Please upload image files only (PNG, JPG, WebP, GIF, SVG).",
-          type: "warning",
-        })
-        return
-      }
-
-      const remainingSlots = MAX_IMAGES - attachments.length
+      const remainingSlots = MAX_ATTACHMENTS - attachments.length
 
       if (remainingSlots <= 0) {
         toast.add({
           title: "Limit reached",
-          description: `You can attach at most ${MAX_IMAGES} images at a time.`,
+          description: `You can attach at most ${MAX_ATTACHMENTS} files at a time.`,
           type: "warning",
         })
         return
       }
 
-      const filesToProcess = imageFiles.slice(0, remainingSlots)
+      const filesToProcess = files.slice(0, remainingSlots)
 
-      if (imageFiles.length > remainingSlots) {
+      if (files.length > remainingSlots) {
         toast.add({
           title: "Too many files",
-          description: `Only the first ${remainingSlots} images were added (${MAX_IMAGES} max).`,
+          description: `Only the first ${remainingSlots} files were added (${MAX_ATTACHMENTS} max).`,
           type: "warning",
         })
       }
 
       for (const file of filesToProcess) {
-        if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
           toast.add({
             title: "File too large",
-            description: `"${file.name}" exceeds the 5MB size limit.`,
+            description: `"${file.name}" exceeds the 25MB size limit.`,
             type: "error",
           })
           continue
         }
 
-        const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-        const previewUrl = URL.createObjectURL(file)
+        const id = `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+        const isImage = file.type.startsWith("image/")
+        const previewUrl = isImage ? URL.createObjectURL(file) : undefined
 
-        const newAttachment: UploadingImage = {
+        const newAttachment: UploadingAttachment = {
           id,
           file,
           previewUrl,
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+          isImage,
           status: "uploading",
         }
 
@@ -403,6 +412,9 @@ export function InputComposer({
                       status: "done",
                       uploadedUrl: res.url,
                       uploadedPath: res.path,
+                      name: res.name || item.name,
+                      mimeType: res.mimeType || item.mimeType,
+                      sizeBytes: res.sizeBytes ?? item.sizeBytes,
                     }
                   : item
               )
@@ -412,7 +424,7 @@ export function InputComposer({
             console.error("Upload error:", err)
 
             const errorMsg =
-              err?.message || "Failed to upload image. Please try again."
+              err?.message || "Failed to upload file. Please try again."
 
             toast.add({
               title: "Upload failed",
@@ -451,7 +463,9 @@ export function InputComposer({
       const item = prev.find((a) => a.id === id)
 
       if (item) {
-        URL.revokeObjectURL(item.previewUrl)
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl)
+        }
 
         // Delete from Supabase storage if it was already uploaded
         if (item.uploadedPath) {
@@ -463,7 +477,7 @@ export function InputComposer({
     })
   }
 
-  // Paste images from clipboard
+  // Paste images and files from clipboard
   const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = event.clipboardData?.items
     if (!items) return
@@ -473,7 +487,7 @@ export function InputComposer({
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
 
-      if (item && item.kind === "file" && item.type.startsWith("image/")) {
+      if (item && item.kind === "file") {
         const file = item.getAsFile()
         if (file) files.push(file)
       }
@@ -500,15 +514,31 @@ export function InputComposer({
       finalPrompt = `${quoted}\n\n${rawText}`
     }
 
-    const uploadedUrls = attachments
-      .filter((a) => a.status === "done" && !!a.uploadedUrl)
+    const uploadedImages = attachments
+      .filter((a) => a.status === "done" && a.isImage && !!a.uploadedUrl)
       .map((a) => a.uploadedUrl!)
 
-    onSend(finalPrompt, uploadedUrls.length > 0 ? uploadedUrls : undefined)
+    const uploadedDocs: AttachmentItem[] = attachments
+      .filter((a) => a.status === "done" && !!a.uploadedUrl)
+      .map((a) => ({
+        url: a.uploadedUrl!,
+        path: a.uploadedPath || "",
+        name: a.name,
+        mimeType: a.mimeType || "application/octet-stream",
+        sizeBytes: a.sizeBytes,
+      }))
+
+    onSend(
+      finalPrompt,
+      uploadedImages.length > 0 ? uploadedImages : undefined,
+      uploadedDocs.length > 0 ? uploadedDocs : undefined
+    )
 
     // Clean up preview blob URLs
     for (const a of attachments) {
-      URL.revokeObjectURL(a.previewUrl)
+      if (a.previewUrl) {
+        URL.revokeObjectURL(a.previewUrl)
+      }
     }
 
     setAttachments([])
@@ -679,11 +709,11 @@ export function InputComposer({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.json,image/*"
               multiple
               className="hidden"
               onChange={handleFileChange}
-              disabled={disabled || attachments.length >= MAX_IMAGES}
+              disabled={disabled || attachments.length >= MAX_ATTACHMENTS}
             />
 
             {/* Replying banner */}
@@ -724,46 +754,82 @@ export function InputComposer({
             {attachments.length > 0 && (
               <div className="px-3 pt-2.5">
                 <AttachmentGroup className="gap-1.5">
-                  {attachments.map((att) => (
-                    <Attachment
-                      key={att.id}
-                      size="sm"
-                      state={att.status}
-                      className="group/item relative overflow-hidden rounded-lg"
-                    >
-                      <AttachmentMedia variant="image" className="size-10!">
-                        <img
-                          src={att.previewUrl}
-                          alt={att.file.name}
-                          className="size-full object-cover"
-                        />
-                      </AttachmentMedia>
+                  {attachments.map((att) => {
+                    const isPdf =
+                      att.mimeType === "application/pdf" ||
+                      att.name.endsWith(".pdf")
+                    const isCode =
+                      att.mimeType?.includes("json") ||
+                      att.mimeType?.includes("code") ||
+                      att.name.endsWith(".json") ||
+                      att.name.endsWith(".js") ||
+                      att.name.endsWith(".ts") ||
+                      att.name.endsWith(".py")
+                    const isSpreadsheet =
+                      att.mimeType?.includes("spreadsheet") ||
+                      att.mimeType?.includes("excel") ||
+                      att.mimeType?.includes("csv") ||
+                      att.name.endsWith(".xlsx") ||
+                      att.name.endsWith(".xls") ||
+                      att.name.endsWith(".csv")
 
-                      <AttachmentContent className="max-w-30 truncate">
-                        <AttachmentTitle>{att.file.name}</AttachmentTitle>
+                    return (
+                      <Attachment
+                        key={att.id}
+                        size="sm"
+                        state={att.status}
+                        className="group/item relative overflow-hidden rounded-lg"
+                      >
+                        {att.isImage && att.previewUrl ? (
+                          <AttachmentMedia variant="image" className="size-10!">
+                            <img
+                              src={att.previewUrl}
+                              alt={att.name}
+                              className="size-full object-cover"
+                            />
+                          </AttachmentMedia>
+                        ) : (
+                          <AttachmentMedia variant="icon" className="size-10!">
+                            {isPdf ? (
+                              <FilePdf className="size-5 text-red-500" />
+                            ) : isCode ? (
+                              <CodeFile className="size-5 text-blue-500" />
+                            ) : isSpreadsheet ? (
+                              <DocumentText className="size-5 text-emerald-500" />
+                            ) : (
+                              <DocumentText className="size-5 text-primary" />
+                            )}
+                          </AttachmentMedia>
+                        )}
 
-                        <AttachmentDescription>
-                          {att.status}
-                        </AttachmentDescription>
-                      </AttachmentContent>
+                        <AttachmentContent className="max-w-36 truncate">
+                          <AttachmentTitle>{att.name}</AttachmentTitle>
 
-                      <AttachmentActions>
-                        <AttachmentAction
-                          variant="secondary"
-                          size="icon-xs"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleRemoveAttachment(att.id)
-                          }}
-                          className="size-5 rounded-full bg-background/80 hover:bg-background"
-                          title="Remove image"
-                          aria-label="Remove image"
-                        >
-                          <X className="size-3" />
-                        </AttachmentAction>
-                      </AttachmentActions>
-                    </Attachment>
-                  ))}
+                          <AttachmentDescription>
+                            {att.status === "uploading"
+                              ? "uploading..."
+                              : formatFileSize(att.sizeBytes) || att.status}
+                          </AttachmentDescription>
+                        </AttachmentContent>
+
+                        <AttachmentActions>
+                          <AttachmentAction
+                            variant="secondary"
+                            size="icon-xs"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveAttachment(att.id)
+                            }}
+                            className="size-5 rounded-full bg-background/80 hover:bg-background"
+                            title="Remove attachment"
+                            aria-label="Remove attachment"
+                          >
+                            <X className="size-3" />
+                          </AttachmentAction>
+                        </AttachmentActions>
+                      </Attachment>
+                    )
+                  })}
                 </AttachmentGroup>
               </div>
             )}
@@ -783,14 +849,14 @@ export function InputComposer({
                   e.stopPropagation()
                   fileInputRef.current?.click()
                 }}
-                disabled={disabled || attachments.length >= MAX_IMAGES}
+                disabled={disabled || attachments.length >= MAX_ATTACHMENTS}
                 className="absolute bottom-2.5 left-2 size-8 rounded-full text-muted-foreground transition-transform hover:bg-muted hover:text-foreground active:scale-95"
                 title={
-                  attachments.length >= MAX_IMAGES
-                    ? `Maximum ${MAX_IMAGES} images attached`
-                    : "Add images (max 10, up to 5MB each)"
+                  attachments.length >= MAX_ATTACHMENTS
+                    ? `Maximum ${MAX_ATTACHMENTS} files attached`
+                    : "Add files (max 10, up to 5MB each)"
                 }
-                aria-label="Attach images"
+                aria-label="Attach files"
               >
                 <Plus className="size-4" />
               </Button>

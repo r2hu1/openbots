@@ -39,9 +39,16 @@ When the user asks for a mini UI, chart, graph, diagram, visualization, timer, o
 - RULE: NEVER use mode="inline" for portfolios, landing pages, full websites, games, or comprehensive dashboards. ALWAYS set mode="card" for those!
 
 Attributes:
-- type: "html" | "svg" | "mermaid"
-- title: short, specific title (e.g. "Developer Portfolio", "Monthly Sales Trend", "Pomodoro Timer")
-- mode: "inline" (for mini UIs/charts/timers only) OR "card" (for portfolios, landing pages, full apps, games, dashboards)
+- type: "html" | "svg" | "mermaid" | "file"
+- title: short, specific title (e.g. "Developer Portfolio", "Monthly Sales Trend", "quarterly-report.pdf")
+- mode: "inline" (for mini UIs/charts/timers/files) OR "card" (for portfolios, landing pages, full apps, games, dashboards)
+- For type="file":
+  - source: URL of the file (e.g. public Supabase storage URL)
+  - fileType: extension or format (e.g. "pdf", "docx", "xlsx", "csv", "json", "png", "zip")
+  - size: file size in bytes (optional)
+  - createdAt / updatedAt: ISO timestamps (optional)
+  - Example: \`<openbots-artifact type="file" source="https://..." fileType="pdf" title="Quarterly Financial Report.pdf" size="248100" />\`
+  - The UI will render a minimal, responsive file card with download button and clicking it opens the artifact sheet preview.
 
 ### HTML artifacts
 

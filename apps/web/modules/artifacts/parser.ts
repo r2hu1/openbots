@@ -1,10 +1,16 @@
 export interface ParsedArtifact {
   id: string;
-  type: "html" | "svg" | "mermaid";
+  type: "html" | "svg" | "mermaid" | "file";
   title: string;
   content: string;
   mode?: "inline" | "card";
   isStreaming?: boolean;
+  // Extended file artifact attributes
+  source?: string;
+  fileType?: string;
+  size?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ContentSegment {
@@ -15,21 +21,47 @@ export interface ContentSegment {
 }
 
 const ARTIFACT_REGEX =
-  /<openbots-artifact\s+([^>]*?)>([\s\S]*?)<\/openbots-artifact>/gi;
+  /<openbots-artifact\s+([^>]*?)(?:\/>|>([\s\S]*?)<\/openbots-artifact>)/gi;
 
 function parseAttributes(rawAttrs: string = ""): {
+  id?: string;
   type?: string;
   title?: string;
   mode?: string;
+  source?: string;
+  size?: string;
+  filetype?: string;
+  createdat?: string;
+  updatedat?: string;
+  [key: string]: string | undefined;
 } {
   const attrs: Record<string, string> = {};
-  const attrRegex = /([a-zA-Z0-9_-]+)="([^"]*)"/g;
+  const KNOWN_EXTS = new Set([
+    "pdf", "docx", "doc", "pptx", "ppt", "xlsx", "xls", "csv", "txt", "md",
+    "json", "html", "js", "ts", "py", "png", "jpg", "jpeg", "webp", "svg",
+  ]);
+
+  // Support key="val", key='val', key={val}
+  const attrRegex = /([a-zA-Z0-9_-]+)=(?:"([^"]*)"|'([^']*)'|{([^}]*)})/g;
   let match = attrRegex.exec(rawAttrs);
   while (match !== null) {
-    const key = match[1];
-    const val = match[2];
-    if (key !== undefined && val !== undefined) {
-      attrs[key.toLowerCase()] = val;
+    const key = match[1]?.toLowerCase();
+    const val = (match[2] ?? match[3] ?? match[4])?.trim();
+    if (key && val !== undefined) {
+      if (key === "type") {
+        if (val.toLowerCase() === "file") {
+          attrs.type = "file";
+        } else if (KNOWN_EXTS.has(val.toLowerCase())) {
+          attrs.filetype = val.toLowerCase();
+          if (!attrs.type) attrs.type = "file";
+        } else if (!attrs.type) {
+          attrs.type = val;
+        } else {
+          attrs.filetype = val;
+        }
+      } else {
+        attrs[key] = val;
+      }
     }
     match = attrRegex.exec(rawAttrs);
   }
@@ -68,13 +100,25 @@ export function parseArtifacts(content: string): {
       type: rawType,
       title: rawTitle,
       mode: rawMode,
+      source: rawSource,
+      size: rawSize,
+      filetype: rawFileType,
+      createdat: rawCreatedAt,
+      updatedat: rawUpdatedAt,
     } = parseAttributes(rawAttrs);
 
     const typeLower = (rawType || "html").toLowerCase().trim();
-    const type: "html" | "svg" | "mermaid" =
-      typeLower === "svg" || typeLower === "mermaid" ? typeLower : "html";
+    const type: "html" | "svg" | "mermaid" | "file" =
+      typeLower === "svg" || typeLower === "mermaid" || typeLower === "file"
+        ? typeLower
+        : "html";
 
-    const title = (rawTitle || `${type.toUpperCase()} Artifact`).trim();
+    const title = (
+      rawTitle ||
+      (type === "file" && rawSource
+        ? rawSource.split("/").pop() || "Document"
+        : `${type.toUpperCase()} Artifact`)
+    ).trim();
     const cleanContent = (rawContent || "").trim();
     const titleLower = title.toLowerCase();
     const isBigTask =
@@ -92,15 +136,26 @@ export function parseArtifacts(content: string): {
         cleanContent.length > 2500);
 
     const mode: "inline" | "card" =
-      isBigTask
-        ? "card"
-        : rawMode === "inline"
-          ? "inline"
-          : rawMode === "card"
-            ? "card"
-            : type === "mermaid" || type === "svg"
-              ? "inline"
-              : "card";
+      type === "file"
+        ? "inline"
+        : isBigTask
+          ? "card"
+          : rawMode === "inline"
+            ? "inline"
+            : rawMode === "card"
+              ? "card"
+              : type === "mermaid" || type === "svg"
+                ? "inline"
+                : "card";
+
+    // Detect file type if not provided explicitly
+    const fileType =
+      rawFileType ||
+      (rawSource && rawSource.includes(".")
+        ? rawSource.split(".").pop()?.toLowerCase()
+        : title.includes(".")
+          ? title.split(".").pop()?.toLowerCase()
+          : undefined);
 
     const artifact: ParsedArtifact = {
       id: `artifact-${artifacts.length + 1}-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
@@ -109,6 +164,11 @@ export function parseArtifacts(content: string): {
       content: cleanContent,
       mode,
       isStreaming: false,
+      source: rawSource,
+      fileType,
+      size: rawSize,
+      createdAt: rawCreatedAt,
+      updatedAt: rawUpdatedAt,
     };
 
     artifacts.push(artifact);
@@ -157,13 +217,25 @@ export function parseArtifacts(content: string): {
         type: rawType,
         title: rawTitle,
         mode: rawMode,
+        source: rawSource,
+        size: rawSize,
+        filetype: rawFileType,
+        createdat: rawCreatedAt,
+        updatedat: rawUpdatedAt,
       } = parseAttributes(rawAttrs);
 
       const typeLower = (rawType || "html").toLowerCase().trim();
-      const type: "html" | "svg" | "mermaid" =
-        typeLower === "svg" || typeLower === "mermaid" ? typeLower : "html";
+      const type: "html" | "svg" | "mermaid" | "file" =
+        typeLower === "svg" || typeLower === "mermaid" || typeLower === "file"
+          ? typeLower
+          : "html";
 
-      const title = (rawTitle || `${type.toUpperCase()} Artifact`).trim();
+      const title = (
+        rawTitle ||
+        (type === "file" && rawSource
+          ? rawSource.split("/").pop() || "Document"
+          : `${type.toUpperCase()} Artifact`)
+      ).trim();
       const cleanContent = rawContent.replace(
         /<\/openbots-artifact?[\s\S]*$/i,
         "",
@@ -184,15 +256,25 @@ export function parseArtifacts(content: string): {
           cleanContent.length > 2500);
 
       const mode: "inline" | "card" =
-        isBigTask
-          ? "card"
-          : rawMode === "inline"
-            ? "inline"
-            : rawMode === "card"
-              ? "card"
-              : type === "mermaid" || type === "svg"
-                ? "inline"
-                : "card";
+        type === "file"
+          ? "inline"
+          : isBigTask
+            ? "card"
+            : rawMode === "inline"
+              ? "inline"
+              : rawMode === "card"
+                ? "card"
+                : type === "mermaid" || type === "svg"
+                  ? "inline"
+                  : "card";
+
+      const fileType =
+        rawFileType ||
+        (rawSource && rawSource.includes(".")
+          ? rawSource.split(".").pop()?.toLowerCase()
+          : title.includes(".")
+            ? title.split(".").pop()?.toLowerCase()
+            : undefined);
 
       const artifactIndex = artifacts.length + 1;
       const artifact: ParsedArtifact = {
@@ -202,6 +284,11 @@ export function parseArtifacts(content: string): {
         content: cleanContent,
         mode,
         isStreaming: true,
+        source: rawSource,
+        fileType,
+        size: rawSize,
+        createdAt: rawCreatedAt,
+        updatedAt: rawUpdatedAt,
       };
 
       artifacts.push(artifact);

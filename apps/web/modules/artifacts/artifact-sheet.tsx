@@ -443,6 +443,49 @@ export function ArtifactSheet({
                   <DropdownMenuItem onClick={handleDownload}>
                     Download as {typeLabel}
                   </DropdownMenuItem>
+
+                  {artifact.type === "html" && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          try {
+                            const html2pdf = (await import("html2pdf.js")).default
+                            const element = document.createElement("div")
+                            element.innerHTML = artifact.content
+                            element.style.padding = "24px"
+                            element.style.fontFamily = "sans-serif"
+                            const opt = {
+                              margin: 10,
+                              filename: `${slugify(artifact.title)}.pdf`,
+                              image: { type: "jpeg", quality: 0.98 },
+                              html2canvas: { scale: 2 },
+                              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                            }
+                            await (html2pdf() as any).set(opt).from(element).save()
+                          } catch (err) {
+                            console.error("PDF export failed:", err)
+                          }
+                        }}
+                      >
+                        Export as PDF
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          const blob = new Blob([artifact.content], { type: "text/html" })
+                          const url = URL.createObjectURL(blob)
+                          const link = document.createElement("a")
+                          link.href = url
+                          link.download = `${slugify(artifact.title)}.html`
+                          link.click()
+                          URL.revokeObjectURL(url)
+                        }}
+                      >
+                        Export as HTML
+                      </DropdownMenuItem>
+                    </>
+                  )}
+
                   {onPublish && (
                     <DropdownMenuItem onClick={() => onPublish(artifact)}>
                       Publish artifact

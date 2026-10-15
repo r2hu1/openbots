@@ -626,6 +626,8 @@ export const ConversationMessageItem = React.memo(
 
                           if (seg.type === "artifact" && seg.artifact) {
                             const artifact = seg.artifact
+                            const typeOfA = artifact.type
+                            if (!typeOfA) return
                             return (
                               <div
                                 key={seg.id}

@@ -386,7 +386,17 @@ export function useAgentExecution({
   }, []);
 
   const sendPrompt = React.useCallback(
-    (prompt: string, images?: string[]) => {
+    (
+      prompt: string,
+      images?: string[],
+      attachments?: Array<{
+        url: string;
+        path: string;
+        name: string;
+        mimeType: string;
+        sizeBytes?: number;
+      }>,
+    ) => {
       if (!agentId) return;
 
       resetStream();
@@ -402,13 +412,14 @@ export function useAgentExecution({
         content: {
           text: prompt,
           ...(images && images.length > 0 ? { images } : {}),
+          ...(attachments && attachments.length > 0 ? { attachments } : {}),
         },
         createdAt: new Date(),
       };
       setOptimisticMessages((prev) => [...prev, optimisticMsg]);
 
       triggerRunMutation.mutate(
-        { prompt, images, conversationId: activeConversationId },
+        { prompt, images, attachments, conversationId: activeConversationId },
         {
           onSuccess: (data) => {
             if (data.run.conversationId && !activeConversationId) {

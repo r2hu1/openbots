@@ -2769,13 +2769,113 @@ export function createDownloadableFileTool(userId: string) {
     }),
     execute: async ({ fileName, content, isBase64, title, description }) => {
       try {
-        const rawBuffer = isBase64
-          ? Buffer.from(content, "base64")
-          : Buffer.from(content, "utf-8");
-
         const ext = fileName.includes(".")
           ? fileName.split(".").pop()!.toLowerCase()
           : "txt";
+
+        let rawBuffer: Buffer;
+
+        // Auto-compile plain text into a valid PDF binary if user requested a .pdf file with text
+        if (ext === "pdf" && !isBase64 && !content.startsWith("%PDF")) {
+          const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+          const doc = await PDFDocument.create();
+          const font = await doc.embedFont(StandardFonts.Helvetica);
+          const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+
+          const margin = 50;
+          const pageWidth = 595.28;
+          const pageHeight = 841.89;
+          const printableWidth = pageWidth - margin * 2;
+          const lineHeight = 16;
+          const fontSize = 10.5;
+
+          let page = doc.addPage([pageWidth, pageHeight]);
+          let y = pageHeight - margin;
+
+          const docTitle = title || fileName.replace(/\.pdf$/i, "");
+          if (docTitle) {
+            page.drawText(docTitle, {
+              x: margin,
+              y,
+              size: 18,
+              font: boldFont,
+              color: rgb(0.12, 0.12, 0.14),
+            });
+            y -= 32;
+          }
+
+          const lines = content.split("\n");
+          for (const rawLine of lines) {
+            if (y < margin + lineHeight) {
+              page = doc.addPage([pageWidth, pageHeight]);
+              y = pageHeight - margin;
+            }
+
+            if (!rawLine.trim()) {
+              y -= lineHeight * 0.75;
+              continue;
+            }
+
+            const isHeader =
+              rawLine.startsWith("#") ||
+              (rawLine.endsWith(":") && rawLine.length < 60);
+            const lineText = rawLine.replace(/^#+\s*/, "");
+            const currentFont = isHeader ? boldFont : font;
+            const currentSize = isHeader ? 12 : fontSize;
+            const currentLineHeight = isHeader ? 22 : lineHeight;
+
+            // Word wrap lines so text stays within page margins
+            const words = lineText.split(" ");
+            let currentLine = "";
+
+            for (const word of words) {
+              const testLine = currentLine ? `${currentLine} ${word}` : word;
+              const textWidth = currentFont.widthOfTextAtSize(
+                testLine,
+                currentSize,
+              );
+              if (textWidth > printableWidth && currentLine) {
+                if (y < margin + currentLineHeight) {
+                  page = doc.addPage([pageWidth, pageHeight]);
+                  y = pageHeight - margin;
+                }
+                page.drawText(currentLine, {
+                  x: margin,
+                  y,
+                  size: currentSize,
+                  font: currentFont,
+                  color: rgb(0.15, 0.15, 0.18),
+                });
+                y -= currentLineHeight;
+                currentLine = word;
+              } else {
+                currentLine = testLine;
+              }
+            }
+
+            if (currentLine) {
+              if (y < margin + currentLineHeight) {
+                page = doc.addPage([pageWidth, pageHeight]);
+                y = pageHeight - margin;
+              }
+              page.drawText(currentLine, {
+                x: margin,
+                y,
+                size: currentSize,
+                font: currentFont,
+                color: rgb(0.15, 0.15, 0.18),
+              });
+              y -= currentLineHeight;
+            }
+          }
+
+          const pdfBytes = await doc.save();
+          rawBuffer = Buffer.from(pdfBytes);
+        } else {
+          rawBuffer = isBase64
+            ? Buffer.from(content, "base64")
+            : Buffer.from(content, "utf-8");
+        }
 
         const mimeMap: Record<string, string> = {
           pdf: "application/pdf",

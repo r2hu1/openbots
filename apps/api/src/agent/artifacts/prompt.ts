@@ -47,8 +47,10 @@ Attributes:
   - fileType: extension or format (e.g. "pdf", "docx", "xlsx", "csv", "json", "png", "zip")
   - size: file size in bytes (optional)
   - createdAt / updatedAt: ISO timestamps (optional)
-  - Example: \`<openbots-artifact type="file" source="https://..." fileType="pdf" title="Quarterly Financial Report.pdf" size="248100" />\`
-  - The UI will render a minimal, responsive file card with download button and clicking it opens the artifact sheet preview.
+  - Content: You can include the file's formatted text/content inside the tag: \`<openbots-artifact type="file" source="..." fileType="docx" title="Report.docx">...formatted content...</openbots-artifact>\`.
+  - Self-closing is also valid if only source is provided: \`<openbots-artifact type="file" source="https://..." fileType="pdf" title="Quarterly Financial Report.pdf" size="248100" />\`
+  - You have total freedom over layouts, styling, structure, and design. For interactive or bespoke visual reports and custom styled documents, you can also output rich \`type="html"\` artifacts styled with Tailwind classes.
+  - The UI provides interactive in-sheet live previewing for PDFs, Word DOCX documents, Excel spreadsheets, images, text, and rich downloads.
 
 ### HTML artifacts
 

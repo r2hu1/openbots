@@ -173,7 +173,7 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 border bg-popover bg-clip-padding text-sm text-popover-foreground shadow-xl transition duration-100 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0",
+          "fixed z-50 flex flex-col gap-4 border bg-popover bg-clip-padding text-sm text-popover-foreground transition duration-100 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0",
 
           // Bottom
           "data-[side=bottom]:inset-x-3 data-[side=bottom]:bottom-3 data-[side=bottom]:max-h-[85dvh] data-[side=bottom]:rounded-xl data-[side=bottom]:data-ending-style:translate-y-4 data-[side=bottom]:data-starting-style:translate-y-4",

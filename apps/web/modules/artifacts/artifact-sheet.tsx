@@ -452,7 +452,9 @@ export function ArtifactSheet({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-          ) : null}
+          ) : (
+            <div />
+          )}
 
           <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
             <SheetTitle className="truncate text-sm font-medium">

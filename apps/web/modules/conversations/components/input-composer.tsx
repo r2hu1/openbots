@@ -782,7 +782,7 @@ export function InputComposer({
           <div
             onClick={handleContainerClick}
             className={cn(
-              "relative flex cursor-text flex-col overflow-hidden rounded-2xl border border-border/60 bg-sidebar transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-3 focus-within:ring-border",
+              "relative flex cursor-text flex-col overflow-hidden rounded-2xl border bg-background transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-3 focus-within:ring-border dark:bg-sidebar",
               isDragging && "border-primary/80 ring-3 ring-primary/20"
             )}
           >

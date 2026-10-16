@@ -210,6 +210,7 @@ export function useAgentExecution({
           createdAt: new Date(),
         });
       }
+      resetStream();
       if (activeConversationId) {
         queryClient.invalidateQueries({
           queryKey: ["conversation", activeConversationId],
@@ -346,6 +347,7 @@ export function useAgentExecution({
       if (activeRunId) {
         dismissedRunIds.current.add(activeRunId);
       }
+      resetStream();
       if (activeConversationId) {
         queryClient.invalidateQueries({
           queryKey: ["conversation", activeConversationId],
@@ -368,6 +370,7 @@ export function useAgentExecution({
     agentId,
     streamingText,
     queryClient,
+    resetStream,
   ]);
 
   const [executionError, setExecutionError] = React.useState<string | null>(

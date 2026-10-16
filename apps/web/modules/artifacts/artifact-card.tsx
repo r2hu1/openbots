@@ -233,31 +233,19 @@ function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
   const isStreaming = artifact.isStreaming
   const hasContent = artifact.content.trim().length > 0
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault()
-      onClick()
-    }
-  }
-
   return (
     <div
       data-artifact-card="true"
       data-artifact-mode="inline"
-      role="button"
-      tabIndex={0}
-      aria-label={`Open ${artifact.title || "artifact"}`}
-      onClick={onClick}
-      onKeyDown={handleKeyDown}
       className={cn(
-        "group/artifact relative inline-block w-full max-w-full cursor-pointer align-top transition-all",
-        "rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        "group/artifact relative inline-block w-full max-w-full align-top transition-all",
+        "rounded-lg",
         isStreaming && "min-h-[120px]"
       )}
     >
       {hasContent ? (
         <div className="relative w-full overflow-hidden rounded-lg">
-          <div className="pointer-events-none">
+          <div>
             <ArtifactPreview
               artifact={artifact}
               fitContent
@@ -361,12 +349,10 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
       className={cn(
         "group/artifact block w-full max-w-md",
         "cursor-pointer overflow-hidden",
-        "rounded-xl border",
+        "rounded-xl border p-1",
         "bg-card text-left",
         "transition-all outline-none",
-        isStreaming
-          ? "border-primary/35 shadow-xs ring-1 ring-primary/20"
-          : "border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-ring"
+        isStreaming && "generating-border"
       )}
     >
       <div
@@ -377,13 +363,6 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
           "bg-muted/40"
         )}
       >
-        {isStreaming && (
-          <div className="pointer-events-none absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5 rounded-full border border-primary/20 bg-background/85 px-2 py-0.5 text-[10px] font-medium text-primary shadow-xs backdrop-blur-md">
-            <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-            <span>Building</span>
-          </div>
-        )}
-
         {visible && base && scale > 0 && hasContent ? (
           <div
             className="pointer-events-none absolute top-0 left-0 origin-top-left"
@@ -436,7 +415,7 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
             "flex size-7 shrink-0",
             "items-center justify-center",
             "rounded-md text-foreground",
-            isStreaming ? "bg-primary/15 text-primary" : "bg-muted"
+            "bg-muted"
           )}
         >
           <ArtifactIcon type={artifact.type} />
@@ -457,11 +436,6 @@ function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
             <p className="text-[11px] text-muted-foreground">
               {TYPE_LABEL[artifact.type] ?? artifact.type}
             </p>
-            {isStreaming && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary">
-                • live
-              </span>
-            )}
           </div>
         </div>
 
@@ -523,9 +497,10 @@ function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
       onKeyDown={handleKeyDown}
       className={cn(
         "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
-        "rounded-xl border bg-card text-card-foreground transition-all duration-200",
+        "rounded-xl border bg-linear-to-t from-background via-card to-primary/5 text-card-foreground transition-all duration-200 dark:to-primary/10",
         "cursor-pointer ring-muted hover:ring-3",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        isStreaming && "generating-border"
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -551,15 +526,6 @@ function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
               <>
                 <span className="text-muted-foreground/40">·</span>
                 <span>{artifact.size}</span>
-              </>
-            )}
-            {isStreaming && (
-              <>
-                <span className="text-muted-foreground/40">·</span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
-                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-                  generating...
-                </span>
               </>
             )}
           </div>

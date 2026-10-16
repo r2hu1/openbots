@@ -298,7 +298,7 @@ function SheetContent({
                 "data-[side=bottom]:data-ending-style:translate-y-4 data-[side=bottom]:data-starting-style:translate-y-4",
                 "data-[side=top]:data-ending-style:-translate-y-4 data-[side=top]:data-starting-style:-translate-y-4",
                 "data-[side=left]:max-w-sm data-[side=left]:data-ending-style:-translate-x-4 data-[side=left]:data-starting-style:-translate-x-4",
-                "data-[side=right]:max-w-[80%] data-[side=right]:data-ending-style:translate-x-4 data-[side=right]:data-starting-style:translate-x-4 sm:data-[side=right]:max-w-sm",
+                "data-[side=right]:max-w-[95%] data-[side=right]:data-ending-style:translate-x-4 data-[side=right]:data-starting-style:translate-x-4 sm:data-[side=right]:max-w-sm",
               ],
 
           className

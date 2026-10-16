@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Button } from "@openbots/ui/components/button";
+import { Button } from "@openbots/ui/components/button"
 import {
   Sheet,
   SheetContent,
@@ -8,35 +8,35 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@openbots/ui/components/sheet";
-import { Spinner } from "@openbots/ui/components/spinner";
-import { IconSearch } from "@tabler/icons-react";
-import * as React from "react";
-import { AVAILABLE_INTEGRATIONS } from "../constants";
+} from "@openbots/ui/components/sheet"
+import { Spinner } from "@openbots/ui/components/spinner"
+import { IconSearch } from "@tabler/icons-react"
+import * as React from "react"
+import { AVAILABLE_INTEGRATIONS } from "../constants"
 import {
   useConnectionsQuery,
   useDeleteConnectionMutation,
   useInitiateConnectionMutation,
-} from "../queries";
-import { IntegrationRow } from "./integration-row";
+} from "../queries"
+import { IntegrationRow } from "./integration-row"
 
 interface ConnectionsSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 const SCROLL_CLASS =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain " +
-  "[scrollbar-gutter:stable] [scrollbar-width:thin]";
+  "[scrollbar-gutter:stable] [scrollbar-width:thin]"
 
 export function ConnectionsSheet({
   open,
   onOpenChange,
 }: ConnectionsSheetProps) {
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchQuery, setSearchQuery] = React.useState("")
   const [pendingAuthApp, setPendingAuthApp] = React.useState<string | null>(
-    null,
-  );
+    null
+  )
 
   const {
     data: connections = [],
@@ -45,10 +45,10 @@ export function ConnectionsSheet({
   } = useConnectionsQuery({
     enabled: open,
     refetchInterval: false,
-  });
+  })
 
-  const connectMutation = useInitiateConnectionMutation();
-  const deleteMutation = useDeleteConnectionMutation();
+  const connectMutation = useInitiateConnectionMutation()
+  const deleteMutation = useDeleteConnectionMutation()
 
   // Clear pending state when integration is connected
   React.useEffect(() => {
@@ -58,81 +58,78 @@ export function ConnectionsSheet({
           c.provider?.toLowerCase().includes(pendingAuthApp.toLowerCase()) ||
           c.externalAccountId
             ?.toLowerCase()
-            .includes(pendingAuthApp.toLowerCase()),
-      );
+            .includes(pendingAuthApp.toLowerCase())
+      )
       if (isConnected) {
-        setPendingAuthApp(null);
+        setPendingAuthApp(null)
       }
     }
-  }, [connections, pendingAuthApp]);
+  }, [connections, pendingAuthApp])
 
   // When user returns to window after OAuth, immediately refetch connections without polling
   React.useEffect(() => {
-    if (!open || !pendingAuthApp) return;
+    if (!open || !pendingAuthApp) return
 
     const handleFocus = () => {
-      refetchConnections();
-    };
+      refetchConnections()
+    }
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        refetchConnections();
+        refetchConnections()
       }
-    };
+    }
 
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
 
     return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [open, pendingAuthApp, refetchConnections]);
+      window.removeEventListener("focus", handleFocus)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
+  }, [open, pendingAuthApp, refetchConnections])
 
   React.useEffect(() => {
     if (!open) {
-      setSearchQuery("");
-      setPendingAuthApp(null);
+      setSearchQuery("")
+      setPendingAuthApp(null)
     }
-  }, [open]);
+  }, [open])
 
   const handleConnect = (appName: string) => {
     connectMutation.mutate(
       { appName },
       {
         onSuccess: (data) => {
-          if (!data.redirectUrl) return;
-          setPendingAuthApp(appName);
-          window.open(data.redirectUrl, "_blank", "noopener,noreferrer");
+          if (!data.redirectUrl) return
+          setPendingAuthApp(appName)
+          window.open(data.redirectUrl, "_blank", "noopener,noreferrer")
         },
-      },
-    );
-  };
+      }
+    )
+  }
 
   const handleDisconnect = (connectionId: string) => {
-    deleteMutation.mutate(connectionId);
-  };
+    deleteMutation.mutate(connectionId)
+  }
 
   const filteredIntegrations = React.useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = searchQuery.trim().toLowerCase()
     if (!query) {
-      return AVAILABLE_INTEGRATIONS;
+      return AVAILABLE_INTEGRATIONS
     }
     return AVAILABLE_INTEGRATIONS.filter((integration) => {
       return (
         integration.name.toLowerCase().includes(query) ||
         integration.description.toLowerCase().includes(query) ||
         integration.id.toLowerCase().includes(query)
-      );
-    });
-  }, [searchQuery]);
+      )
+    })
+  }, [searchQuery])
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex h-full max-h-screen flex-col overflow-hidden sm:max-w-md!"
-      >
+      <SheetContent side="right" className="sm:max-w-lg!">
         <SheetHeader className="shrink-0">
           <SheetTitle>Integrations & Connections</SheetTitle>
           <SheetDescription>
@@ -180,18 +177,18 @@ export function ConnectionsSheet({
                         connection.provider === integration.id ||
                         connection.externalAccountId
                           .toLowerCase()
-                          .includes(integration.id),
-                    );
+                          .includes(integration.id)
+                    )
 
-                    const isConnected = Boolean(activeConnection);
+                    const isConnected = Boolean(activeConnection)
                     const isConnecting =
                       connectMutation.isPending &&
-                      connectMutation.variables?.appName === integration.id;
+                      connectMutation.variables?.appName === integration.id
                     const isWaitingForAuth =
-                      pendingAuthApp === integration.id && !isConnected;
+                      pendingAuthApp === integration.id && !isConnected
                     const isDisconnecting =
                       deleteMutation.isPending &&
-                      deleteMutation.variables === activeConnection?.id;
+                      deleteMutation.variables === activeConnection?.id
 
                     return (
                       <IntegrationRow
@@ -208,7 +205,7 @@ export function ConnectionsSheet({
                           handleDisconnect(activeConnection.id)
                         }
                       />
-                    );
+                    )
                   })}
                 </div>
               )}
@@ -217,5 +214,5 @@ export function ConnectionsSheet({
         </div>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

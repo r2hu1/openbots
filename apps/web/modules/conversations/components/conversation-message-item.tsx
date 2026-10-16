@@ -851,11 +851,11 @@ export const ConversationMessageItem = React.memo(
 
         <ContextMenuContent className="relative w-48 overflow-visible">
           {!isUser && (
-            <div className="absolute -top-10 left-0">
-              <div className="flex min-w-0 flex-row items-center gap-px">
+            <div className="absolute -top-10 left-0 z-50">
+              <div className="flex min-w-0 flex-row items-center gap-0 rounded-md border bg-popover/90 p-px backdrop-blur-2xl">
                 {QUICK_REACTIONS.map((emoji) => (
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="icon-sm"
                     key={emoji}
                     onClick={(e) => {
@@ -866,7 +866,7 @@ export const ConversationMessageItem = React.memo(
                         y: (rect.top + rect.height / 2) / window.innerHeight,
                       })
                     }}
-                    className="bg-popover/90 hover:scale-105 hover:bg-popover"
+                    className="hover:scale hover:bg-popover-foreground/15!"
                   >
                     {emoji}
                   </Button>

@@ -16,7 +16,7 @@ import {
   runSteps,
   runs,
 } from "@openbots/db"
-import { stepCountIs, ToolLoopAgent } from "ai"
+import { ToolLoopAgent } from "ai"
 import { and, asc, eq, inArray, ne } from "drizzle-orm"
 import { ARTIFACT_PROMPT } from "./artifacts/prompt.js"
 import { buildAgentTools } from "./tools.js"
@@ -695,7 +695,6 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
       model,
       instructions: systemInstructions,
       tools: resolvedTools.tools,
-      stopWhen: stepCountIs(agentRecord.maxSteps ?? 50),
     })
 
     let currentStepNumber = 0
@@ -707,7 +706,8 @@ ${userLocationStr ? `- User Location: ${userLocationStr}\n` : ""}${clientContext
       status: "running",
     })
 
-    const MAX_CONTINUATION_PASSES = 5
+    // Allow long-running agent executions for complex, multi-step tasks
+    const MAX_CONTINUATION_PASSES = 100
     let finalText = ""
     let totalStepsCount = 0
     let aggregatedUsage = {

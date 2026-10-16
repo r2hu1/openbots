@@ -1218,7 +1218,7 @@ function PdfViewer({
         <p className="mt-1 text-xs text-muted-foreground">
           {error || "Unable to display PDF preview directly."}
         </p>
-        <div className="mt-5 flex w-full gap-2">
+        <div className="mt-5 grid gap-2">
           <Button size="sm" className="w-full gap-1.5" onClick={onDownload}>
             <IconDownload className="size-3.5" />
             Download PDF

@@ -74,7 +74,6 @@ export function ConfigureAgentSheet({
   const [description, setDescription] = React.useState("");
   const [instructions, setInstructions] = React.useState("");
   const [model, setModel] = React.useState("google/gemini-2.5-flash");
-  const [maxSteps, setMaxSteps] = React.useState(25);
   const [saveSuccess, setSaveSuccess] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
@@ -114,7 +113,6 @@ export function ConfigureAgentSheet({
       setModel(agent.model);
       const agentProvider = agent.model.split("/")[0] || "google";
       setSelectedProvider(agentProvider);
-      setMaxSteps(agent.maxSteps || 25);
       setSaveSuccess(false);
       setSaveError(null);
     }
@@ -149,7 +147,6 @@ export function ConfigureAgentSheet({
         description: description.trim() || undefined,
         instructions: instructions.trim(),
         model,
-        maxSteps: Number(maxSteps) || 25,
       },
       {
         onSuccess: () => {
@@ -269,40 +266,25 @@ export function ConfigureAgentSheet({
                       </NativeSelect>
                     </Field>
 
-                    <Field>
-                      <FieldLabel htmlFor="cfg-model">Model</FieldLabel>
-                      <NativeSelect
-                        id="cfg-model"
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                        className="w-full text-xs"
-                      >
-                        {currentProviderModels.map((m) => (
-                          <NativeSelectOption key={m.id} value={m.id}>
-                            {m.displayName}
-                          </NativeSelectOption>
-                        ))}
-                      </NativeSelect>
-                    </Field>
-                  </div>
-                )}
-
                 <Field>
-                  <FieldLabel htmlFor="cfg-steps">Tool calls & step limit</FieldLabel>
-                  <Input
-                    id="cfg-steps"
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={maxSteps}
-                    onChange={(e) => setMaxSteps(Number(e.target.value))}
-                  />
-                  <FieldDescription className="text-xs">
-                    Maximum number of tool execution steps the agent can perform per run (1–100).
-                  </FieldDescription>
+                  <FieldLabel htmlFor="cfg-model">Model</FieldLabel>
+                  <NativeSelect
+                    id="cfg-model"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className="w-full text-xs"
+                  >
+                    {currentProviderModels.map((m) => (
+                      <NativeSelectOption key={m.id} value={m.id}>
+                        {m.displayName}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
                 </Field>
-              </FieldGroup>
-            </form>
+              </div>
+            )}
+          </FieldGroup>
+        </form>
           </TabsContent>
 
           <TabsContent value="tools" className={SCROLL_CLASS}>

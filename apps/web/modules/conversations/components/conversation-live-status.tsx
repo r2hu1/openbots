@@ -69,17 +69,7 @@ export function ConversationLiveStatus({
         <MessageContent className="gap-2">
           <Bubble variant="secondary" align="start">
             <BubbleContent>
-              {!hasStreamingContent && !latestToolLabel && (
-                <Marker className="text-xs text-muted-foreground">
-                  <MarkerContent className="flex items-center gap-2 py-0">
-                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-75" />
-                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-150" />
-                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-200" />
-                  </MarkerContent>
-                </Marker>
-              )}
-
-              {latestToolLabel && (
+              {latestToolLabel && isLatestToolRunning ? (
                 <Marker className="text-xs text-muted-foreground">
                   <MarkerIcon className="flex items-center justify-center">
                     {isLatestToolRunning ? (
@@ -96,6 +86,14 @@ export function ConversationLiveStatus({
                     }
                   >
                     {latestToolLabel}
+                  </MarkerContent>
+                </Marker>
+              ) : (
+                <Marker className="text-xs text-muted-foreground">
+                  <MarkerContent className="flex items-center gap-2 py-0">
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-75" />
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-150" />
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-200" />
                   </MarkerContent>
                 </Marker>
               )}

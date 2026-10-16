@@ -415,7 +415,11 @@ export function ArtifactSheet({
   const hasCode = artifact.type !== "file" || !!artifact.content
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      variant={maximized ? "floating" : "sidebar"}
+    >
       <SheetContent
         alwaysDark={false}
         showCloseButton={false}
@@ -1147,27 +1151,36 @@ function PdfCanvasViewer({
         setNumPages(pdf.numPages)
         containerRef.current.innerHTML = ""
 
-        // Render all pages sequentially on high-DPI canvases
+        // Render all pages sequentially on crisp high-DPI canvases
+        const dpr =
+          typeof window !== "undefined"
+            ? Math.max(window.devicePixelRatio || 1, 2)
+            : 2
+        const baseScale = 1.5
+
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           if (!active || !containerRef.current) return
           const page = await pdf.getPage(pageNum)
-          const viewport = page.getViewport({ scale: 1.5 })
+          const viewport = page.getViewport({ scale: baseScale })
+          const scaledViewport = page.getViewport({ scale: baseScale * dpr })
 
           const pageWrapper = document.createElement("div")
           pageWrapper.className =
             "mb-8 flex flex-col items-center bg-transparent p-0"
 
           const canvas = document.createElement("canvas")
-          const context = canvas.getContext("2d")
-          canvas.height = viewport.height
-          canvas.width = viewport.width
-          canvas.className = "max-w-full h-auto rounded-none"
+          const context = canvas.getContext("2d", { alpha: false })
+          canvas.height = Math.floor(scaledViewport.height)
+          canvas.width = Math.floor(scaledViewport.width)
+          canvas.style.width = `${Math.floor(viewport.width)}px`
+          canvas.style.height = `${Math.floor(viewport.height)}px`
+          canvas.className = "max-w-full h-auto rounded-none shadow-sm"
 
           pageWrapper.appendChild(canvas)
 
           const pageLabel = document.createElement("div")
           pageLabel.className =
-            "mt-3 text-[11px] text-muted-foreground/70 font-mono"
+            "mt-3 text-[11px] text-muted-foreground/70 font-mono select-none"
           pageLabel.innerText = `${pageNum} / ${pdf.numPages}`
           pageWrapper.appendChild(pageLabel)
 
@@ -1176,7 +1189,7 @@ function PdfCanvasViewer({
           if (context) {
             await page.render({
               canvasContext: context,
-              viewport,
+              viewport: scaledViewport,
             }).promise
           }
         }

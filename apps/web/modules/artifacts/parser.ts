@@ -23,6 +23,11 @@ export interface ContentSegment {
 const ARTIFACT_REGEX =
   /<openbots-artifact\s+([^>]*?)(?:\/>|>([\s\S]*?)<\/openbots-artifact>)/gi;
 
+const KNOWN_EXTS = new Set([
+  "pdf", "docx", "doc", "pptx", "ppt", "xlsx", "xls", "csv", "txt", "md",
+  "json", "html", "js", "ts", "py", "png", "jpg", "jpeg", "webp", "svg",
+]);
+
 function parseAttributes(rawAttrs: string = ""): {
   id?: string;
   type?: string;
@@ -36,10 +41,6 @@ function parseAttributes(rawAttrs: string = ""): {
   [key: string]: string | undefined;
 } {
   const attrs: Record<string, string> = {};
-  const KNOWN_EXTS = new Set([
-    "pdf", "docx", "doc", "pptx", "ppt", "xlsx", "xls", "csv", "txt", "md",
-    "json", "html", "js", "ts", "py", "png", "jpg", "jpeg", "webp", "svg",
-  ]);
 
   // Support key="val", key='val', key={val}
   const attrRegex = /([a-zA-Z0-9_-]+)=(?:"([^"]*)"|'([^']*)'|{([^}]*)})/g;
@@ -49,10 +50,14 @@ function parseAttributes(rawAttrs: string = ""): {
     const val = (match[2] ?? match[3] ?? match[4])?.trim();
     if (key && val !== undefined) {
       if (key === "type") {
-        if (val.toLowerCase() === "file") {
+        const valLower = val.toLowerCase();
+        if (valLower === "file") {
           attrs.type = "file";
-        } else if (KNOWN_EXTS.has(val.toLowerCase())) {
-          attrs.filetype = val.toLowerCase();
+        } else if (valLower === "html" || valLower === "svg" || valLower === "mermaid") {
+          // Explicit rich interactive artifact types
+          attrs.type = valLower;
+        } else if (KNOWN_EXTS.has(valLower)) {
+          attrs.filetype = valLower;
           if (!attrs.type) attrs.type = "file";
         } else if (!attrs.type) {
           attrs.type = val;
@@ -148,13 +153,18 @@ export function parseArtifacts(content: string): {
                 ? "inline"
                 : "card";
 
-    // Detect file type if not provided explicitly
+    // Detect file type if not provided explicitly (only for file artifacts or explicit filename extensions)
+    const titleExt =
+      title.includes(".") && title.lastIndexOf(".") < title.length - 1
+        ? title.split(".").pop()?.toLowerCase()
+        : undefined;
+
     const fileType =
       rawFileType ||
       (rawSource && rawSource.includes(".")
         ? rawSource.split(".").pop()?.toLowerCase()
-        : title.includes(".")
-          ? title.split(".").pop()?.toLowerCase()
+        : type === "file" && titleExt && KNOWN_EXTS.has(titleExt)
+          ? titleExt
           : undefined);
 
     const artifact: ParsedArtifact = {
@@ -268,12 +278,17 @@ export function parseArtifacts(content: string): {
                   ? "inline"
                   : "card";
 
+      const titleExt =
+        title.includes(".") && title.lastIndexOf(".") < title.length - 1
+          ? title.split(".").pop()?.toLowerCase()
+          : undefined;
+
       const fileType =
         rawFileType ||
         (rawSource && rawSource.includes(".")
           ? rawSource.split(".").pop()?.toLowerCase()
-          : title.includes(".")
-            ? title.split(".").pop()?.toLowerCase()
+          : type === "file" && titleExt && KNOWN_EXTS.has(titleExt)
+            ? titleExt
             : undefined);
 
       const artifactIndex = artifacts.length + 1;

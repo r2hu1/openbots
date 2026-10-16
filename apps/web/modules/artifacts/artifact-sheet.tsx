@@ -378,7 +378,7 @@ export function ArtifactSheet({
             "data-[side=right]:sm:left-3 data-[side=right]:sm:w-auto! data-[side=right]:sm:max-w-none!"
         )}
       >
-        <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">
+        <div className="flex shrink-0 items-center gap-3 border-b border-border p-1.5">
           {hasCode ? (
             <Tabs
               value={view}
@@ -404,19 +404,12 @@ export function ArtifactSheet({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-          ) : (
-            <div className="flex size-7 items-center justify-center rounded-md border border-border bg-muted/30 text-muted-foreground">
-              <IconEye className="size-3.5" />
-            </div>
-          )}
+          ) : null}
 
           <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
             <SheetTitle className="truncate text-sm font-medium">
               {artifact.title}
             </SheetTitle>
-            <span className="shrink-0 text-sm text-muted-foreground">
-              · {typeLabel}
-            </span>
             <SheetDescription className="sr-only">
               {typeLabel} artifact preview and source code
             </SheetDescription>
@@ -449,7 +442,8 @@ export function ArtifactSheet({
                       <DropdownMenuItem
                         onClick={async () => {
                           try {
-                            const html2pdf = (await import("html2pdf.js")).default
+                            const html2pdf = (await import("html2pdf.js"))
+                              .default
                             const element = document.createElement("div")
                             element.innerHTML = artifact.content
                             element.style.padding = "24px"
@@ -459,9 +453,16 @@ export function ArtifactSheet({
                               filename: `${slugify(artifact.title)}.pdf`,
                               image: { type: "jpeg", quality: 0.98 },
                               html2canvas: { scale: 2 },
-                              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                              jsPDF: {
+                                unit: "mm",
+                                format: "a4",
+                                orientation: "portrait",
+                              },
                             }
-                            await (html2pdf() as any).set(opt).from(element).save()
+                            await (html2pdf() as any)
+                              .set(opt)
+                              .from(element)
+                              .save()
                           } catch (err) {
                             console.error("PDF export failed:", err)
                           }
@@ -472,7 +473,9 @@ export function ArtifactSheet({
 
                       <DropdownMenuItem
                         onClick={async () => {
-                          const blob = new Blob([artifact.content], { type: "text/html" })
+                          const blob = new Blob([artifact.content], {
+                            type: "text/html",
+                          })
                           const url = URL.createObjectURL(blob)
                           const link = document.createElement("a")
                           link.href = url

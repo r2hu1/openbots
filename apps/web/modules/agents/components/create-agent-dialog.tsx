@@ -55,7 +55,6 @@ export function CreateAgentDialog({
     "You are a helpful assistant. Use tools when helpful to answer questions."
   )
   const [model, setModel] = React.useState("google/gemini-2.5-flash")
-  const [maxSteps, setMaxSteps] = React.useState(25)
   const [autonomy, _setAutonomy] = React.useState<"manual">("manual")
   const [error, setError] = React.useState<string | null>(null)
 
@@ -81,7 +80,6 @@ export function CreateAgentDialog({
         description: description.trim() || undefined,
         instructions: instructions.trim(),
         model,
-        maxSteps: Number(maxSteps) || 10,
         autonomy,
       },
       {
@@ -227,24 +225,6 @@ export function CreateAgentDialog({
                 </Field>
               </div>
             )}
-
-            <Field>
-              <FieldLabel htmlFor="maxSteps">
-                Tool calls & step limit
-              </FieldLabel>
-              <Input
-                id="maxSteps"
-                type="number"
-                min={1}
-                max={100}
-                value={maxSteps}
-                onChange={(e) => setMaxSteps(Number(e.target.value))}
-              />
-              <FieldDescription className="text-xs">
-                Maximum number of tool execution steps the agent can perform per
-                run (1–100).
-              </FieldDescription>
-            </Field>
           </FieldGroup>
 
           <DialogFooter>

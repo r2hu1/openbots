@@ -107,7 +107,17 @@ export function useReconciledMessages({
           }
           const text = normalizeForComparison(getMessageText(m.content));
           if (!text) return false;
-          return text === normalizedOutput || text.includes(normalizedOutput) || normalizedOutput.includes(text);
+          if (text === normalizedOutput || text.includes(normalizedOutput) || normalizedOutput.includes(text)) {
+            return true;
+          }
+          // Also match on initial/prefix prefix of text if long response
+          const minLen = Math.min(text.length, normalizedOutput.length);
+          if (minLen >= 40) {
+            const prefixA = text.slice(0, 100);
+            const prefixB = normalizedOutput.slice(0, 100);
+            if (prefixA === prefixB) return true;
+          }
+          return false;
         });
 
         if (!hasResponseAlready) {
@@ -135,11 +145,27 @@ export function useReconciledMessages({
       }
     }
 
-    // Deduplicate by id
+    // Deduplicate by id and deduplicate duplicate assistant messages
     const seenIds = new Set<string>();
+    const seenAssistantContent = new Set<string>();
     const deduplicated = result.filter((m) => {
       if (seenIds.has(m.id)) return false;
       seenIds.add(m.id);
+
+      // If this is an assistant message, ensure we don't duplicate identical content
+      // (e.g. synthetic run-asst message alongside an incoming server message with the same content)
+      if (m.role === "assistant") {
+        const text = normalizeForComparison(getMessageText(m.content));
+        if (text) {
+          // Use first 150 chars as signature for long responses to prevent false negatives from trailing whitespace
+          const key = text.slice(0, 150);
+          if (seenAssistantContent.has(key)) {
+            return false;
+          }
+          seenAssistantContent.add(key);
+        }
+      }
+
       return true;
     });
 

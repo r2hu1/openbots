@@ -31,7 +31,7 @@ export interface CreateAgentInput {
   description?: string;
   instructions: string;
   model: string;
-  maxSteps: number;
+  maxSteps?: number;
   autonomy?: "manual";
 }
 

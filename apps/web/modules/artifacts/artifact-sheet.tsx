@@ -425,7 +425,7 @@ export function ArtifactSheet({
         showCloseButton={false}
         side="right"
         className={cn(
-          "gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:w-3/4 data-[side=right]:sm:max-w-4xl",
+          "gap-0 overflow-hidden p-0! data-[side=right]:w-full data-[side=right]:sm:w-3/4 data-[side=right]:sm:max-w-4xl",
           maximized &&
             "data-[side=right]:sm:left-3 data-[side=right]:sm:w-auto! data-[side=right]:sm:max-w-none!"
         )}
@@ -593,7 +593,7 @@ export function ArtifactSheet({
         <div className="relative flex min-h-0 flex-1 flex-col">
           <div
             className={cn(
-              "min-h-0 flex-1 overflow-hidden bg-background",
+              "min-h-0 flex-1 overflow-hidden",
               view !== "preview" && "hidden"
             )}
           >
@@ -683,7 +683,7 @@ function FileViewer({
   // PDF Preview
   if (isPdf && (artifact.source || artifact.content)) {
     return (
-      <PdfCanvasViewer
+      <PdfViewer
         source={artifact.source}
         content={artifact.content}
         title={artifact.title}
@@ -840,6 +840,7 @@ function DocxViewer({
   onDownload: () => void
 }) {
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const [htmlContent, setHtmlContent] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -847,9 +848,9 @@ function DocxViewer({
     let active = true
 
     async function loadDocx() {
-      if (!containerRef.current) return
       setLoading(true)
       setError(null)
+      setHtmlContent(null)
 
       try {
         let buffer: ArrayBuffer | null = null
@@ -860,7 +861,6 @@ function DocxViewer({
             throw new Error(`HTTP ${res.status}: Failed to fetch file`)
           buffer = await res.arrayBuffer()
         } else if (content) {
-          // If content is base64 or text
           if (content.startsWith("UEsDB") || content.length % 4 === 0) {
             try {
               const bin = atob(content)
@@ -877,6 +877,20 @@ function DocxViewer({
           throw new Error("No binary data available to render document preview")
         }
 
+        // 1. Try rendering through mammoth for pristine, crisp HTML typography
+        try {
+          const mammoth = await import("mammoth")
+          const result = await mammoth.convertToHtml({ arrayBuffer: buffer })
+          if (active && result.value && result.value.trim().length > 0) {
+            setHtmlContent(result.value)
+            setLoading(false)
+            return
+          }
+        } catch (mammothErr) {
+          console.warn("Mammoth HTML conversion fallback:", mammothErr)
+        }
+
+        // 2. Fallback to docx-preview canvas/DOM renderer if mammoth output is empty
         const { renderAsync } = await import("docx-preview")
         if (!active || !containerRef.current) return
         containerRef.current.innerHTML = ""
@@ -902,9 +916,9 @@ function DocxViewer({
   }, [source, content])
 
   return (
-    <div className="relative size-full overflow-auto">
+    <div className="relative size-full overflow-auto bg-background">
       {loading && (
-        <div className="flex size-full items-center justify-center">
+        <div className="flex size-full items-center justify-center py-20">
           <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
             <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span>Rendering document preview...</span>
@@ -934,6 +948,13 @@ function DocxViewer({
             <IconDownload className="mr-1.5 size-4" />
             Download File
           </Button>
+        </div>
+      ) : htmlContent ? (
+        <div className="mx-auto max-w-4xl px-6 py-8 select-text sm:px-12 sm:py-10">
+          <div
+            className="typeset"
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
         </div>
       ) : (
         <div
@@ -1091,7 +1112,166 @@ function SpreadsheetViewer({
   )
 }
 
-function PdfCanvasViewer({
+function PdfViewer({
+  source,
+  content,
+  title,
+  onDownload,
+}: {
+  source?: string
+  content?: string
+  title: string
+  onDownload: () => void
+}) {
+  const [blobUrl, setBlobUrl] = React.useState<string | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [useCanvasFallback, setUseCanvasFallback] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let active = true
+    let createdUrl: string | null = null
+
+    async function preparePdfUrl() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        if (source) {
+          // If source is already a direct URL (HTTPS or data), we can use it directly
+          if (active) {
+            setBlobUrl(source)
+            setLoading(false)
+          }
+          return
+        }
+
+        if (content) {
+          let bytes: Uint8Array | null = null
+          if (content.startsWith("data:application/pdf;base64,")) {
+            const base64 = content.split(",")[1] || ""
+            const bin = atob(base64)
+            bytes = new Uint8Array(bin.length)
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+          } else if (content.startsWith("data:")) {
+            const base64 = content.split(",")[1] || ""
+            const bin = atob(base64)
+            bytes = new Uint8Array(bin.length)
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+          } else {
+            try {
+              const bin = atob(content)
+              bytes = new Uint8Array(bin.length)
+              for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+            } catch {
+              // Not valid base64
+            }
+          }
+
+          if (bytes) {
+            const blob = new Blob([bytes.buffer as ArrayBuffer], {
+              type: "application/pdf",
+            })
+            createdUrl = URL.createObjectURL(blob)
+            if (active) {
+              setBlobUrl(createdUrl)
+              setLoading(false)
+            }
+            return
+          }
+        }
+
+        throw new Error("Unable to load PDF source")
+      } catch (err: any) {
+        if (!active) return
+        setError(err?.message || "Failed to prepare PDF")
+        setLoading(false)
+      }
+    }
+
+    preparePdfUrl()
+
+    return () => {
+      active = false
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl)
+      }
+    }
+  }, [source, content])
+
+  if (loading) {
+    return (
+      <div className="flex size-full items-center justify-center">
+        <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
+          <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span>Loading PDF document...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || (!blobUrl && !useCanvasFallback)) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center p-6 text-center">
+        <IconFileTypePdf className="size-10 text-red-500 dark:text-red-400" />
+        <h4 className="mt-3 text-sm font-semibold text-foreground">{title}</h4>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {error || "Unable to display PDF preview directly."}
+        </p>
+        <div className="mt-5 flex w-full gap-2">
+          <Button size="sm" className="w-full gap-1.5" onClick={onDownload}>
+            <IconDownload className="size-3.5" />
+            Download PDF
+          </Button>
+          {source && (
+            <a
+              href={source}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "w-full"
+              )}
+            >
+              Open in tab
+            </a>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (useCanvasFallback) {
+    return (
+      <PdfCanvasFallback
+        source={source}
+        content={content}
+        title={title}
+        onDownload={onDownload}
+      />
+    )
+  }
+
+  return (
+    <div className="relative size-full bg-muted/20">
+      <object
+        data={`${blobUrl}#toolbar=1&navpanes=0`}
+        type="application/pdf"
+        className="size-full border-0"
+      >
+        {/* If the browser's PDF plugin is blocked or unavailable, render high-DPI canvas fallback */}
+        <PdfCanvasFallback
+          source={source}
+          content={content}
+          title={title}
+          onDownload={onDownload}
+        />
+      </object>
+    </div>
+  )
+}
+
+function PdfCanvasFallback({
   source,
   content,
   title,
@@ -1117,7 +1297,6 @@ function PdfCanvasViewer({
 
       try {
         const pdfjsLib = await import("pdfjs-dist")
-        // Configure standard cdn worker to avoid bundler asset issues
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
 
         let dataSrc: any = null
@@ -1151,12 +1330,12 @@ function PdfCanvasViewer({
         setNumPages(pdf.numPages)
         containerRef.current.innerHTML = ""
 
-        // Render all pages sequentially on crisp high-DPI canvases
+        // Render with ultra crisp scale for vector-like clarity
         const dpr =
           typeof window !== "undefined"
             ? Math.max(window.devicePixelRatio || 1, 2)
             : 2
-        const baseScale = 1.5
+        const baseScale = 2.0
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           if (!active || !containerRef.current) return
@@ -1174,7 +1353,7 @@ function PdfCanvasViewer({
           canvas.width = Math.floor(scaledViewport.width)
           canvas.style.width = `${Math.floor(viewport.width)}px`
           canvas.style.height = `${Math.floor(viewport.height)}px`
-          canvas.className = "max-w-full h-auto rounded-none shadow-sm"
+          canvas.className = "max-w-full h-auto rounded-sm shadow-md bg-white"
 
           pageWrapper.appendChild(canvas)
 
@@ -1210,12 +1389,12 @@ function PdfCanvasViewer({
   }, [source, content])
 
   return (
-    <div className="relative size-full overflow-auto bg-background p-4 sm:p-10">
+    <div className="relative size-full overflow-auto bg-muted/10 p-4 sm:p-10">
       {loading && (
-        <div className="flex size-full items-center justify-center">
+        <div className="flex size-full items-center justify-center py-20">
           <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
             <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <span>Rendering PDF document...</span>
+            <span>Rendering crisp PDF preview...</span>
           </div>
         </div>
       )}
@@ -1321,7 +1500,7 @@ function MarkdownDocumentViewer({
   }, [source, initialContent])
 
   return (
-    <div className="size-full overflow-auto bg-background px-6 py-8 sm:px-12 sm:py-10">
+    <div className="size-full overflow-auto bg-popover px-6 py-8 sm:px-12 sm:py-10">
       <div className="mx-auto max-w-3xl select-text">
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -1338,7 +1517,7 @@ function MarkdownDocumentViewer({
             </Button>
           </div>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed text-foreground/90 [&_blockquote]:my-4 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/60 [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted/40 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_h1]:mt-8 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-tight [&_h1]:text-foreground [&_h2]:mt-7 [&_h2]:mb-2.5 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-foreground [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-foreground [&_hr]:my-6 [&_hr]:border-border/40 [&_li]:text-sm [&_li]:leading-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ol]:pl-5 [&_p]:my-3.5 [&_p]:text-sm [&_p]:leading-7 [&_p]:text-foreground/90 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted/30 [&_pre]:p-4 [&_strong]:font-semibold [&_strong]:text-foreground [&_table]:my-5 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_td]:border-b [&_td]:border-border/30 [&_td]:px-3 [&_td]:py-2.5 [&_td]:text-foreground/80 [&_th]:border-b [&_th]:border-border/60 [&_th]:px-3 [&_th]:pt-1 [&_th]:pb-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5">
+          <div className="typeset">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
           </div>
         )}

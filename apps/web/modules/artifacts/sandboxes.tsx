@@ -1,15 +1,15 @@
-"use client";
+"use client"
 
-import { useTheme } from "next-themes";
-import * as React from "react";
-import { svgDocument, withDesignSystem } from "./theme";
+import { useTheme } from "next-themes"
+import * as React from "react"
+import { svgDocument, withDesignSystem } from "./theme"
 
-type ThemeName = "light" | "dark";
+type ThemeName = "light" | "dark"
 
 function useIframeTheme(): ThemeName {
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme()
 
-  return resolvedTheme === "dark" ? "dark" : "light";
+  return resolvedTheme === "dark" ? "dark" : "light"
 }
 
 const MERMAID_THEME_VARIABLES: Record<ThemeName, Record<string, string>> = {
@@ -42,7 +42,7 @@ const MERMAID_THEME_VARIABLES: Record<ThemeName, Record<string, string>> = {
     fontFamily: "ui-sans-serif, system-ui, sans-serif",
     fontSize: "13px",
   },
-};
+}
 
 /* -------------------------------------------------------------------------- */
 /* SVG                                                                        */
@@ -50,17 +50,17 @@ const MERMAID_THEME_VARIABLES: Record<ThemeName, Record<string, string>> = {
 
 function parseViewBoxRatio(svg: string): string | null {
   const match = svg.match(
-    /viewBox\s*=\s*["']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*["']/i,
-  );
+    /viewBox\s*=\s*["']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*["']/i
+  )
 
   if (!match) {
-    return null;
+    return null
   }
 
-  const width = Number(match[1]);
-  const height = Number(match[2]);
+  const width = Number(match[1])
+  const height = Number(match[2])
 
-  return width > 0 && height > 0 ? `${width} / ${height}` : null;
+  return width > 0 && height > 0 ? `${width} / ${height}` : null
 }
 
 /* -------------------------------------------------------------------------- */
@@ -68,12 +68,12 @@ function parseViewBoxRatio(svg: string): string | null {
 /* -------------------------------------------------------------------------- */
 
 interface HtmlSandboxProps {
-  code: string;
-  className?: string;
-  fitContent?: boolean;
-  initialWidth?: number;
-  maxWidth?: number;
-  isStreaming?: boolean;
+  code: string
+  className?: string
+  fitContent?: boolean
+  initialWidth?: number
+  maxWidth?: number
+  isStreaming?: boolean
 }
 
 export function HtmlSandbox({
@@ -84,31 +84,31 @@ export function HtmlSandbox({
   maxWidth = 820,
   isStreaming = false,
 }: HtmlSandboxProps) {
-  const theme = useIframeTheme();
+  const theme = useIframeTheme()
 
   // Debounce the code during streaming so the iframe doesn't flicker or reload on every single token
-  const [debouncedCode, setDebouncedCode] = React.useState(code);
+  const [debouncedCode, setDebouncedCode] = React.useState(code)
 
   React.useEffect(() => {
     if (!isStreaming) {
-      setDebouncedCode(code);
-      return;
+      setDebouncedCode(code)
+      return
     }
 
     const timer = setTimeout(() => {
-      setDebouncedCode(code);
-    }, 250);
+      setDebouncedCode(code)
+    }, 250)
 
-    return () => clearTimeout(timer);
-  }, [code, isStreaming]);
+    return () => clearTimeout(timer)
+  }, [code, isStreaming])
 
-  const activeCode = isStreaming ? debouncedCode : code;
+  const activeCode = isStreaming ? debouncedCode : code
 
   const srcDoc = React.useMemo(() => {
-    const document = withDesignSystem(activeCode, theme);
+    const document = withDesignSystem(activeCode, theme)
 
     if (!fitContent) {
-      return document;
+      return document
     }
 
     const reset = `
@@ -136,7 +136,7 @@ export function HtmlSandbox({
           box-sizing: border-box;
         }
       </style>
-    `;
+    `
 
     const measurementScript = `
       <script>
@@ -192,48 +192,48 @@ export function HtmlSandbox({
           setTimeout(sendSize, 500)
         })()
       </script>
-    `;
+    `
 
-    let result = document;
+    let result = document
 
     if (result.includes("</head>")) {
-      result = result.replace("</head>", `${reset}</head>`);
+      result = result.replace("</head>", `${reset}</head>`)
     } else {
-      result = `${reset}${result}`;
+      result = `${reset}${result}`
     }
 
     if (result.includes("</body>")) {
-      result = result.replace("</body>", `${measurementScript}</body>`);
+      result = result.replace("</body>", `${measurementScript}</body>`)
     } else {
-      result += measurementScript;
+      result += measurementScript
     }
 
-    return result;
-  }, [activeCode, theme, fitContent]);
+    return result
+  }, [activeCode, theme, fitContent])
 
-  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  const iframeRef = React.useRef<HTMLIFrameElement>(null)
 
   const [size, setSize] = React.useState<{
-    width: number;
-    height: number;
-  } | null>(null);
+    width: number
+    height: number
+  } | null>(null)
 
   React.useEffect(() => {
-    if (!fitContent) return;
+    if (!fitContent) return
 
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) {
-        return;
+        return
       }
 
-      const data = event.data;
+      const data = event.data
 
       if (!data || data.type !== "openbots-artifact-size") {
-        return;
+        return
       }
 
-      const width = Number(data.width);
-      const height = Number(data.height);
+      const width = Number(data.width)
+      const height = Number(data.height)
 
       if (
         !Number.isFinite(width) ||
@@ -241,27 +241,27 @@ export function HtmlSandbox({
         width <= 0 ||
         height <= 0
       ) {
-        return;
+        return
       }
 
       setSize({
         width: Math.min(width, maxWidth),
         height,
-      });
-    };
+      })
+    }
 
-    window.addEventListener("message", handleMessage);
+    window.addEventListener("message", handleMessage)
 
     return () => {
-      window.removeEventListener("message", handleMessage);
-    };
-  }, [fitContent, maxWidth]);
+      window.removeEventListener("message", handleMessage)
+    }
+  }, [fitContent, maxWidth])
 
   if (fitContent) {
-    const width = Math.min(size?.width ?? initialWidth, maxWidth);
+    const width = Math.min(size?.width ?? initialWidth, maxWidth)
 
     // Don't collapse to 1px while loading or streaming, maintain minimum comfortable container height
-    const height = size?.height ?? (isStreaming ? 180 : 80);
+    const height = size?.height ?? (isStreaming ? 180 : 80)
 
     return (
       <iframe
@@ -282,7 +282,7 @@ export function HtmlSandbox({
           transition: "height 0.15s ease-out",
         }}
       />
-    );
+    )
   }
 
   return (
@@ -300,7 +300,7 @@ export function HtmlSandbox({
         title="Artifact Sandbox"
       />
     </div>
-  );
+  )
 }
 
 /* -------------------------------------------------------------------------- */
@@ -312,38 +312,38 @@ export function SvgSandbox({
   className,
   isStreaming = false,
 }: {
-  svg: string;
-  className?: string;
-  isStreaming?: boolean;
+  svg: string
+  className?: string
+  isStreaming?: boolean
 }) {
-  const theme = useIframeTheme();
+  const theme = useIframeTheme()
 
-  const [debouncedSvg, setDebouncedSvg] = React.useState(svg);
+  const [debouncedSvg, setDebouncedSvg] = React.useState(svg)
 
   React.useEffect(() => {
     if (!isStreaming) {
-      setDebouncedSvg(svg);
-      return;
+      setDebouncedSvg(svg)
+      return
     }
 
     const timer = setTimeout(() => {
-      setDebouncedSvg(svg);
-    }, 250);
+      setDebouncedSvg(svg)
+    }, 250)
 
-    return () => clearTimeout(timer);
-  }, [svg, isStreaming]);
+    return () => clearTimeout(timer)
+  }, [svg, isStreaming])
 
-  const activeSvg = isStreaming ? debouncedSvg : svg;
+  const activeSvg = isStreaming ? debouncedSvg : svg
 
   const srcDoc = React.useMemo(
     () => svgDocument(activeSvg, theme),
-    [activeSvg, theme],
-  );
+    [activeSvg, theme]
+  )
 
   const aspectRatio = React.useMemo(
     () => parseViewBoxRatio(activeSvg),
-    [activeSvg],
-  );
+    [activeSvg]
+  )
 
   return (
     <div
@@ -370,7 +370,7 @@ export function SvgSandbox({
         }
       />
     </div>
-  );
+  )
 }
 
 /* -------------------------------------------------------------------------- */
@@ -382,68 +382,68 @@ export function MermaidSandbox({
   className,
   isStreaming = false,
 }: {
-  code: string;
-  className?: string;
-  isStreaming?: boolean;
+  code: string
+  className?: string
+  isStreaming?: boolean
 }) {
-  const theme = useIframeTheme();
+  const theme = useIframeTheme()
 
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null)
 
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null)
 
-  const baseId = React.useId().replace(/:/g, "");
+  const baseId = React.useId().replace(/:/g, "")
 
-  const renderCount = React.useRef(0);
+  const renderCount = React.useRef(0)
 
   React.useEffect(() => {
-    let isMounted = true;
+    let isMounted = true
 
     async function renderMermaid() {
       if (!containerRef.current) {
-        return;
+        return
       }
 
       try {
-        setError(null);
+        setError(null)
 
-        const mermaid = (await import("mermaid")).default;
+        const mermaid = (await import("mermaid")).default
 
         mermaid.initialize({
           startOnLoad: false,
           theme: "base",
           themeVariables: MERMAID_THEME_VARIABLES[theme],
           securityLevel: "strict",
-        });
+        })
 
-        renderCount.current += 1;
+        renderCount.current += 1
 
         const { svg } = await mermaid.render(
           `mermaid-${baseId}-${renderCount.current}`,
-          code,
-        );
+          code
+        )
 
         if (isMounted && containerRef.current) {
-          containerRef.current.innerHTML = svg;
-          setError(null);
+          containerRef.current.innerHTML = svg
+          setError(null)
         }
       } catch (err) {
         if (isMounted) {
           setError(
             err instanceof Error
               ? err.message
-              : "Failed to render Mermaid diagram",
-          );
+              : "Failed to render Mermaid diagram"
+          )
         }
       }
     }
 
-    renderMermaid();
+    renderMermaid()
 
     return () => {
-      isMounted = false;
-    };
-  }, [code, theme, baseId]);
+      isMounted = false
+    }
+  }, [code, theme, baseId])
 
   if (error) {
     if (isStreaming) {
@@ -462,7 +462,7 @@ export function MermaidSandbox({
             Updating as diagram syntax completes
           </p>
         </div>
-      );
+      )
     }
 
     return (
@@ -478,7 +478,7 @@ export function MermaidSandbox({
           {error}
         </pre>
       </div>
-    );
+    )
   }
 
   return (
@@ -493,5 +493,5 @@ export function MermaidSandbox({
         className="max-h-full max-w-full [&_svg]:h-auto [&_svg]:max-h-full [&_svg]:max-w-full"
       />
     </div>
-  );
+  )
 }

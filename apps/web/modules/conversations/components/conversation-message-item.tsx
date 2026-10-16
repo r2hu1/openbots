@@ -65,7 +65,6 @@ import {
   getMessageAttachments,
   getMessageImages,
   getMessageText,
-  splitIntoMessageParts,
 } from "../utils"
 
 function fireEmojiConfetti(emoji: string, origin?: { x: number; y: number }) {
@@ -213,17 +212,16 @@ export const ConversationMessageItem = React.memo(
         }
       }
 
-      // Split text into natural conversational parts live as text grows, matching post-stream format
-      const parts = splitIntoMessageParts(text)
-      const formattedParts = parts.map((partText, idx) => {
-        const { segments } = parseArtifacts(partText)
-        return {
-          partId: `asst-${message.id}-p${idx}`,
-          segments,
-        }
-      })
-
-      return { messageParts: formattedParts }
+      // Render the entire agent message in a single unified bubble with parsed artifacts
+      const { segments } = parseArtifacts(text)
+      return {
+        messageParts: [
+          {
+            partId: `asst-${message.id}`,
+            segments,
+          },
+        ],
+      }
     }, [isUser, message.id, text])
 
     const [copied, setCopied] = React.useState(false)

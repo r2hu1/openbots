@@ -78,6 +78,15 @@ export function RunDetailView({ runId, agentId, onBack }: RunDetailViewProps) {
   return (
     <div className="no-scrollbar max-h-[80vh] space-y-4 overflow-y-auto">
       <div className="flex items-center justify-between">
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={onBack}
+          className="gap-1 text-xs -ml-2 text-muted-foreground hover:text-foreground"
+        >
+          <IconArrowLeft className="size-3.5" />
+          Back to history
+        </Button>
         {isRunning && (
           <Button
             size="xs"

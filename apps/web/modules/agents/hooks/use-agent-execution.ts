@@ -112,6 +112,23 @@ export function useAgentExecution({
         if (ev.runId) {
           dismissedRunIds.current.add(ev.runId);
         }
+        if (ev.runId && (activeRunId === ev.runId || !lastTerminalRun)) {
+          const runOutput = ev.output || (streamingText ? { text: streamingText } : null);
+          setLastTerminalRun({
+            id: ev.runId,
+            userId: "",
+            agentId: agentId || "",
+            conversationId: ev.conversationId || activeConversationId,
+            status: ev.status as "completed" | "failed",
+            triggerType: "manual",
+            input: null,
+            output: runOutput,
+            error: ev.error || null,
+            startedAt: new Date(),
+            completedAt: new Date(),
+            createdAt: new Date(),
+          });
+        }
         if (activeConversationId) {
           queryClient.invalidateQueries({
             queryKey: ["conversation", activeConversationId],

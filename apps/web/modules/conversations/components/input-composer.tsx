@@ -754,7 +754,7 @@ export function InputComposer({
 
         {/* Full-Page Drag and Drop Visual Overlay */}
         {isDragging && (
-          <div className="pointer-events-none fixed inset-0 z-50 flex animate-in flex-col items-center justify-center gap-3 bg-background/75 backdrop-blur-sm duration-150 fade-in-0">
+          <div className="pointer-events-none fixed inset-0 z-99 flex animate-in flex-col items-center justify-center gap-3 bg-background/75 backdrop-blur-sm duration-150 fade-in-0">
             <div className="flex size-12 items-center justify-center rounded-xl border border-border bg-muted/50 text-foreground">
               <DocumentUpload className="size-6" />
             </div>
@@ -872,13 +872,13 @@ export function InputComposer({
                         ) : (
                           <AttachmentMedia variant="icon" className="size-10!">
                             {isPdf ? (
-                              <FilePdf className="size-5 text-red-500" />
+                              <FilePdf className="size-5" />
                             ) : isCode ? (
-                              <CodeFile className="size-5 text-blue-500" />
+                              <CodeFile className="size-5" />
                             ) : isSpreadsheet ? (
-                              <DocumentText className="size-5 text-emerald-500" />
+                              <DocumentText className="size-5" />
                             ) : (
-                              <DocumentText className="size-5 text-primary" />
+                              <DocumentText className="size-5" />
                             )}
                           </AttachmentMedia>
                         )}

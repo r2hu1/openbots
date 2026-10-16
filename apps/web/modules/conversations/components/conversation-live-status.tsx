@@ -89,13 +89,15 @@ export function ConversationLiveStatus({
                   </MarkerContent>
                 </Marker>
               ) : (
-                <Marker className="text-xs text-muted-foreground">
-                  <MarkerContent className="flex items-center gap-2 py-0">
-                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-75" />
-                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-150" />
-                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-200" />
-                  </MarkerContent>
-                </Marker>
+                !hasStreamingContent && (
+                  <Marker className="text-xs text-muted-foreground">
+                    <MarkerContent className="flex items-center gap-2 py-0">
+                      <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-75" />
+                      <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-150" />
+                      <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-200" />
+                    </MarkerContent>
+                  </Marker>
+                )
               )}
             </BubbleContent>
           </Bubble>

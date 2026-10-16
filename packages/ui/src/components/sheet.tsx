@@ -137,7 +137,7 @@ function SheetProvider({
           data-sidebar-side={side ?? undefined}
           style={{ "--sheet-width": width, ...style } as React.CSSProperties}
           className={cn(
-            "transition-[padding] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] md:data-[sidebar-side=left]:pl-[calc(var(--sheet-width)+1.5rem)] md:data-[sidebar-side=right]:pr-[calc(var(--sheet-width)+0.7rem)]",
+            "transition-[padding] duration-100 ease-[cubic-bezier(0.32,0.72,0,1)] md:data-[sidebar-side=left]:pl-[calc(var(--sheet-width)+1.5rem)] md:data-[sidebar-side=right]:pr-[calc(var(--sheet-width)+0.7rem)]",
             className
           )}
           {...props}

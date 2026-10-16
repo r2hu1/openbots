@@ -119,6 +119,8 @@ export const ConversationMessageItem = React.memo(
     isStreaming = false,
   }: ConversationMessageItemProps) {
     const isUser = message.role === "user"
+    const [isContextOpen, setIsContextOpen] = React.useState(false)
+
     const text = getMessageText(message.content)
     const images = React.useMemo(
       () => getMessageImages(message.content),
@@ -445,7 +447,10 @@ export const ConversationMessageItem = React.memo(
     )
 
     return (
-      <ContextMenu>
+      <ContextMenu
+        open={isContextOpen}
+        onOpenChange={() => setIsContextOpen(!isContextOpen)}
+      >
         <ContextMenuTrigger className="block w-full">
           <Message align={isUser ? "end" : "start"} className="group">
             {!isUser && (
@@ -844,31 +849,30 @@ export const ConversationMessageItem = React.memo(
           </Message>
         </ContextMenuTrigger>
 
-        <ContextMenuContent className="w-48">
+        <ContextMenuContent className="relative w-48 overflow-visible">
           {!isUser && (
-            <ContextMenuSub>
-              <ContextMenuSubTrigger>
-                <SmileCircle className="mr-2" />
-                <span>React</span>
-              </ContextMenuSubTrigger>
-              <ContextMenuSubContent className="flex min-w-0 flex-row items-center gap-1 p-1">
+            <div className="absolute -top-10 left-0">
+              <div className="flex min-w-0 flex-row items-center gap-px">
                 {QUICK_REACTIONS.map((emoji) => (
-                  <ContextMenuItem
+                  <Button
+                    variant="secondary"
+                    size="icon-sm"
                     key={emoji}
                     onClick={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect()
+                      setIsContextOpen(false)
                       handleReaction(emoji, {
                         x: (rect.left + rect.width / 2) / window.innerWidth,
                         y: (rect.top + rect.height / 2) / window.innerHeight,
                       })
                     }}
-                    className="cursor-pointer text-base"
+                    className="bg-popover/90 hover:scale-105 hover:bg-popover"
                   >
                     {emoji}
-                  </ContextMenuItem>
+                  </Button>
                 ))}
-              </ContextMenuSubContent>
-            </ContextMenuSub>
+              </div>
+            </div>
           )}
 
           <ContextMenuItem onClick={handleCopy}>

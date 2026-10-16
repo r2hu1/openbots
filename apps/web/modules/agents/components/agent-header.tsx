@@ -84,20 +84,20 @@ export function AgentHeader({
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 flex w-full shrink-0 items-center justify-between bg-background px-3 pt-2 pb-1.5",
-        "after:pointer-events-none after:absolute after:top-full after:right-0 after:left-0 after:h-4 after:bg-linear-to-b after:from-background after:to-transparent",
+        "sticky top-0 z-40 flex w-full shrink-0 items-center justify-between bg-background px-3 pt-2 pb-0",
+        "after:pointer-events-none after:absolute after:top-full after:right-0 after:left-0 after:h-6 after:bg-linear-to-b after:from-background after:to-transparent",
         className
       )}
     >
       <div className="flex items-center gap-1.5">
         {isMobile && (
-          <SidebarTrigger className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm transition-colors" />
+          <SidebarTrigger className="flex cursor-pointer items-center gap-1.5 rounded-full border-0! bg-secondary text-xs font-medium text-foreground backdrop-blur-sm transition-colors" />
         )}
         {selectedAgent ? (
           <>
             <DropdownMenu>
               <DropdownMenuTrigger openOnHover>
-                <div className="flex cursor-pointer items-center rounded-full bg-secondary/80 py-0.5 pr-1.5 pl-1 backdrop-blur-sm transition-colors">
+                <div className="flex cursor-pointer items-center rounded-full bg-secondary py-0.5 pr-1.5 pl-1 backdrop-blur-sm transition-colors">
                   <Blobatar
                     name={selectedAgent.name || selectedAgent.id}
                     className="size-6.5!"
@@ -229,7 +229,7 @@ export function AgentHeader({
                 variant="secondary"
                 size="sm"
                 onClick={onOpenSchedules}
-                className="cursor-pointer gap-1.5 bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm"
+                className="cursor-pointer gap-1.5 bg-secondary text-xs font-medium text-foreground backdrop-blur-sm"
                 title="Scheduled Autonomous Tasks"
               >
                 <Calendar2Newicons className="size-4" />
@@ -241,7 +241,7 @@ export function AgentHeader({
               variant="secondary"
               size="sm"
               onClick={onOpenHistory}
-              className="cursor-pointer gap-1.5 bg-secondary/80 text-xs font-medium text-foreground backdrop-blur-sm"
+              className="cursor-pointer gap-1.5 bg-secondary text-xs font-medium text-foreground backdrop-blur-sm"
               title="Execution History"
             >
               <History2 className="size-4" />

@@ -19,6 +19,7 @@ import {
   IconCheck,
   IconChevronDown,
   IconCode,
+  IconDownload,
   IconEye,
   IconX,
 } from "@tabler/icons-react"
@@ -61,6 +62,8 @@ export function SheetHeaderToolbar({
   typeLabel,
   hasCode,
 }: SheetHeaderToolbarProps) {
+  const isFileArtifact = artifact.type === "file"
+
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-border p-1.5">
       {hasCode ? (
@@ -103,10 +106,18 @@ export function SheetHeaderToolbar({
 
       <div className="flex shrink-0 items-center gap-1">
         <ButtonGroup>
-          <Button variant="secondary" size="sm" onClick={onCopy}>
-            {copied && <IconCheck />}
-            {copied ? "Copied" : "Copy"}
-          </Button>
+          {isFileArtifact ? (
+            <Button variant="secondary" size="sm" onClick={onDownload}>
+              <IconDownload className="size-3.5" />
+              Download
+            </Button>
+          ) : (
+            <Button variant="secondary" size="sm" onClick={onCopy}>
+              {copied ? <IconCheck className="size-3.5" /> : null}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          )}
+
           <ButtonGroupSeparator />
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -119,40 +130,15 @@ export function SheetHeaderToolbar({
               <IconChevronDown className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={onDownload}>
-                Download as {typeLabel}
-              </DropdownMenuItem>
+              {!isFileArtifact && (
+                <DropdownMenuItem onClick={onDownload}>
+                  Download as {typeLabel}
+                </DropdownMenuItem>
+              )}
 
               {artifact.type === "html" && (
                 <>
-                  <DropdownMenuItem
-                    onClick={async () => {
-                      try {
-                        const html2pdf = (await import("html2pdf.js")).default
-                        const element = document.createElement("div")
-                        element.innerHTML = artifact.content
-                        element.style.padding = "24px"
-                        element.style.fontFamily = "sans-serif"
-                        const opt = {
-                          margin: 10,
-                          filename: `${slugify(artifact.title)}.pdf`,
-                          image: { type: "jpeg", quality: 0.98 },
-                          html2canvas: { scale: 2 },
-                          jsPDF: {
-                            unit: "mm",
-                            format: "a4",
-                            orientation: "portrait",
-                          },
-                        }
-                        await (html2pdf() as any)
-                          .set(opt)
-                          .from(element)
-                          .save()
-                      } catch (err) {
-                        console.error("PDF export failed:", err)
-                      }
-                    }}
-                  >
+                  <DropdownMenuItem onClick={onExportPdf}>
                     Export as PDF
                   </DropdownMenuItem>
 
@@ -183,6 +169,12 @@ export function SheetHeaderToolbar({
                     Export as Word (.docx)
                   </DropdownMenuItem>
                 </>
+              )}
+
+              {isFileArtifact && (
+                <DropdownMenuItem onClick={onCopy}>
+                  {copied ? "Copied" : "Copy content"}
+                </DropdownMenuItem>
               )}
 
               {onPublish && (

@@ -1,21 +1,29 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import type { RunStatus, StepItem } from "../types";
+import * as React from "react"
+import type { RunStatus, StepItem } from "../types"
+import {
+  dispatchSseMessage,
+  type StreamCallbacks,
+} from "./use-run-stream-dispatcher"
+import {
+  fetchRunTerminalFallback,
+  getStreamAuthHeaders,
+} from "./use-run-stream-transport"
 
-interface UseRunStreamOptions {
-  runId: string | null;
-  onDelta?: (deltaText: string, fullText: string) => void;
-  onToolStart?: (step: { toolName: string; stepNumber: number }) => void;
-  onToolFinish?: (step: { toolName: string; stepNumber: number }) => void;
+export interface UseRunStreamOptions {
+  runId: string | null
+  onDelta?: (deltaText: string, fullText: string) => void
+  onToolStart?: (step: { toolName: string; stepNumber: number }) => void
+  onToolFinish?: (step: { toolName: string; stepNumber: number }) => void
   onStatus?: (data: {
-    status: RunStatus;
-    error?: string;
-    output?: any;
-    steps?: StepItem[];
-  }) => void;
-  onDone?: (data: { status: RunStatus; output?: any }) => void;
-  onError?: (err: Error) => void;
+    status: RunStatus
+    error?: string
+    output?: any
+    steps?: StepItem[]
+  }) => void
+  onDone?: (data: { status: RunStatus; output?: any }) => void
+  onError?: (err: Error) => void
 }
 
 export function useRunStream({
@@ -27,264 +35,119 @@ export function useRunStream({
   onDone,
   onError,
 }: UseRunStreamOptions) {
-  const [streamingText, setStreamingText] = React.useState<string>("");
-  const [streamingSteps, setStreamingSteps] = React.useState<StepItem[]>([]);
-  const [isStreaming, setIsStreaming] = React.useState(false);
-  const [status, setStatus] = React.useState<RunStatus | null>(null);
+  const [streamingText, setStreamingText] = React.useState<string>("")
+  const [streamingSteps, setStreamingSteps] = React.useState<StepItem[]>([])
+  const [isStreaming, setIsStreaming] = React.useState(false)
+  const [status, setStatus] = React.useState<RunStatus | null>(null)
 
-  // Accumulate text in a ref and flush via rAF to batch high-frequency deltas
-  const accTextRef = React.useRef("");
-  const rafRef = React.useRef<number | null>(null);
+  const accTextRef = React.useRef("")
+  const rafRef = React.useRef<number | null>(null)
 
   const flushText = React.useCallback(() => {
-    rafRef.current = null;
-    setStreamingText(accTextRef.current);
-  }, []);
+    rafRef.current = null
+    setStreamingText(accTextRef.current)
+  }, [])
 
   const scheduleFlush = React.useCallback(() => {
     if (rafRef.current === null) {
-      rafRef.current = requestAnimationFrame(flushText);
+      rafRef.current = requestAnimationFrame(flushText)
     }
-  }, [flushText]);
+  }, [flushText])
 
-  // Keep latest callbacks in refs to avoid reconnection loops
-  const onDeltaRef = React.useRef(onDelta);
-  onDeltaRef.current = onDelta;
-  const onToolStartRef = React.useRef(onToolStart);
-  onToolStartRef.current = onToolStart;
-  const onToolFinishRef = React.useRef(onToolFinish);
-  onToolFinishRef.current = onToolFinish;
-  const onStatusRef = React.useRef(onStatus);
-  onStatusRef.current = onStatus;
-  const onDoneRef = React.useRef(onDone);
-  onDoneRef.current = onDone;
-  const onErrorRef = React.useRef(onError);
-  onErrorRef.current = onError;
+  const callbacksRef = React.useRef<StreamCallbacks>({
+    onDelta,
+    onToolStart,
+    onToolFinish,
+    onStatus,
+    onDone,
+  })
+  callbacksRef.current = { onDelta, onToolStart, onToolFinish, onStatus, onDone }
+  const onErrorRef = React.useRef(onError)
+  onErrorRef.current = onError
 
   React.useEffect(() => {
     if (!runId) {
-      accTextRef.current = "";
-      setStreamingText("");
-      setStreamingSteps([]);
-      setIsStreaming(false);
-      setStatus(null);
-      return;
+      accTextRef.current = ""
+      setStreamingText("")
+      setStreamingSteps([])
+      setIsStreaming(false)
+      setStatus(null)
+      return
     }
 
-    const abortController = new AbortController();
-    let isTerminated = false;
-    accTextRef.current = "";
-    let retryCount = 0;
-    const MAX_RETRIES = 4;
-    let retryTimeout: any = null;
-    let lastSeenSeq = -1;
+    const abortController = new AbortController()
+    let isTerminated = false
+    accTextRef.current = ""
+    let retryCount = 0
+    const MAX_RETRIES = 4
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null
+    const seqTracker = { lastSeenSeq: -1 }
 
-    setStreamingText("");
-    setStreamingSteps([]);
-    setIsStreaming(true);
-    setStatus("running");
+    setStreamingText("")
+    setStreamingSteps([])
+    setIsStreaming(true)
+    setStatus("running")
 
     const connect = async () => {
       try {
         const apiBaseUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-        const url = `${apiBaseUrl}/api/runs/${runId}/stream`;
-
-        const headers: Record<string, string> = {
-          Accept: "text/event-stream",
-        };
-        if (typeof window !== "undefined") {
-          const token =
-            localStorage.getItem("bearer_token") ||
-            localStorage.getItem("better-auth_token");
-          if (token) {
-            headers.Authorization = `Bearer ${token}`;
-          }
-        }
-
-        const res = await fetch(url, {
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+        const res = await fetch(`${apiBaseUrl}/api/runs/${runId}/stream`, {
           method: "GET",
-          headers,
+          headers: getStreamAuthHeaders(),
           credentials: "include",
           signal: abortController.signal,
-        });
+        })
 
         if (!res.ok) {
           if (res.status === 404 && retryCount < 2) {
-            // Run record might still be committing; retry briefly
-            retryCount++;
-            retryTimeout = setTimeout(connect, 600);
-            return;
+            retryCount++
+            retryTimeout = setTimeout(connect, 600)
+            return
           }
-          throw new Error(`Failed to connect to run stream: ${res.statusText}`);
+          throw new Error(`Failed to connect to run stream: ${res.statusText}`)
         }
 
         if (!res.body) {
-          throw new Error("No response body received from stream");
+          throw new Error("No response body received from stream")
         }
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ""
 
         while (!abortController.signal.aborted && !isTerminated) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          const { done, value } = await reader.read()
+          if (done) break
 
-          // Successful data read resets retry count
-          retryCount = 0;
-
-          buffer += decoder.decode(value, { stream: true });
-          buffer = buffer.replace(/\r\n/g, "\n");
-          const messages = buffer.split("\n\n");
-          buffer = messages.pop() ?? "";
+          retryCount = 0
+          buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n")
+          const messages = buffer.split("\n\n")
+          buffer = messages.pop() ?? ""
 
           for (const rawMessage of messages) {
-            if (!rawMessage.trim()) continue;
-
-            let eventType = "message";
-            const dataLines: string[] = [];
-
-            const lines = rawMessage.split("\n");
-            for (const line of lines) {
-              if (line.startsWith(":")) {
-                // Ignore SSE comments/pings
-                continue;
-              }
-              if (line.startsWith("event:")) {
-                eventType = line.slice(6).trim();
-              } else if (line.startsWith("data:")) {
-                const content = line.startsWith("data: ")
-                  ? line.slice(6)
-                  : line.slice(5);
-                dataLines.push(content);
-              }
-            }
-
-            if (dataLines.length === 0) continue;
-            const dataStr = dataLines.join("\n");
-
-            try {
-              const data = JSON.parse(dataStr);
-
-              // Deduplicate events by sequence number if present
-              if (typeof data.seq === "number") {
-                if (data.seq <= lastSeenSeq) continue;
-                lastSeenSeq = data.seq;
-              }
-
-              if (eventType === "delta") {
-                const chunk = data.text ?? "";
-                if (chunk) {
-                  accTextRef.current += chunk;
-                  scheduleFlush();
-                  onDeltaRef.current?.(chunk, accTextRef.current);
-                }
-              } else if (eventType === "tool_start") {
-                setStreamingSteps((prev) => {
-                  const existingIdx = prev.findIndex(
-                    (s) =>
-                      (data.toolCallId && s.toolCallId === data.toolCallId) ||
-                      (data.stepNumber !== undefined &&
-                        s.stepNumber === data.stepNumber) ||
-                      (s.toolName === data.toolName && s.status === "running"),
-                  );
-                  const step: StepItem = {
-                    stepNumber: data.stepNumber ?? prev.length,
-                    type: "tool",
-                    status: "running",
-                    toolName: data.toolName,
-                    toolCallId: data.toolCallId ?? null,
-                    toolInput: data.input ?? null,
-                    startedAt: new Date(),
-                  };
-                  if (existingIdx >= 0) {
-                    const current = prev[existingIdx]!;
-                    const next = [...prev];
-                    next[existingIdx] = { ...current, ...step };
-                    return next;
-                  }
-                  return [...prev, step];
-                });
-                onToolStartRef.current?.(data);
-              } else if (eventType === "tool_finish") {
-                setStreamingSteps((prev) => {
-                  const existingIdx = prev.findIndex(
-                    (s) =>
-                      (data.toolCallId && s.toolCallId === data.toolCallId) ||
-                      (data.stepNumber !== undefined &&
-                        s.stepNumber === data.stepNumber) ||
-                      (s.toolName === data.toolName && s.status === "running"),
-                  );
-                  if (existingIdx >= 0) {
-                    const current = prev[existingIdx]!;
-                    const next = [...prev];
-                    next[existingIdx] = {
-                      ...current,
-                      status: "completed",
-                      toolCallId: data.toolCallId ?? current.toolCallId,
-                      toolOutput: data.output ?? current.toolOutput,
-                      completedAt: new Date(),
-                    };
-                    return next;
-                  }
-                  return [
-                    ...prev,
-                    {
-                      stepNumber: data.stepNumber ?? prev.length,
-                      type: "tool",
-                      status: "completed",
-                      toolName: data.toolName,
-                      toolCallId: data.toolCallId ?? null,
-                      toolOutput: data.output ?? null,
-                      completedAt: new Date(),
-                    },
-                  ];
-                });
-                onToolFinishRef.current?.(data);
-              } else if (eventType === "status") {
-                const nextStatus = data.status as RunStatus;
-                setStatus(nextStatus);
-                if (Array.isArray(data.steps) && data.steps.length > 0) {
-                  setStreamingSteps(data.steps);
-                }
-                if (!accTextRef.current && data.output?.text) {
-                  accTextRef.current = data.output.text;
-                  setStreamingText(accTextRef.current);
-                }
-                onStatusRef.current?.(data);
-
-                if (
-                  nextStatus === "completed" ||
-                  nextStatus === "failed" ||
-                  nextStatus === "cancelled"
-                ) {
-                  isTerminated = true;
-                  setIsStreaming(false);
-                }
-              } else if (eventType === "done") {
-                isTerminated = true;
-                setIsStreaming(false);
-                setStatus((data.status as RunStatus) || "completed");
-                if (!accTextRef.current && data.output?.text) {
-                  accTextRef.current = data.output.text;
-                  setStreamingText(accTextRef.current);
-                }
-                onDoneRef.current?.(data);
-              }
-            } catch (jsonErr) {
-              console.warn("Failed to parse SSE JSON payload:", jsonErr);
-            }
+            dispatchSseMessage(rawMessage, {
+              lastSeenSeq: seqTracker.lastSeenSeq,
+              accTextRef,
+              scheduleFlush,
+              callbacksRef,
+              setStreamingSteps,
+              setStatus,
+              setStreamingText,
+              setIsStreaming,
+              markTerminated: () => {
+                isTerminated = true
+              },
+            })
           }
         }
 
-        // Connection closed normally: if not yet terminated, attempt reconnect or verify DB
         if (!abortController.signal.aborted && !isTerminated) {
           if (retryCount < MAX_RETRIES) {
-            retryCount++;
-            const delay = Math.min(800 * Math.pow(1.5, retryCount), 3000);
-            retryTimeout = setTimeout(connect, delay);
-            return;
+            retryCount++
+            const delay = Math.min(800 * Math.pow(1.5, retryCount), 3000)
+            retryTimeout = setTimeout(connect, delay)
+            return
           }
         }
       } catch (err: any) {
@@ -293,89 +156,59 @@ export function useRunStream({
           abortController.signal.aborted ||
           isTerminated
         ) {
-          return;
+          return
         }
 
-        // Attempt retry on transient network errors
         if (retryCount < MAX_RETRIES) {
-          retryCount++;
-          const delay = Math.min(800 * Math.pow(1.5, retryCount), 3000);
-          retryTimeout = setTimeout(connect, delay);
-          return;
+          retryCount++
+          const delay = Math.min(800 * Math.pow(1.5, retryCount), 3000)
+          retryTimeout = setTimeout(connect, delay)
+          return
         }
 
-        // Retries exhausted: try one fallback fetch to verify terminal state in DB before reporting error
-        try {
-          const apiBaseUrl =
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-          const fallbackHeaders: Record<string, string> = {};
-          if (typeof window !== "undefined") {
-            const token =
-              localStorage.getItem("bearer_token") ||
-              localStorage.getItem("better-auth_token");
-            if (token) fallbackHeaders.Authorization = `Bearer ${token}`;
-          }
-
-          const fallbackRes = await fetch(`${apiBaseUrl}/api/runs/${runId}`, {
-            headers: fallbackHeaders,
-            credentials: "include",
-            signal: abortController.signal,
-          });
-
-          if (fallbackRes.ok) {
-            const fallbackData = await fallbackRes.json();
-            const run = fallbackData?.run;
-            if (
-              run &&
-              (run.status === "completed" ||
-                run.status === "failed" ||
-                run.status === "cancelled")
-            ) {
-              isTerminated = true;
-              setIsStreaming(false);
-              setStatus(run.status);
-              const finalText = run.output?.text || accTextRef.current;
-              if (finalText) {
-                setStreamingText(finalText);
-              }
-              if (fallbackData.steps) {
-                setStreamingSteps(fallbackData.steps);
-              }
-              onStatusRef.current?.({
-                status: run.status,
-                output: run.output,
-                error: run.error,
-              });
-              onDoneRef.current?.({
-                status: run.status,
-                output: run.output,
-              });
-              return;
-            }
-          }
-        } catch {
-          // Ignore fallback error
+        const fallback = await fetchRunTerminalFallback(
+          runId,
+          abortController.signal
+        )
+        if (fallback) {
+          const { run, steps } = fallback
+          isTerminated = true
+          setStatus(run.status)
+          const finalText =
+            (run.output as Record<string, any> | undefined)?.text ||
+            accTextRef.current
+          if (finalText) setStreamingText(finalText)
+          if (steps) setStreamingSteps(steps)
+          callbacksRef.current.onStatus?.({
+            status: run.status,
+            output: run.output,
+            error: run.error ?? undefined,
+          })
+          callbacksRef.current.onDone?.({
+            status: run.status,
+            output: run.output,
+          })
+          return
         }
 
-        setIsStreaming(false);
-        onErrorRef.current?.(err);
+        setIsStreaming(false)
+        onErrorRef.current?.(err)
       } finally {
         if (!abortController.signal.aborted && isTerminated) {
-          setIsStreaming(false);
+          setIsStreaming(false)
         }
       }
-    };
+    }
 
-    connect();
+    connect()
 
     return () => {
-      if (retryTimeout) clearTimeout(retryTimeout);
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-      abortController.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runId, scheduleFlush]);
+      if (retryTimeout) clearTimeout(retryTimeout)
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+      abortController.abort()
+    }
+  }, [runId, scheduleFlush])
 
   return {
     streamingText,
@@ -383,12 +216,12 @@ export function useRunStream({
     isStreaming,
     status,
     resetStream: () => {
-      accTextRef.current = "";
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-      setStreamingText("");
-      setStreamingSteps([]);
-      setIsStreaming(false);
+      accTextRef.current = ""
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+      setStreamingText("")
+      setStreamingSteps([])
+      setIsStreaming(false)
     },
-  };
+  }
 }

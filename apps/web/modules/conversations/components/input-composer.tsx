@@ -1,26 +1,26 @@
-"use client";
+"use client"
 
-import { Textarea } from "@openbots/ui/components/textarea";
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import { AttachmentPreview } from "./input-composer/attachment-preview";
-import { ComposerToolbar } from "./input-composer/composer-toolbar";
-import { DragDropOverlay } from "./input-composer/drag-drop-overlay";
-import { ModelPicker } from "./input-composer/model-picker";
-import { ReplyingBanner } from "./input-composer/replying-banner";
-import { SlashCommandMenu } from "./input-composer/slash-command-menu";
-import { MAX_ATTACHMENTS } from "./input-composer/types";
-import type { InputComposerProps } from "./input-composer/types";
-import { useComposerAttachments } from "./input-composer/use-composer-attachments";
-import { useComposerAutoResize } from "./input-composer/use-composer-auto-resize";
-import { useComposerDragDrop } from "./input-composer/use-composer-drag-drop";
-import { useComposerShortcuts } from "./input-composer/use-composer-shortcuts";
-import { useComposerSubmit } from "./input-composer/use-composer-submit";
-import { useSlashCommands } from "./input-composer/use-slash-commands";
-import { VoiceInput } from "./input-composer/voice-input";
+import { Textarea } from "@openbots/ui/components/textarea"
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { AttachmentPreview } from "./input-composer/attachment-preview"
+import { ComposerToolbar } from "./input-composer/composer-toolbar"
+import { DragDropOverlay } from "./input-composer/drag-drop-overlay"
+import { ModelPicker } from "./input-composer/model-picker"
+import { ReplyingBanner } from "./input-composer/replying-banner"
+import { SlashCommandMenu } from "./input-composer/slash-command-menu"
+import { MAX_ATTACHMENTS } from "./input-composer/types"
+import type { InputComposerProps } from "./input-composer/types"
+import { useComposerAttachments } from "./input-composer/use-composer-attachments"
+import { useComposerAutoResize } from "./input-composer/use-composer-auto-resize"
+import { useComposerDragDrop } from "./input-composer/use-composer-drag-drop"
+import { useComposerShortcuts } from "./input-composer/use-composer-shortcuts"
+import { useComposerSubmit } from "./input-composer/use-composer-submit"
+import { useSlashCommands } from "./input-composer/use-slash-commands"
+import { VoiceInput } from "./input-composer/voice-input"
 
-export { SLASH_COMMANDS } from "./input-composer/slash-commands";
-export type { SlashCommand, InputComposerProps } from "./input-composer/types";
+export { SLASH_COMMANDS } from "./input-composer/slash-commands"
+export type { SlashCommand, InputComposerProps } from "./input-composer/types"
 
 export function InputComposer({
   onSend,
@@ -33,8 +33,8 @@ export function InputComposer({
   replyTarget,
   onClearReply,
 }: InputComposerProps) {
-  const [text, setText] = React.useState("");
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const [text, setText] = React.useState("")
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   const {
     attachments,
@@ -43,7 +43,7 @@ export function InputComposer({
     handleFileChange,
     handleRemoveAttachment,
     clearAttachments,
-  } = useComposerAttachments();
+  } = useComposerAttachments()
 
   const {
     isMenuOpen,
@@ -57,13 +57,13 @@ export function InputComposer({
     text,
     setText,
     textareaRef,
-  });
+  })
 
   const { isDragging } = useComposerDragDrop({
     disabled,
     isSubmitting,
     onProcessFiles: handleProcessFiles,
-  });
+  })
 
   const {
     isUploadingAny,
@@ -90,33 +90,33 @@ export function InputComposer({
     setIsDismissed,
     handleSelectCommand,
     onProcessFiles: handleProcessFiles,
-  });
+  })
 
   const { isExpanded } = useComposerAutoResize({
     text,
     textareaRef,
-  });
+  })
 
   useComposerShortcuts({
     textareaRef,
     replyTarget,
-  });
+  })
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(event.target.value);
-    setIsDismissed(false);
-  };
+    setText(event.target.value)
+    setIsDismissed(false)
+  }
 
   const handleContainerClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("button")) return;
-    textareaRef.current?.focus();
-  };
+    if ((event.target as HTMLElement).closest("button")) return
+    textareaRef.current?.focus()
+  }
 
-  const isAttachDisabled = disabled || attachments.length >= MAX_ATTACHMENTS;
+  const isAttachDisabled = disabled || attachments.length >= MAX_ATTACHMENTS
   const attachTitle =
     attachments.length >= MAX_ATTACHMENTS
       ? `Maximum ${MAX_ATTACHMENTS} files attached`
-      : "Add files (max 10, up to 25MB each)";
+      : "Add files (max 10, up to 25MB each)"
 
   return (
     <div className="w-full px-3 pb-3">
@@ -136,16 +136,13 @@ export function InputComposer({
 
         <form
           onSubmit={(event) => {
-            event.preventDefault();
-            handleSubmit();
+            event.preventDefault()
+            handleSubmit()
           }}
         >
           <div
             onClick={handleContainerClick}
-            className={cn(
-              "relative flex cursor-text flex-col overflow-hidden rounded-2xl border bg-sidebar transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-3 focus-within:ring-border dark:bg-secondary/70",
-              isDragging && "border-primary/80 ring-3 ring-primary/20",
-            )}
+            className="relative flex cursor-text flex-col overflow-hidden rounded-2xl border border-border bg-sidebar transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-3 focus-within:ring-border dark:bg-secondary"
           >
             {/* Hidden file input */}
             <input
@@ -173,13 +170,13 @@ export function InputComposer({
             <div
               className={cn(
                 "relative p-2.5 transition-[padding] duration-200 ease-out motion-reduce:transition-none",
-                isExpanded ? "pb-10" : "pb-[9px]",
+                isExpanded ? "pb-10" : "pb-[9px]"
               )}
             >
               <ComposerToolbar
                 onAttachClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  fileInputRef.current?.click();
+                  e.stopPropagation()
+                  fileInputRef.current?.click()
                 }}
                 isAttachDisabled={isAttachDisabled}
                 attachTitle={attachTitle}
@@ -211,7 +208,7 @@ export function InputComposer({
                 rows={1}
                 className={cn(
                   "block field-sizing-fixed max-h-60 min-h-0 w-full resize-none rounded-none border-0 bg-transparent! py-1.5 text-[14px] leading-5 shadow-none transition-[height] duration-200 ease-out placeholder:text-muted-foreground/70 focus-visible:ring-0 focus-visible:ring-offset-0 motion-reduce:transition-none",
-                  isExpanded ? "px-2.5" : "px-9",
+                  isExpanded ? "px-2.5" : "px-9"
                 )}
               />
             </div>
@@ -219,5 +216,5 @@ export function InputComposer({
         </form>
       </div>
     </div>
-  );
+  )
 }

@@ -45,8 +45,8 @@ export function MessageContextMenuContent({
   return (
     <ContextMenuContent className="relative w-48 overflow-visible">
       {!isUser && (
-        <div className="absolute -top-10 left-0 z-50">
-          <div className="flex min-w-0 flex-row items-center gap-0 rounded-md border bg-popover/90 p-px backdrop-blur-2xl">
+        <div className="absolute -top-11 left-0">
+          <div className="flex min-w-0 flex-row items-center gap-0 rounded-md border-2 border-border bg-popover/95 p-px shadow-lg">
             {QUICK_REACTIONS.map((emoji) => (
               <Button
                 variant="ghost"
@@ -60,7 +60,7 @@ export function MessageContextMenuContent({
                     y: (rect.top + rect.height / 2) / window.innerHeight,
                   })
                 }}
-                className="hover:scale hover:bg-popover-foreground/15!"
+                className="hover:scale text-base hover:bg-popover-foreground/15!"
               >
                 {emoji}
               </Button>

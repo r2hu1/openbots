@@ -1,17 +1,17 @@
-"use client";
+"use client"
 
-import { cn } from "@/lib/utils";
-import { Kbd } from "@openbots/ui/components/kbd";
-import type * as React from "react";
-import type { SlashCommand } from "./types";
+import { cn } from "@/lib/utils"
+import { Kbd } from "@openbots/ui/components/kbd"
+import type * as React from "react"
+import type { SlashCommand } from "./types"
 
 interface SlashCommandMenuProps {
-  isOpen: boolean;
-  commands: SlashCommand[];
-  selectedIndex: number;
-  onSelectIndex: (index: number) => void;
-  onSelectCommand: (command: SlashCommand) => void;
-  commandListRef: React.RefObject<HTMLDivElement | null>;
+  isOpen: boolean
+  commands: SlashCommand[]
+  selectedIndex: number
+  onSelectIndex: (index: number) => void
+  onSelectCommand: (command: SlashCommand) => void
+  commandListRef: React.RefObject<HTMLDivElement | null>
 }
 
 export function SlashCommandMenu({
@@ -22,14 +22,14 @@ export function SlashCommandMenu({
   onSelectCommand,
   commandListRef,
 }: SlashCommandMenuProps) {
-  if (!isOpen || commands.length === 0) return null;
+  if (!isOpen || commands.length === 0) return null
 
   return (
     <div
       ref={commandListRef}
       role="listbox"
       aria-label="Slash commands"
-      className="dark absolute bottom-full left-0 z-50 mb-2 w-full max-w-md origin-bottom-left animate-in overflow-hidden rounded-lg border border-border/60 bg-popover duration-100 fade-in-0 outline-none slide-in-from-bottom-10 zoom-in-95"
+      className="dark absolute bottom-full left-0 z-50 mb-2 w-full max-w-md origin-bottom-left animate-in overflow-hidden rounded-lg border border-border/70 bg-popover ring-3 ring-border duration-100 fade-in-0 outline-none slide-in-from-bottom-10 zoom-in-95"
     >
       <div className="sticky top-0 z-10 flex items-center justify-between bg-popover px-3 py-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
         Commands
@@ -38,8 +38,8 @@ export function SlashCommandMenu({
 
       <div className="max-h-72 w-full space-y-0.5 overflow-y-auto px-1.5 pb-1.5">
         {commands.map((command, idx) => {
-          const isSelected = idx === selectedIndex;
-          const Icon = command.icon;
+          const isSelected = idx === selectedIndex
+          const Icon = command.icon
 
           return (
             <button
@@ -50,15 +50,15 @@ export function SlashCommandMenu({
               aria-selected={isSelected}
               onMouseEnter={() => onSelectIndex(idx)}
               onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onSelectCommand(command);
+                e.preventDefault()
+                e.stopPropagation()
+                onSelectCommand(command)
               }}
               className={cn(
                 "flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
                 isSelected
                   ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               )}
             >
               <div className="flex min-w-0 items-center gap-2.5">
@@ -67,7 +67,7 @@ export function SlashCommandMenu({
                     "flex size-7 shrink-0 items-center justify-center rounded-lg",
                     isSelected
                       ? "bg-background text-foreground"
-                      : "bg-muted/50 text-muted-foreground",
+                      : "bg-muted/50 text-muted-foreground"
                   )}
                 >
                   <Icon className="size-4" />
@@ -95,9 +95,9 @@ export function SlashCommandMenu({
                 </span>
               )}
             </button>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
 }

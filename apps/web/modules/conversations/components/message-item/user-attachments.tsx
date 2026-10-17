@@ -2,36 +2,94 @@
 
 import {
   Attachment,
-  AttachmentAction,
-  AttachmentActions,
   AttachmentContent,
   AttachmentDescription,
   AttachmentGroup,
   AttachmentMedia,
   AttachmentTitle,
+  AttachmentTrigger,
 } from "@openbots/ui/components/attachment"
 import * as React from "react"
 import {
-  Download as IconDownload,
   DocumentText as IconDocumentText,
   CodeFile as IconFileCode,
   FilePdf as IconFileTypePdf,
 } from "reicon-react"
+import type { ParsedArtifact } from "@/modules/artifacts/parser"
 import type { MessageAttachment } from "../../utils"
 import { formatFileSize } from "../../utils"
 
 interface UserAttachmentsProps {
   images: string[]
   attachments: MessageAttachment[]
+  onOpenArtifact?: (artifact: ParsedArtifact) => void
 }
 
-export function UserAttachments({ images, attachments }: UserAttachmentsProps) {
+export function UserAttachments({
+  images,
+  attachments,
+  onOpenArtifact,
+}: UserAttachmentsProps) {
+  const handleOpenAttachment = React.useCallback(
+    (att: MessageAttachment) => {
+      if (!onOpenArtifact) return
+
+      const ext = (
+        att.name.includes(".") ? att.name.split(".").pop()! : "txt"
+      ).toLowerCase()
+
+      const artifact: ParsedArtifact = {
+        id: `att-${att.path || att.name}-${Date.now()}`,
+        type: "file",
+        title: att.name,
+        content: "",
+        mode: "card",
+        isStreaming: false,
+        source: att.url,
+        fileType: ext,
+        size: att.sizeBytes ? String(att.sizeBytes) : undefined,
+      }
+
+      onOpenArtifact(artifact)
+    },
+    [onOpenArtifact]
+  )
+
+  const handleOpenImage = React.useCallback(
+    (imgUrl: string, idx: number) => {
+      if (!onOpenArtifact) return
+
+      const filename = `Image ${idx + 1}`
+      const basePart = imgUrl.split("?")[0] || ""
+      const ext = basePart.split(".").pop()?.toLowerCase() || "png"
+
+      const artifact: ParsedArtifact = {
+        id: `img-${idx}-${Date.now()}`,
+        type: "file",
+        title: filename,
+        content: "",
+        mode: "card",
+        isStreaming: false,
+        source: imgUrl,
+        fileType: ext,
+      }
+
+      onOpenArtifact(artifact)
+    },
+    [onOpenArtifact]
+  )
+
   return (
     <>
       {images.length > 0 && (
         <AttachmentGroup className="max-w-full justify-end">
           {images.map((imgUrl, idx) => (
-            <Attachment key={idx} state="done" orientation="vertical">
+            <Attachment
+              key={idx}
+              state="done"
+              orientation="vertical"
+              className={onOpenArtifact ? "cursor-pointer hover:opacity-90" : ""}
+            >
               <AttachmentMedia variant="image">
                 <img
                   src={imgUrl}
@@ -39,6 +97,13 @@ export function UserAttachments({ images, attachments }: UserAttachmentsProps) {
                   loading="lazy"
                 />
               </AttachmentMedia>
+              {onOpenArtifact && (
+                <AttachmentTrigger
+                  type="button"
+                  onClick={() => handleOpenImage(imgUrl, idx)}
+                  aria-label={`Open ${imgUrl}`}
+                />
+              )}
             </Attachment>
           ))}
         </AttachmentGroup>
@@ -69,44 +134,34 @@ export function UserAttachments({ images, attachments }: UserAttachmentsProps) {
                 key={att.path || idx}
                 state="done"
                 orientation="horizontal"
-                className="ml-auto"
+                className="ml-auto cursor-pointer transition-colors hover:bg-muted/50"
               >
                 <AttachmentMedia variant="icon">
                   {isPdf ? (
-                    <IconFileTypePdf className="text-red-500" />
+                    <IconFileTypePdf />
                   ) : isCode ? (
-                    <IconFileCode className="text-blue-500" />
+                    <IconFileCode />
                   ) : isSpreadsheet ? (
-                    <IconDocumentText className="text-emerald-500" />
+                    <IconDocumentText />
                   ) : (
-                    <IconDocumentText className="text-primary" />
+                    <IconDocumentText />
                   )}
                 </AttachmentMedia>
                 <AttachmentContent className="max-w-48">
-                  <AttachmentTitle title={att.name}>
-                    {att.name}
-                  </AttachmentTitle>
+                  <AttachmentTitle title={att.name}>{att.name}</AttachmentTitle>
                   {att.sizeBytes ? (
                     <AttachmentDescription>
                       {formatFileSize(att.sizeBytes)}
                     </AttachmentDescription>
                   ) : null}
                 </AttachmentContent>
-                <AttachmentActions>
-                  <AttachmentAction
-                    render={
-                      <a
-                        href={att.url}
-                        download={att.name}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      />
-                    }
-                    title="Download file"
-                  >
-                    <IconDownload className="size-3.5" />
-                  </AttachmentAction>
-                </AttachmentActions>
+                {onOpenArtifact && (
+                  <AttachmentTrigger
+                    type="button"
+                    onClick={() => handleOpenAttachment(att)}
+                    aria-label={`Open ${att.name}`}
+                  />
+                )}
               </Attachment>
             )
           })}

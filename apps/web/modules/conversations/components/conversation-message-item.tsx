@@ -119,7 +119,11 @@ export const ConversationMessageItem = React.memo(
 
                 {isUser ? (
                   <div className="flex flex-col items-end gap-2">
-                    <UserAttachments images={images} attachments={attachments} />
+                    <UserAttachments
+                      images={images}
+                      attachments={attachments}
+                      onOpenArtifact={onOpenArtifact}
+                    />
                     {text && (
                       <Bubble variant="default" align="end" className="relative">
                         <BubbleContent className="whitespace-pre-wrap">{text}</BubbleContent>

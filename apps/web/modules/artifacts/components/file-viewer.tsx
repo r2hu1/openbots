@@ -12,6 +12,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import type { ParsedArtifact } from "../parser"
 import { DocxViewer } from "./viewers/docx-viewer"
+import { HtmlDocumentViewer } from "./viewers/html-viewer"
 import { MarkdownDocumentViewer } from "./viewers/markdown-viewer"
 import { PdfViewer } from "./viewers/pdf-viewer"
 import { SpreadsheetViewer } from "./viewers/spreadsheet-viewer"
@@ -94,6 +95,19 @@ export function FileViewer({
       <SpreadsheetViewer
         source={artifact.source}
         content={artifact.content}
+        ext={ext}
+        onDownload={onDownload}
+      />
+    )
+  }
+
+  // HTML Document Preview
+  if ((ext === "html" || ext === "htm") && (artifact.source || artifact.content)) {
+    return (
+      <HtmlDocumentViewer
+        source={artifact.source}
+        content={artifact.content}
+        title={artifact.title}
         ext={ext}
         onDownload={onDownload}
       />

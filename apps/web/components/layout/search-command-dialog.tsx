@@ -12,26 +12,13 @@ import {
 } from "@openbots/ui/components/command";
 import { Blobatar } from "@openbots/ui/components/ui/blobatar";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import * as React from "react";
-import {
-  Check,
-  Devices,
-  Home,
-  Logout,
-  MessageSquare,
-  Moon3,
-  Plug2,
-  Plus,
-  Search2,
-  Setting,
-  Sun2,
-  User,
-} from "reicon-react";
+import { Home, Plug2, Plus, Setting } from "reicon-react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { signOut } from "@/lib/auth-client";
 import type { Agent } from "@/modules/agents/types";
 import { useTimelineSearchQuery } from "@/modules/conversations/queries";
+import { SearchCommandPreferencesGroup } from "./search-command-preferences-group";
+import { SearchCommandTimelineGroup } from "./search-command-timeline-group";
 
 interface SearchCommandDialogProps {
   open: boolean;
@@ -51,7 +38,6 @@ export function SearchCommandDialog({
   onOpenConnections,
 }: SearchCommandDialogProps) {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
   const [search, setSearch] = React.useState("");
 
   // Debounce search query to safeguard database from high query frequency
@@ -62,7 +48,7 @@ export function SearchCommandDialog({
     useTimelineSearchQuery(debouncedSearch, open);
 
   const handleSelect = React.useCallback(
-    (action: () => void) => {
+    (action: () => void | Promise<void>) => {
       onOpenChange(false);
       setSearch("");
       action();
@@ -110,42 +96,11 @@ export function SearchCommandDialog({
         </CommandEmpty>
 
         {/* Timeline Message Search Results */}
-        {timelineResults.length > 0 && (
-          <CommandGroup heading="Chat Timeline Messages">
-            {timelineResults.map((item) => {
-              const matchedAgent = agents.find((a) => a.id === item.agentId);
-              const agentLabel = matchedAgent?.name || "Agent";
-              const agentRole = matchedAgent?.description;
-              return (
-                <CommandItem
-                  key={`timeline-${item.messageId}`}
-                  value={`message ${item.text} ${agentLabel} ${item.conversationTitle || ""}`}
-                  onSelect={() =>
-                    navigateToMessage(
-                      item.agentId,
-                      item.conversationId,
-                      item.messageId,
-                    )
-                  }
-                  className="flex items-start gap-2.5 py-2"
-                >
-                  <Blobatar name={agentLabel} />
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className="font-semibold text-foreground">
-                        {agentLabel}
-                      </span>
-                      <span className="ml-auto text-[11px]">{agentRole}</span>
-                    </div>
-                    <p className="line-clamp-2 text-xs leading-relaxed text-foreground/90">
-                      {item.text}
-                    </p>
-                  </div>
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        )}
+        <SearchCommandTimelineGroup
+          timelineResults={timelineResults}
+          agents={agents}
+          onSelectMessage={navigateToMessage}
+        />
 
         {/* Agents Group */}
         <CommandGroup heading="Agents">
@@ -217,49 +172,7 @@ export function SearchCommandDialog({
         <CommandSeparator />
 
         {/* Appearance & Quick Actions */}
-        <CommandGroup heading="Preferences & Actions">
-          <CommandItem
-            value="theme switch toggle light mode"
-            onSelect={() => handleSelect(() => setTheme("light"))}
-            className="relative"
-          >
-            <Sun2 className="size-4" />
-            <span>Light Theme</span>
-            {theme === "light" && <Check className="absolute right-2 size-4" />}
-          </CommandItem>
-          <CommandItem
-            value="theme switch toggle dark mode"
-            className="relative"
-            onSelect={() => handleSelect(() => setTheme("dark"))}
-          >
-            <Moon3 className="size-4" />
-            <span>Dark Theme</span>
-            {theme === "dark" && <Check className="absolute right-2 size-4" />}
-          </CommandItem>
-          <CommandItem
-            value="theme system auto"
-            className="relative w-full"
-            onSelect={() => handleSelect(() => setTheme("system"))}
-          >
-            <Devices className="size-4" />
-            <span>System Theme</span>
-            {theme === "system" && (
-              <Check className="absolute right-2 size-4" />
-            )}
-          </CommandItem>
-          <CommandItem
-            value="log out sign out exit account"
-            onSelect={() =>
-              handleSelect(async () => {
-                await signOut();
-                router.replace("/login");
-              })
-            }
-          >
-            <Logout className="size-4" />
-            <span>Log out</span>
-          </CommandItem>
-        </CommandGroup>
+        <SearchCommandPreferencesGroup onSelectAction={handleSelect} />
       </CommandList>
     </CommandDialog>
   );

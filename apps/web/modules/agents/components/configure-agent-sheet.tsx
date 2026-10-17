@@ -1,18 +1,6 @@
 "use client"
 
-import { Badge } from "@openbots/ui/components/badge"
 import { Button } from "@openbots/ui/components/button"
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@openbots/ui/components/field"
-import { Input } from "@openbots/ui/components/input"
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@openbots/ui/components/native-select"
 import {
   Sheet,
   SheetContent,
@@ -22,18 +10,15 @@ import {
   SheetTitle,
 } from "@openbots/ui/components/sheet"
 import { Spinner } from "@openbots/ui/components/spinner"
-import { Switch } from "@openbots/ui/components/switch"
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@openbots/ui/components/tabs"
-import { Textarea } from "@openbots/ui/components/textarea"
-import { IconCheck, IconTrash } from "@tabler/icons-react"
+import { IconTrash } from "@tabler/icons-react"
 import { useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
-import { TOOL_DESCRIPTIONS } from "../constants"
 import {
   useAgentToolsQuery,
   useAvailableModelsQuery,
@@ -41,18 +26,9 @@ import {
   useUpdateAgentMutation,
 } from "../queries"
 import type { Agent } from "../types"
+import { ConfigureAgentGeneralTab } from "./configure-agent-general-tab"
+import { ConfigureAgentToolsTab } from "./configure-agent-tools-tab"
 import { DeleteAgentDialog } from "./delete-agent-dialog"
-import { useRouter } from "next/navigation"
-
-const PROVIDER_LABELS: Record<string, string> = {
-  google: "Google Gemini",
-  openai: "OpenAI",
-  anthropic: "Anthropic Claude",
-  deepseek: "DeepSeek",
-  groq: "Groq",
-  xai: "xAI Grok",
-  openrouter: "OpenRouter",
-}
 
 interface ConfigureAgentSheetProps {
   agent: Agent | null
@@ -185,173 +161,32 @@ export function ConfigureAgentSheet({
           </TabsList>
 
           <TabsContent value="general" className={SCROLL_CLASS}>
-            <form
-              id="configure-agent-form"
+            <ConfigureAgentGeneralTab
+              name={name}
+              setName={setName}
+              description={description}
+              setDescription={setDescription}
+              instructions={instructions}
+              setInstructions={setInstructions}
+              model={model}
+              setModel={setModel}
+              selectedProvider={selectedProvider}
+              setSelectedProvider={setSelectedProvider}
+              providerKeys={providerKeys}
+              modelsByProvider={modelsByProvider}
+              currentProviderModels={currentProviderModels}
+              saveSuccess={saveSuccess}
+              saveError={saveError}
               onSubmit={handleUpdate}
-              className="space-y-4 pb-4"
-            >
-              {saveSuccess && (
-                <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-600 dark:text-emerald-400">
-                  <IconCheck className="size-3.5" />
-                  Configuration saved.
-                </div>
-              )}
-
-              {saveError && (
-                <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-3.5 py-2.5 text-xs text-destructive">
-                  {saveError}
-                </div>
-              )}
-
-              <FieldGroup className="gap-4">
-                <Field>
-                  <FieldLabel htmlFor="cfg-name">Agent name</FieldLabel>
-                  <Input
-                    id="cfg-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="cfg-desc">Description</FieldLabel>
-                  <Input
-                    id="cfg-desc"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Optional description"
-                  />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="cfg-instructions">
-                    System instructions
-                  </FieldLabel>
-                  <Textarea
-                    id="cfg-instructions"
-                    rows={8}
-                    className="max-h-40 font-mono text-xs"
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                    required
-                  />
-                </Field>
-
-                {providerKeys.length === 0 ? (
-                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400">
-                    No LLM API keys configured yet. Please configure a provider
-                    in Settings &gt; API Keys.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field>
-                      <FieldLabel htmlFor="cfg-provider">Provider</FieldLabel>
-                      <NativeSelect
-                        id="cfg-provider"
-                        value={selectedProvider}
-                        onChange={(e) => {
-                          const newP = e.target.value
-                          setSelectedProvider(newP)
-                          const firstModel = modelsByProvider[newP]?.[0]?.id
-                          if (firstModel) setModel(firstModel)
-                        }}
-                        className="w-full text-xs"
-                      >
-                        {providerKeys.map((p) => (
-                          <NativeSelectOption key={p} value={p}>
-                            {PROVIDER_LABELS[p] || p.toUpperCase()}
-                          </NativeSelectOption>
-                        ))}
-                      </NativeSelect>
-                    </Field>
-
-                    <Field>
-                      <FieldLabel htmlFor="cfg-model">Model</FieldLabel>
-                      <NativeSelect
-                        id="cfg-model"
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                        className="w-full text-xs"
-                      >
-                        {currentProviderModels.map((m) => (
-                          <NativeSelectOption key={m.id} value={m.id}>
-                            {m.displayName}
-                          </NativeSelectOption>
-                        ))}
-                      </NativeSelect>
-                    </Field>
-                  </div>
-                )}
-              </FieldGroup>
-            </form>
+            />
           </TabsContent>
 
           <TabsContent value="tools" className={SCROLL_CLASS}>
-            <div className="space-y-3 pb-4">
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Choose which tools the agent can call during its multi-step
-                loop.
-              </p>
-
-              {isLoadingTools ? (
-                <div className="flex items-center justify-center p-8">
-                  <Spinner className="size-5" />
-                </div>
-              ) : tools.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs text-muted-foreground">
-                  No tools available for this agent yet.
-                </div>
-              ) : (
-                <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-                  {tools.map((tool) => {
-                    const rowPending =
-                      toggleToolMutation.isPending &&
-                      toggleToolMutation.variables?.toolName === tool.toolName
-
-                    return (
-                      <div
-                        key={tool.id}
-                        className="flex items-center gap-3 px-3.5 py-3"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate font-mono text-xs font-medium text-foreground">
-                              {tool.toolName}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className="h-4 shrink-0 py-0 text-[10px] text-muted-foreground"
-                            >
-                              {tool.provider}
-                            </Badge>
-                          </div>
-                          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                            {TOOL_DESCRIPTIONS[tool.toolName] ??
-                              `External ${tool.provider} tool integration.`}
-                          </p>
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-2">
-                          {rowPending && <Spinner className="size-3" />}
-                          <Switch
-                            checked={tool.enabled}
-                            onCheckedChange={(checked) =>
-                              toggleToolMutation.mutate({
-                                toolName: tool.toolName,
-                                provider: tool.provider,
-                                enabled: checked,
-                              })
-                            }
-                            disabled={rowPending}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+            <ConfigureAgentToolsTab
+              tools={tools}
+              isLoadingTools={isLoadingTools}
+              toggleToolMutation={toggleToolMutation}
+            />
           </TabsContent>
         </Tabs>
 

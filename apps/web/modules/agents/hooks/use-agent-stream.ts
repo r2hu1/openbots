@@ -1,30 +1,13 @@
 "use client";
 
-import { toast } from "@openbots/ui/components/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
-import { runKeys } from "@/modules/runs/queries";
-import { scheduleKeys } from "@/modules/schedules/queries";
+import {
+  type AgentStreamEvent,
+  handleAgentStreamEvent,
+} from "./agent-stream-dispatcher";
 
-export interface AgentStreamEvent {
-  type:
-    | "run_created"
-    | "run_status"
-    | "schedule_fired"
-    | "schedule_updated"
-    | "schedules_init";
-  run?: any;
-  runId?: string;
-  status?: string;
-  error?: string;
-  output?: any;
-  scheduleId?: string;
-  action?: "created" | "updated" | "deleted";
-  name?: string;
-  prompt?: string;
-  conversationId?: string | null;
-  schedules?: any[];
-}
+export type { AgentStreamEvent };
 
 interface UseAgentStreamOptions {
   agentId: string | null;
@@ -54,7 +37,6 @@ export function useAgentStream({
     if (!agentId || !enabled) return;
 
     const abortController = new AbortController();
-
     let reconnectTimer: any = null;
 
     const connect = async () => {
@@ -111,7 +93,6 @@ export function useAgentStream({
             const lines = rawMessage.split("\n");
             for (const line of lines) {
               if (line.startsWith(":")) {
-                // Ignore SSE comments/pings
                 continue;
               }
               if (line.startsWith("event:")) {
@@ -128,9 +109,7 @@ export function useAgentStream({
             const dataStr = dataLines.join("\n");
 
             try {
-              const data = JSON.parse(dataStr) as AgentStreamEvent & {
-                seq?: number;
-              };
+              const data = JSON.parse(dataStr) as AgentStreamEvent;
 
               // Deduplicate events by sequence number if present
               if (typeof data.seq === "number") {
@@ -138,109 +117,17 @@ export function useAgentStream({
                 lastSeenSeq = data.seq;
               }
 
-              if (
-                eventType === "schedule_fired" ||
-                data.type === "schedule_fired"
-              ) {
-                const title = data.name
-                  ? `⏰ ${data.name}`
-                  : "⏰ Scheduled Task";
-                const desc = data.prompt
-                  ? data.prompt.slice(0, 100)
-                  : "Executing scheduled task...";
-                toast.add({
-                  title,
-                  description: desc,
-                  type: "info",
-                });
-
-                // Invalidate runs, schedules, and conversations
-                queryClient.invalidateQueries({
-                  queryKey: runKeys.byAgent(agentId),
-                });
-                queryClient.invalidateQueries({
-                  queryKey: scheduleKeys.byAgent(agentId),
-                });
-                queryClient.invalidateQueries({
-                  queryKey: ["conversations", agentId],
-                });
-                if (data.conversationId) {
-                  queryClient.invalidateQueries({
-                    queryKey: ["conversation", data.conversationId],
-                  });
-                } else {
-                  // If no conversationId is attached, invalidate all conversation detail queries
-                  queryClient.invalidateQueries({
-                    queryKey: ["conversation"],
-                  });
-                }
-
-                onScheduleFiredRef.current?.(data);
-              } else if (
-                eventType === "run_created" ||
-                data.type === "run_created"
-              ) {
-                // Do not invalidate run query here; live run is handled via SSE stream
-                onRunCreatedRef.current?.(data);
-              } else if (
-                eventType === "schedules_init" ||
-                data.type === "schedules_init"
-              ) {
-                if (Array.isArray(data.schedules)) {
-                  queryClient.setQueryData(
-                    scheduleKeys.byAgent(agentId),
-                    data.schedules,
-                  );
-                }
-              } else if (
-                eventType === "run_status" ||
-                data.type === "run_status"
-              ) {
-                const status = data.status || data.run?.status;
-                const isTerminal =
-                  status === "completed" ||
-                  status === "failed" ||
-                  status === "cancelled";
-                if (isTerminal) {
-                  queryClient.invalidateQueries({
-                    queryKey: runKeys.byAgent(agentId),
-                  });
-                  if (data.runId) {
-                    queryClient.invalidateQueries({
-                      queryKey: runKeys.detail(data.runId),
-                    });
-                  }
-                  queryClient.invalidateQueries({
-                    queryKey: ["conversations", agentId],
-                  });
-                  if (data.conversationId) {
-                    queryClient.invalidateQueries({
-                      queryKey: ["conversation", data.conversationId],
-                    });
-                  } else {
-                    queryClient.invalidateQueries({
-                      queryKey: ["conversation"],
-                    });
-                  }
-                }
-                onRunStatusRef.current?.(data);
-              } else if (
-                eventType === "schedule_updated" ||
-                data.type === "schedule_updated"
-              ) {
-                queryClient.invalidateQueries({
-                  queryKey: scheduleKeys.byAgent(agentId),
-                });
-                queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
-                queryClient.invalidateQueries({
-                  queryKey: runKeys.byAgent(agentId),
-                });
-              }
+              handleAgentStreamEvent(eventType, data, {
+                agentId,
+                queryClient,
+                onScheduleFired: onScheduleFiredRef.current,
+                onRunCreated: onRunCreatedRef.current,
+                onRunStatus: onRunStatusRef.current,
+              });
             } catch {}
           }
         }
 
-        // Stream completed or closed: schedule reconnect if still mounted
         if (!abortController.signal.aborted) {
           reconnectTimer = setTimeout(() => {
             if (!abortController.signal.aborted) {
@@ -250,7 +137,6 @@ export function useAgentStream({
         }
       } catch (err: any) {
         if (err.name === "AbortError" || abortController.signal.aborted) return;
-        // Reconnect after brief backoff
         reconnectTimer = setTimeout(() => {
           if (!abortController.signal.aborted) {
             connect();

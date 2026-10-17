@@ -105,86 +105,86 @@ export function SheetHeaderToolbar({
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
-        <ButtonGroup>
-          {isFileArtifact ? (
-            <Button variant="secondary" size="sm" onClick={onDownload}>
-              <IconDownload className="size-3.5" />
-              Download
-            </Button>
-          ) : (
+        {isFileArtifact ? (
+          <Button variant="secondary" size="sm" onClick={onDownload}>
+            <IconDownload className="size-3.5" />
+            Download
+          </Button>
+        ) : (
+          <ButtonGroup>
             <Button variant="secondary" size="sm" onClick={onCopy}>
               {copied ? <IconCheck className="size-3.5" /> : null}
               {copied ? "Copied" : "Copy"}
             </Button>
-          )}
 
-          <ButtonGroupSeparator />
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              aria-label="More actions"
-              className={buttonVariants({
-                variant: "secondary",
-                size: "icon-sm",
-              })}
-            >
-              <IconChevronDown className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {!isFileArtifact && (
-                <DropdownMenuItem onClick={onDownload}>
-                  Download as {typeLabel}
-                </DropdownMenuItem>
-              )}
-
-              {artifact.type === "html" && (
-                <>
-                  <DropdownMenuItem onClick={onExportPdf}>
-                    Export as PDF
+            <ButtonGroupSeparator />
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="More actions"
+                className={buttonVariants({
+                  variant: "secondary",
+                  size: "icon-sm",
+                })}
+              >
+                <IconChevronDown className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {!isFileArtifact && (
+                  <DropdownMenuItem onClick={onDownload}>
+                    Download as {typeLabel}
                   </DropdownMenuItem>
+                )}
 
-                  <DropdownMenuItem
-                    onClick={() => {
-                      const blob = new Blob([artifact.content], {
-                        type: "text/html",
-                      })
-                      const url = URL.createObjectURL(blob)
-                      const link = document.createElement("a")
-                      link.href = url
-                      link.download = `${slugify(artifact.title)}.html`
-                      link.click()
-                      URL.revokeObjectURL(url)
-                    }}
-                  >
-                    Export as HTML
+                {artifact.type === "html" && (
+                  <>
+                    <DropdownMenuItem onClick={onExportPdf}>
+                      Export as PDF
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const blob = new Blob([artifact.content], {
+                          type: "text/html",
+                        })
+                        const url = URL.createObjectURL(blob)
+                        const link = document.createElement("a")
+                        link.href = url
+                        link.download = `${slugify(artifact.title)}.html`
+                        link.click()
+                        URL.revokeObjectURL(url)
+                      }}
+                    >
+                      Export as HTML
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {isMarkdownDoc && (
+                  <>
+                    <DropdownMenuItem onClick={onExportPdf}>
+                      Export as PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onExportDocx}>
+                      Export as Word (.docx)
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {isFileArtifact && (
+                  <DropdownMenuItem onClick={onCopy}>
+                    {copied ? "Copied" : "Copy content"}
                   </DropdownMenuItem>
-                </>
-              )}
+                )}
 
-              {isMarkdownDoc && (
-                <>
-                  <DropdownMenuItem onClick={onExportPdf}>
-                    Export as PDF
+                {onPublish && (
+                  <DropdownMenuItem onClick={() => onPublish(artifact)}>
+                    Publish artifact
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={onExportDocx}>
-                    Export as Word (.docx)
-                  </DropdownMenuItem>
-                </>
-              )}
-
-              {isFileArtifact && (
-                <DropdownMenuItem onClick={onCopy}>
-                  {copied ? "Copied" : "Copy content"}
-                </DropdownMenuItem>
-              )}
-
-              {onPublish && (
-                <DropdownMenuItem onClick={() => onPublish(artifact)}>
-                  Publish artifact
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </ButtonGroup>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </ButtonGroup>
+        )}
 
         <Button
           variant="secondary"
@@ -194,11 +194,7 @@ export function SheetHeaderToolbar({
           title={maximized ? "Restore" : "Expand"}
           className="hidden sm:flex"
         >
-          {maximized ? (
-            <IconArrowsDiagonalMinimize2 />
-          ) : (
-            <IconArrowsDiagonal />
-          )}
+          {maximized ? <IconArrowsDiagonalMinimize2 /> : <IconArrowsDiagonal />}
         </Button>
 
         <Button

@@ -1,10 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { streamSSE } from "hono/streaming";
 import { authMiddleware } from "../../middleware/auth.js";
-import { db, getRedis, schedules } from "@openbots/db";
-import { and, desc, eq } from "drizzle-orm";
-import { agentEventHub } from "../runs/runs.logic.js";
+import { handleAgentFiles } from "./agents.files.js";
 import {
   createAgent,
   createAgentRun,
@@ -23,6 +20,7 @@ import {
   createAgentSchema,
   updateAgentSchema,
 } from "./agents.schema.js";
+import { handleAgentStream, handleUserAgentsStream } from "./agents.stream.js";
 
 type Env = {
   Variables: {
@@ -53,92 +51,7 @@ export const agentsRoute = new Hono<Env>()
     return c.json(result);
   })
 
-  .get("/stream", async (c) => {
-    const user = c.get("user");
-
-    c.header("Content-Type", "text/event-stream");
-    c.header("Cache-Control", "no-cache, no-transform");
-    c.header("Connection", "keep-alive");
-    c.header("X-Accel-Buffering", "no");
-
-    return streamSSE(c, async (stream) => {
-      await stream.writeSSE({
-        event: "ready",
-        data: JSON.stringify({ userId: user.id }),
-      });
-
-      const queue: Array<{ event: string; data: string }> = [];
-      let lastSeenSeq = -1;
-
-      let lastRedisLen = 0;
-      try {
-        const redis = getRedis();
-        if (redis) {
-          const channelKey = `user_agent_events:${user.id}`;
-          lastRedisLen = (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-        }
-      } catch {}
-
-      try {
-        let lastPing = Date.now();
-        while (!stream.aborted) {
-          try {
-            const redis = getRedis();
-            if (redis) {
-              const channelKey = `user_agent_events:${user.id}`;
-              const currentLen =
-                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-              if (currentLen > lastRedisLen) {
-                const items = await redis.lrange(
-                  channelKey,
-                  lastRedisLen,
-                  currentLen - 1,
-                );
-                lastRedisLen = currentLen;
-                if (items && items.length > 0) {
-                  for (const raw of items) {
-                    const parsed =
-                      typeof raw === "string" ? JSON.parse(raw) : raw;
-                    if (parsed.seq !== undefined) {
-                      if (parsed.seq <= lastSeenSeq) continue;
-                      lastSeenSeq = parsed.seq;
-                    }
-                    queue.push({
-                      event: parsed.type,
-                      data:
-                        typeof raw === "string" ? raw : JSON.stringify(raw),
-                    });
-                  }
-                }
-              }
-            }
-          } catch {}
-
-          if (queue.length > 0) {
-            const item = queue.shift()!;
-            await stream.writeSSE({
-              event: item.event,
-              data: item.data,
-            });
-            continue;
-          }
-
-          // Ping heartbeat every 10s
-          if (Date.now() - lastPing > 10_000) {
-            lastPing = Date.now();
-            try {
-              await stream.writeSSE({ event: "ping", data: "{}" });
-            } catch {}
-          }
-
-          // Poll interval 300ms for fast Redis sync without in-memory Map
-          await new Promise<void>((resolve) => setTimeout(resolve, 300));
-        }
-      } finally {
-        // Stream closed
-      }
-    });
-  })
+  .get("/stream", handleUserAgentsStream)
 
   .get("/:id", async (c) => {
     const user = c.get("user");
@@ -178,62 +91,7 @@ export const agentsRoute = new Hono<Env>()
     }
     return c.json(result);
   })
-  .get("/:id/files", async (c) => {
-    const user = c.get("user");
-    const id = c.req.param("id");
-    const filePath = c.req.query("path");
-    if (!filePath) {
-      return c.json({ error: "Query parameter 'path' is required" }, 400);
-    }
-
-    const agent = await getAgent(id, user.id);
-    if (!agent) {
-      return c.json({ error: "Agent not found" }, 404);
-    }
-
-    try {
-      if (agent.agent.sandboxId) {
-        const { getAgentSandbox } = await import("../../daytona/sandbox.js");
-        const sandbox = await getAgentSandbox(agent.agent.sandboxId);
-        if (sandbox) {
-          const buffer = await sandbox.fs.downloadFile(filePath);
-          const rawName = filePath.split("/").pop() || "file.bin";
-          const ext = rawName.includes(".") ? rawName.split(".").pop()!.toLowerCase() : "";
-          const mimeMap: Record<string, string> = {
-            pdf: "application/pdf",
-            docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            doc: "application/msword",
-            pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            ppt: "application/vnd.ms-powerpoint",
-            xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            xls: "application/vnd.ms-excel",
-            csv: "text/csv",
-            txt: "text/plain",
-            md: "text/markdown",
-            json: "application/json",
-            html: "text/html",
-            py: "text/x-python",
-            js: "application/javascript",
-            ts: "application/typescript",
-            png: "image/png",
-            jpg: "image/jpeg",
-            svg: "image/svg+xml",
-          };
-          const contentType = mimeMap[ext] || "application/octet-stream";
-          return new Response(buffer as any, {
-            headers: {
-              "Content-Type": contentType,
-              "Content-Disposition": `inline; filename="${rawName}"`,
-            },
-          });
-        }
-      }
-
-      return c.json({ error: "Sandbox not running or file not found" }, 404);
-    } catch (err: any) {
-      return c.json({ error: `Failed to download file: ${err?.message || String(err)}` }, 500);
-    }
-  })
+  .get("/:id/files", handleAgentFiles)
   .post("/", zValidator("json", createAgentSchema), async (c) => {
     const user = c.get("user");
     const data = c.req.valid("json");
@@ -292,108 +150,4 @@ export const agentsRoute = new Hono<Env>()
     }
     return c.json({ success: true, agent: result.agent });
   })
-  .get("/:id/stream", async (c) => {
-    const user = c.get("user");
-    const id = c.req.param("id");
-    const agent = await getAgent(id, user.id);
-    if (!agent) {
-      return c.json({ error: "Agent not found" }, 404);
-    }
-
-    c.header("Content-Type", "text/event-stream");
-    c.header("Cache-Control", "no-cache, no-transform");
-    c.header("Connection", "keep-alive");
-    c.header("X-Accel-Buffering", "no");
-
-    return streamSSE(c, async (stream) => {
-      await stream.writeSSE({
-        event: "ready",
-        data: JSON.stringify({ agentId: id }),
-      });
-
-      // Stream initial active schedules immediately so client is hydrated in real time
-      try {
-        const activeSchedules = await db
-          .select()
-          .from(schedules)
-          .where(and(eq(schedules.agentId, id), eq(schedules.userId, user.id)))
-          .orderBy(desc(schedules.createdAt));
-        await stream.writeSSE({
-          event: "schedules_init",
-          data: JSON.stringify({ schedules: activeSchedules }),
-        });
-      } catch {}
-
-      const queue: Array<{ event: string; data: string }> = [];
-      let lastSeenSeq = -1;
-
-      let lastRedisLen = 0;
-      try {
-        const redis = getRedis();
-        if (redis) {
-          const channelKey = `agent_events:${id}`;
-          lastRedisLen = (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-        }
-      } catch {}
-
-      try {
-        let lastPing = Date.now();
-        while (!stream.aborted) {
-          // Check cross-process events from Redis (dispatched by API server, Trigger.dev, or background workers)
-          try {
-            const redis = getRedis();
-            if (redis) {
-              const channelKey = `agent_events:${id}`;
-              const currentLen =
-                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-              if (currentLen > lastRedisLen) {
-                const items = await redis.lrange(
-                  channelKey,
-                  lastRedisLen,
-                  currentLen - 1,
-                );
-                lastRedisLen = currentLen;
-                if (items && items.length > 0) {
-                  for (const raw of items) {
-                    const parsed =
-                      typeof raw === "string" ? JSON.parse(raw) : raw;
-                    if (parsed.seq !== undefined) {
-                      if (parsed.seq <= lastSeenSeq) continue;
-                      lastSeenSeq = parsed.seq;
-                    }
-                    queue.push({
-                      event: parsed.type,
-                      data:
-                        typeof raw === "string" ? raw : JSON.stringify(raw),
-                    });
-                  }
-                }
-              }
-            }
-          } catch {}
-
-          if (queue.length > 0) {
-            const item = queue.shift()!;
-            await stream.writeSSE({
-              event: item.event,
-              data: item.data,
-            });
-            continue;
-          }
-
-          // Ping heartbeat every 10s
-          if (Date.now() - lastPing > 10_000) {
-            lastPing = Date.now();
-            try {
-              await stream.writeSSE({ event: "ping", data: "{}" });
-            } catch {}
-          }
-
-          // Poll interval 300ms for fast Redis sync without in-memory Map
-          await new Promise<void>((resolve) => setTimeout(resolve, 300));
-        }
-      } finally {
-        // Stream closed
-      }
-    });
-  });
+  .get("/:id/stream", handleAgentStream);

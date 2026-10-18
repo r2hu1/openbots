@@ -9,6 +9,8 @@ import {
   ArtifactPreview,
   useCopy,
 } from "./artifact-card-common"
+import { Skeleton } from "@openbots/ui/components/skeleton"
+import { Separator } from "@openbots/ui/components/separator"
 
 export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
   const { copied, copy } = useCopy(artifact.content)
@@ -35,25 +37,10 @@ export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
               mediaClassName="block w-fit max-w-full border-0 bg-transparent p-0 [&_svg]:block [&_svg]:max-w-full"
             />
           </div>
-          {isStreaming && (
-            <div className="pointer-events-none absolute top-2 right-2 z-10 flex items-center gap-1.5 rounded-full border border-primary/20 bg-background/85 px-2 py-0.5 text-[10px] font-medium text-primary shadow-xs backdrop-blur-md">
-              <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-              <span>Live</span>
-            </div>
-          )}
+          {isStreaming && <Skeleton className="h-80" />}
         </div>
       ) : (
-        <div className="flex min-h-[120px] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-primary/25 bg-primary/5 p-4 text-xs text-primary">
-          <div className="flex items-center gap-2">
-            <span className="size-2 animate-ping rounded-full bg-primary" />
-            <span className="font-medium">
-              Generating {artifact.title || "interactive widget"}...
-            </span>
-          </div>
-          <p className="text-[11px] text-muted-foreground opacity-80">
-            Rendering preview live as tokens arrive
-          </p>
-        </div>
+        <Skeleton className="h-80" />
       )}
 
       {!isStreaming && (
@@ -61,8 +48,8 @@ export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
           className={cn(
             "absolute top-1 right-1 z-20",
             "flex items-center gap-0.5",
-            "rounded-md bg-background/90 p-0.5",
-            "shadow-xs backdrop-blur-sm",
+            "rounded-xl bg-background p-0.5",
+            "border backdrop-blur-sm",
             "opacity-0 transition-opacity",
             "group-hover/artifact:opacity-100",
             "group-focus-within/artifact:opacity-100",
@@ -81,7 +68,6 @@ export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
           >
             {copied ? <Check /> : <Copy />}
           </Button>
-
           <Button
             type="button"
             variant="ghost"

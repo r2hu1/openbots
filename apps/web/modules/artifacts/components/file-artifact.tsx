@@ -47,7 +47,7 @@ export function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
       onKeyDown={handleKeyDown}
       className={cn(
         "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
-        "rounded-xl border bg-linear-to-t from-background via-card to-primary/5 text-card-foreground transition-all duration-200 dark:to-primary/10",
+        "rounded-xl border bg-card text-card-foreground transition-all duration-200",
         "cursor-pointer ring-muted hover:ring-3",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         isStreaming && "generating-border"
@@ -83,32 +83,19 @@ export function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
-        {artifact.source && (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-xs"
-            onClick={handleDownload}
-            className="size-7 rounded-md text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
-            title="Download file"
-            aria-label="Download file"
-          >
-            <Import className="size-3.5" />
-          </Button>
-        )}
         <Button
           type="button"
           variant="outline"
-          size="icon-xs"
+          size="xs"
           onClick={(e) => {
             e.stopPropagation()
             onClick()
           }}
-          className="size-7 rounded-md text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
+          className="h-7 rounded-md text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
           title="Open preview"
           aria-label="Open preview"
         >
-          <Maximize className="size-3.5" />
+          Open
         </Button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@openbots/ui/components/button"
+import { Spinner } from "@openbots/ui/components/spinner"
 import * as React from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -64,13 +65,13 @@ export function MarkdownDocumentViewer({
   }, [source, initialContent])
 
   return (
-    <div className="size-full overflow-auto bg-popover px-6 py-8 sm:px-12 sm:py-10">
+    <div className="size-full overflow-auto bg-background px-6 py-8 sm:px-12 sm:py-10">
       <div className="mx-auto max-w-3xl select-text">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
-              <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <span>Loading document...</span>
+              <Spinner />
+              <span>Opening document...</span>
             </div>
           </div>
         ) : error ? (

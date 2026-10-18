@@ -49,7 +49,7 @@ export function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
         "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
         "rounded-xl border bg-card text-card-foreground transition-all duration-200",
         "cursor-pointer ring-muted hover:ring-3",
-        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        "focus-visible:ring-3 focus-visible:ring-muted focus-visible:outline-none",
         isStreaming && "generating-border"
       )}
     >

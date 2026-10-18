@@ -26,7 +26,7 @@ export function SheetPreview({
       {artifact.type === "html" && (
         <HtmlSandbox
           code={artifact.content}
-          className="size-full border-0 bg-background"
+          className="size-full border-0 bg-sidebar"
         />
       )}
       {artifact.type === "svg" && (

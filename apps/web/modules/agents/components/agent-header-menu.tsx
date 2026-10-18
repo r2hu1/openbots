@@ -38,7 +38,7 @@ export function AgentHeaderMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger openOnHover>
-          <div className="flex cursor-pointer items-center rounded-full bg-secondary py-0.5 pr-1.5 pl-1 backdrop-blur-sm transition-colors">
+          <div className="flex cursor-pointer items-center">
             <Blobatar
               name={selectedAgent.name || selectedAgent.id}
               className="size-6.5!"
@@ -51,7 +51,7 @@ export function AgentHeaderMenu({
                 {selectedAgent.name}
               </span>
             </div>
-            <ChevronDown className="ml-1.5 size-3 text-muted-foreground" />
+            <ChevronDown className="ml-2 size-3 text-muted-foreground" />
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-48">

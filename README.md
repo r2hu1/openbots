@@ -2,9 +2,9 @@
 
 # OpenBots
 
-### Autonomous AI Coworkers for Humans Who Ship
+### Autonomous AI Agents Workspace
 
-OpenBots is an open-source platform where you can build, customize, and collaborate with teams of autonomous AI agents. Unlike simple chatbots that only talk, OpenBots agents research the web in an isolated cloud desktop, write code, run scheduled tasks in the background, send emails, connect to your SaaS apps, generate interactive visual artifacts and many other things.
+Build a team of AI agents that research, write and execute code, use your apps, and run tasks in the background. Each agent has its own personality, persistent memory, and isolated virtual machine. infinite possibilities, Open source and self hostable.
 
 [Explore Features](#a-walkthrough-of-openbots) • [Self-Hosting Guide](SELF_HOST.md) • [Technical Docs](DOCUMENTATION.md)
 

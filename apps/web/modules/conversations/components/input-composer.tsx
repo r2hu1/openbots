@@ -142,7 +142,7 @@ export function InputComposer({
         >
           <div
             onClick={handleContainerClick}
-            className="relative flex cursor-text flex-col overflow-hidden rounded-2xl border border-border bg-background transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-3 focus-within:ring-border dark:bg-secondary"
+            className="relative flex cursor-text flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 focus-within:border-foreground/20 focus-within:ring-3 focus-within:ring-border dark:bg-secondary"
           >
             {/* Hidden file input */}
             <input

@@ -65,7 +65,7 @@ export function MarkdownDocumentViewer({
   }, [source, initialContent])
 
   return (
-    <div className="size-full overflow-auto bg-background px-6 py-8 sm:px-12 sm:py-10">
+    <div className="size-full overflow-auto bg-secondary/40 px-6 py-8 sm:px-12 sm:py-10">
       <div className="mx-auto max-w-3xl select-text">
         {loading ? (
           <div className="flex items-center justify-center py-20">

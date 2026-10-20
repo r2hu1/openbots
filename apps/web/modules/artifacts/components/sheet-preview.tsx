@@ -26,19 +26,19 @@ export function SheetPreview({
       {artifact.type === "html" && (
         <HtmlSandbox
           code={artifact.content}
-          className="size-full border-0 bg-sidebar"
+          className="size-full border-0 bg-transparent"
         />
       )}
       {artifact.type === "svg" && (
         <SvgSandbox
           svg={artifact.content}
-          className="flex size-full items-center justify-center overflow-auto border-0 bg-background p-6 [&_svg]:max-h-full [&_svg]:max-w-full"
+          className="flex size-full items-center justify-center overflow-auto border-0 bg-transparent p-6 [&_svg]:max-h-full [&_svg]:max-w-full"
         />
       )}
       {artifact.type === "mermaid" && (
         <MermaidSandbox
           code={artifact.content}
-          className="flex size-full items-center justify-center overflow-auto border-0 bg-background p-6 [&_svg]:max-h-full [&_svg]:max-w-full"
+          className="flex size-full items-center justify-center overflow-auto border-0 bg-transparent p-6 [&_svg]:max-h-full [&_svg]:max-w-full"
         />
       )}
       {artifact.type === "file" && (

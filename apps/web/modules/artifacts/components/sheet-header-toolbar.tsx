@@ -65,7 +65,7 @@ export function SheetHeaderToolbar({
   const isFileArtifact = artifact.type === "file"
 
   return (
-    <div className="flex shrink-0 items-center gap-3 border-b border-border bg-background p-1.5">
+    <div className="flex shrink-0 items-center gap-3 border-b border-border bg-secondary/70 p-1.5">
       {hasCode ? (
         <Tabs
           value={view}

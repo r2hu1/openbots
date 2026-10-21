@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getClient } from "@/lib/api";
 import type {
+  CreateNaturalScheduleInput,
   CreateScheduleInput,
   ScheduleItem,
   UpdateScheduleInput,
@@ -57,6 +58,36 @@ export function useCreateScheduleMutation(agentId?: string | null) {
       if (agentId) {
         queryClient.invalidateQueries({
           queryKey: scheduleKeys.byAgent(agentId),
+        });
+      }
+    },
+  });
+}
+
+export function useCreateAutoScheduleMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      agentId,
+      ...input
+    }: CreateNaturalScheduleInput & { agentId: string }) => {
+      const client = getClient();
+      const res = await (client.api as any).schedules.agents[":agentId"].auto.$post({
+        param: { agentId },
+        json: input,
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to create scheduled task");
+      }
+      return (await res.json()) as { schedule: ScheduleItem };
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
+      if (variables.agentId) {
+        queryClient.invalidateQueries({
+          queryKey: scheduleKeys.byAgent(variables.agentId),
         });
       }
     },

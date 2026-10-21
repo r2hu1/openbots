@@ -145,7 +145,9 @@ export function WorkspaceSidebar({
                 {!agentsPending &&
                   filteredAgents.map((agent) => {
                     const isActive = pathname === `/agent/${agent.id}`
-                    const isRunning = activeStatuses[agent.id] === "running"
+                    const isRunning =
+                      activeStatuses[agent.id] === "running" ||
+                      activeStatuses[agent.id] === "typing"
 
                     return (
                       <SidebarMenuItem key={agent.id}>
@@ -163,10 +165,7 @@ export function WorkspaceSidebar({
                               name={agent.name || agent.id}
                               className="size-7! group-data-[collapsible=icon]:size-6"
                               blobatar={{
-                                animate:
-                                  isRunning && !pathname.includes(agent.id)
-                                    ? "always"
-                                    : "hover",
+                                animate: isRunning ? "always" : "hover",
                               }}
                             />
                           </span>
@@ -189,12 +188,12 @@ export function WorkspaceSidebar({
                             </span>
                           </span>
                         </SidebarMenuButton>
-                        {isRunning && !pathname.includes(agent.id) && (
+                        {isRunning && (
                           <SidebarMenuAction>
                             <span className="relative flex gap-px">
-                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/80 [animation-delay:-0.3s]" />
-                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/80 [animation-delay:-0.15s]" />
-                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/80" />
+                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/40 [animation-delay:-0.3s]" />
+                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/40 [animation-delay:-0.15s]" />
+                              <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/40" />
                             </span>
                           </SidebarMenuAction>
                         )}

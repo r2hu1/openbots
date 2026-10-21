@@ -117,9 +117,9 @@ export function SheetResizeHandle({
     >
       <div
         className={cn(
-          "relative flex h-full w-px items-center justify-center ring-offset-background transition-colors",
+          "relative flex h-full w-1 items-center justify-center ring-offset-background transition-colors",
           "after:absolute after:inset-y-0 after:left-1/2 after:w-2 after:-translate-x-1/2",
-          isDragging && "bg-primary/20"
+          isDragging && "bg-primary/40"
         )}
       >
         <div

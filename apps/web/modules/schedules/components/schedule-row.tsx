@@ -18,16 +18,8 @@ import { cn } from "@/lib/utils"
 import type { ScheduleItem } from "../types"
 import { Clock2, Pause, Play, Trash2 } from "reicon-react"
 
-export const KNOWN_CRONS: Record<string, string> = {
-  "0 9 * * *": "Every day at 9:00 AM",
-  "0 0 * * *": "Every day at midnight",
-  "0 12 * * *": "Every day at noon",
-  "*/15 * * * *": "Every 15 minutes",
-  "*/30 * * * *": "Every 30 minutes",
-  "0 * * * *": "Every hour",
-  "0 9 * * 1": "Every Monday at 9:00 AM",
-  "0 9 * * 1-5": "Every weekday at 9:00 AM",
-}
+import { formatCronReadable, KNOWN_CRONS } from "./cron-format"
+export { KNOWN_CRONS }
 
 interface ScheduleRowProps {
   schedule: ScheduleItem
@@ -48,7 +40,7 @@ export function ScheduleRow({
 }: ScheduleRowProps) {
   const isPaused = schedule.status === "paused"
   const cron = schedule.cronExpression.trim()
-  const readable = KNOWN_CRONS[cron]
+  const readable = formatCronReadable(cron)
 
   return (
     <div

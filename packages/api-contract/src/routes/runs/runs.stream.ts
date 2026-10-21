@@ -1,6 +1,7 @@
 import { getRedis } from "@openbots/db";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
+import { runLocalEmitter, type RunEvent } from "./runs.events.js";
 import { getRun } from "./runs.logic.js";
 
 type Env = {
@@ -63,6 +64,24 @@ export async function handleSingleRunStream(c: Context<Env>) {
     const queue: Array<{ event: string; data: string }> = [];
     let isDone = false;
     let lastSeenSeq = -1;
+
+    // Process-local listener for zero latency delivery
+    const onLocalRunEvent = (ev: RunEvent) => {
+      queue.push({
+        event: ev.type,
+        data: JSON.stringify(ev),
+      });
+      if (
+        ev.type === "done" ||
+        (ev.type === "status" &&
+          (ev.status === "completed" ||
+            ev.status === "failed" ||
+            ev.status === "cancelled"))
+      ) {
+        isDone = true;
+      }
+    };
+    runLocalEmitter.on(id, onLocalRunEvent);
 
     let lastRedisLen = 0;
     try {
@@ -182,7 +201,7 @@ export async function handleSingleRunStream(c: Context<Env>) {
         }
       }
     } finally {
-      // Stream closed
+      runLocalEmitter.off(id, onLocalRunEvent);
     }
   });
 }

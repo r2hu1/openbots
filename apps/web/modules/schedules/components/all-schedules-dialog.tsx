@@ -24,8 +24,8 @@ export function AllSchedulesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95%] p-0! sm:max-w-2xl">
-        <DialogHeader className="border-b border-border px-4 py-3">
+      <DialogContent className="p-0! sm:max-w-2xl">
+        <DialogHeader className="px-4 py-3 pb-0">
           <DialogTitle>Schedules</DialogTitle>
           <DialogDescription>
             All recurring tasks and scheduled events across your workspace

@@ -42,7 +42,7 @@ export function AgentHeader({
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 flex w-full shrink-0 items-center justify-between bg-background px-3 pt-2 pb-0",
+        "sticky top-0 z-40 flex w-full shrink-0 items-center justify-between bg-background/5 px-3 pt-2 pb-0",
         "after:pointer-events-none after:absolute after:top-full after:right-0 after:left-0 after:h-6 after:bg-linear-to-b after:from-background after:to-transparent",
         className
       )}

@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { authMiddleware } from "../../middleware/auth.js";
 import {
+  createAutoScheduleForAgent,
   createSchedule,
   deleteSchedule,
   getSchedule,
@@ -9,6 +10,7 @@ import {
   updateSchedule,
 } from "./schedules.logic.js";
 import {
+  createNaturalScheduleInputSchema,
   createScheduleInputSchema,
   updateScheduleInputSchema,
 } from "./schedules.schema.js";
@@ -48,6 +50,28 @@ export const schedulesRoute = new Hono<Env>()
       return c.json({ error: message }, 500);
     }
   })
+  .post(
+    "/agents/:agentId/auto",
+    zValidator("json", createNaturalScheduleInputSchema),
+    async (c) => {
+      const user = c.get("user");
+      const agentId = c.req.param("agentId");
+      const data = c.req.valid("json");
+      try {
+        const result = await createAutoScheduleForAgent(user.id, agentId, data);
+        if ("error" in result) {
+          return c.json({ error: result.error }, result.status);
+        }
+        return c.json(result, 201);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to create auto schedule";
+        return c.json({ error: message }, 500);
+      }
+    },
+  )
   .patch("/:id", zValidator("json", updateScheduleInputSchema), async (c) => {
     const user = c.get("user");
     const id = c.req.param("id");

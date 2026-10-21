@@ -97,7 +97,7 @@ export function SpreadsheetViewer({
   }
 
   return (
-    <div className="flex size-full flex-col overflow-hidden bg-secondary/40">
+    <div className="flex size-full flex-col overflow-hidden bg-sidebar">
       {sheetNames.length > 1 && (
         <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-muted/30 px-3 py-1.5">
           {sheetNames.map((name) => (

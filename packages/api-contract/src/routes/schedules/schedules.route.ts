@@ -14,6 +14,7 @@ import {
   createScheduleInputSchema,
   updateScheduleInputSchema,
 } from "./schedules.schema.js";
+import { handleSchedulesStream } from "./schedules.stream.js";
 
 type Env = {
   Variables: {
@@ -29,6 +30,7 @@ export const schedulesRoute = new Hono<Env>()
     const result = await listSchedules(user.id, agentId);
     return c.json(result);
   })
+  .get("/stream", handleSchedulesStream)
   .get("/:id", async (c) => {
     const user = c.get("user");
     const id = c.req.param("id");

@@ -21,6 +21,7 @@ import { useTheme } from "next-themes"
 import * as React from "react"
 import {
   Calendar,
+  Calendar2Newicons,
   Check,
   ChevronDown,
   Devices,
@@ -28,6 +29,7 @@ import {
   Moon3,
   Plug2,
   Setting,
+  SidebarBottom,
   Sun2,
 } from "reicon-react"
 import { AllSchedulesDialog } from "@/modules/schedules/components/all-schedules-dialog"
@@ -64,7 +66,13 @@ export function UserMenu({
   }
 
   return (
-    <SidebarMenu className="min-w-0 flex-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
+    <SidebarMenu className="min-w-0 flex-1 gap-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
+      <SidebarMenuItem>
+        <SidebarMenuButton onClick={() => setSchedulesOpen(true)}>
+          <Calendar2Newicons />
+          Schedules
+        </SidebarMenuButton>
+      </SidebarMenuItem>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -102,13 +110,6 @@ export function UserMenu({
                 <p className="truncate text-xs">{email}</p>
               </div>
             </div>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem onClick={() => setSchedulesOpen(true)}>
-              <Calendar />
-              Schedules
-            </DropdownMenuItem>
 
             {onConnections && (
               <DropdownMenuItem onClick={onConnections}>

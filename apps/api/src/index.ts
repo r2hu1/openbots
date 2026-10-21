@@ -4,6 +4,10 @@ import {
   registerDirectRunExecutor,
 } from "@openbots/api-contract";
 import { abortActiveRun, executeAgentRun } from "./agent/execute.js";
+import { initNaturalScheduleParser } from "./agent/execution/natural-schedule-parser.js";
+
+// Register natural language schedule parser
+initNaturalScheduleParser();
 
 // Register direct execution so interactive runs stream immediately from the API server
 registerDirectRunExecutor(async (runId: string) => {

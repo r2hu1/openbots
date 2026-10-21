@@ -1,7 +1,12 @@
-import { db, getRedis, schedules } from "@openbots/db";
+import { db, getRedis, runs, schedules } from "@openbots/db";
 import { and, desc, eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
+import {
+  agentLocalEmitter,
+  userLocalEmitter,
+  type UserAgentEvent,
+} from "../runs/runs.events.js";
 import { getAgent } from "./agents.logic.js";
 
 type Env = {
@@ -24,8 +29,38 @@ export async function handleUserAgentsStream(c: Context<Env>) {
       data: JSON.stringify({ userId: user.id }),
     });
 
+    // Immediately push any currently running agents for this user so sidebar hydrates active states on refresh
+    try {
+      const activeRuns = await db
+        .select({ id: runs.id, agentId: runs.agentId, status: runs.status })
+        .from(runs)
+        .where(and(eq(runs.userId, user.id), eq(runs.status, "running")));
+      for (const ar of activeRuns) {
+        if (ar.agentId) {
+          await stream.writeSSE({
+            event: "run_status",
+            data: JSON.stringify({
+              type: "run_status",
+              agentId: ar.agentId,
+              runId: ar.id,
+              status: "running",
+            }),
+          });
+        }
+      }
+    } catch {}
+
     const queue: Array<{ event: string; data: string }> = [];
     let lastSeenSeq = -1;
+
+    // Listen to local in-process user bus for instant event delivery
+    const onLocalEvent = (ev: UserAgentEvent) => {
+      queue.push({
+        event: ev.type,
+        data: JSON.stringify(ev),
+      });
+    };
+    userLocalEmitter.on(user.id, onLocalEvent);
 
     let lastRedisLen = 0;
     try {
@@ -70,13 +105,12 @@ export async function handleUserAgentsStream(c: Context<Env>) {
           }
         } catch {}
 
-        if (queue.length > 0) {
+        while (queue.length > 0) {
           const item = queue.shift()!;
           await stream.writeSSE({
             event: item.event,
             data: item.data,
           });
-          continue;
         }
 
         // Ping heartbeat every 10s
@@ -87,11 +121,10 @@ export async function handleUserAgentsStream(c: Context<Env>) {
           } catch {}
         }
 
-        // Poll interval 300ms for fast Redis sync without in-memory Map
-        await new Promise<void>((resolve) => setTimeout(resolve, 300));
+        await new Promise<void>((resolve) => setTimeout(resolve, 200));
       }
     } finally {
-      // Stream closed
+      userLocalEmitter.off(user.id, onLocalEvent);
     }
   });
 }
@@ -118,7 +151,6 @@ export async function handleAgentStream(c: Context<Env>) {
       data: JSON.stringify({ agentId: id }),
     });
 
-    // Stream initial active schedules immediately so client is hydrated in real time
     try {
       const activeSchedules = await db
         .select()
@@ -134,6 +166,15 @@ export async function handleAgentStream(c: Context<Env>) {
     const queue: Array<{ event: string; data: string }> = [];
     let lastSeenSeq = -1;
 
+    // Listen to local in-process agent bus
+    const onLocalEvent = (ev: any) => {
+      queue.push({
+        event: ev.type,
+        data: JSON.stringify(ev),
+      });
+    };
+    agentLocalEmitter.on(id, onLocalEvent);
+
     let lastRedisLen = 0;
     try {
       const redis = getRedis();
@@ -146,7 +187,6 @@ export async function handleAgentStream(c: Context<Env>) {
     try {
       let lastPing = Date.now();
       while (!stream.aborted) {
-        // Check cross-process events from Redis (dispatched by API server, Trigger.dev, or background workers)
         try {
           const redis = getRedis();
           if (redis) {
@@ -178,13 +218,12 @@ export async function handleAgentStream(c: Context<Env>) {
           }
         } catch {}
 
-        if (queue.length > 0) {
+        while (queue.length > 0) {
           const item = queue.shift()!;
           await stream.writeSSE({
             event: item.event,
             data: item.data,
           });
-          continue;
         }
 
         // Ping heartbeat every 10s
@@ -195,11 +234,10 @@ export async function handleAgentStream(c: Context<Env>) {
           } catch {}
         }
 
-        // Poll interval 300ms for fast Redis sync without in-memory Map
-        await new Promise<void>((resolve) => setTimeout(resolve, 300));
+        await new Promise<void>((resolve) => setTimeout(resolve, 200));
       }
     } finally {
-      // Stream closed
+      agentLocalEmitter.off(id, onLocalEvent);
     }
   });
 }

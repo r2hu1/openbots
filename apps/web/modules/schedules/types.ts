@@ -20,6 +20,11 @@ export interface CreateScheduleInput {
   timezone?: string;
 }
 
+export interface CreateNaturalScheduleInput {
+  prompt: string;
+  timezone?: string;
+}
+
 export interface UpdateScheduleInput {
   name?: string;
   prompt?: string;

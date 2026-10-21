@@ -1,4 +1,15 @@
+import { EventEmitter } from "node:events";
 import { getRedis } from "@openbots/db";
+
+// Process-local bus fallback to guarantee zero-latency delivery even without Redis or during quota limits
+export const runLocalEmitter = new EventEmitter();
+runLocalEmitter.setMaxListeners(100);
+
+export const agentLocalEmitter = new EventEmitter();
+agentLocalEmitter.setMaxListeners(100);
+
+export const userLocalEmitter = new EventEmitter();
+userLocalEmitter.setMaxListeners(100);
 
 // Cross-process event publisher using Redis for scale
 export type RunEvent =
@@ -33,6 +44,9 @@ export type RunEvent =
 class RunEventHub {
   publishBatch(runId: string, events: RunEvent[]): void {
     if (!events.length) return;
+    for (const ev of events) {
+      runLocalEmitter.emit(runId, ev);
+    }
     const redis = getRedis();
     if (!redis) return;
 
@@ -106,6 +120,7 @@ export type UserAgentEvent = AgentEvent & { agentId: string };
 
 class AgentEventHub {
   publishUser(userId: string, event: UserAgentEvent): void {
+    userLocalEmitter.emit(userId, event);
     const redis = getRedis();
     if (!redis) return;
 
@@ -132,8 +147,9 @@ class AgentEventHub {
   }
 
   publish(agentId: string, event: AgentEvent, userId?: string): void {
-    const redis = getRedis();
+    agentLocalEmitter.emit(agentId, event);
 
+    const redis = getRedis();
     if (redis) {
       const channelKey = `agent_events:${agentId}`;
       const seqKey = `agent_events_seq:${agentId}`;

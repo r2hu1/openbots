@@ -15,25 +15,24 @@ export const scheduleKeys = {
 };
 
 export function useSchedulesQuery(
-  agentId: string | null | undefined,
+  agentId?: string | null,
   options?: {
     enabled?: boolean;
     refetchInterval?: number | false;
   },
 ) {
   return useQuery({
-    queryKey: scheduleKeys.byAgent(agentId),
+    queryKey: agentId ? scheduleKeys.byAgent(agentId) : scheduleKeys.all,
     queryFn: async () => {
-      if (!agentId) return [];
       const client = getClient();
       const res = await (client.api as any).schedules.$get({
-        query: { agentId },
+        query: agentId ? { agentId } : {},
       });
       if (!res.ok) return [];
       const data = (await res.json()) as { schedules: ScheduleItem[] };
       return data.schedules;
     },
-    enabled: (options?.enabled ?? true) && Boolean(agentId),
+    enabled: options?.enabled ?? true,
     refetchInterval: options?.refetchInterval ?? false,
   });
 }

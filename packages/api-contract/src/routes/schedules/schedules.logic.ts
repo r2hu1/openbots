@@ -9,6 +9,8 @@ import type {
 import { normalizeTriggerTimezone } from "./schedules.timezone.js";
 
 export * from "./schedules.timezone.js";
+export * from "./schedules.natural.js";
+export * from "./schedules.auto.js";
 
 export async function listSchedules(userId: string, agentId?: string) {
   const whereClause = agentId

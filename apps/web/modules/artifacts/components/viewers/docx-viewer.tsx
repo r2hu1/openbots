@@ -92,7 +92,7 @@ export function DocxViewer({
   }, [source, content])
 
   return (
-    <div className="relative size-full overflow-auto bg-background">
+    <div className="relative size-full overflow-auto bg-sidebar">
       {loading && (
         <div className="flex size-full items-center justify-center py-20">
           <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground">

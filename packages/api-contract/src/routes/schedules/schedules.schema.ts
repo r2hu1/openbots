@@ -9,6 +9,11 @@ export const createScheduleInputSchema = z.object({
   timezone: z.string().optional().default("UTC"),
 });
 
+export const createNaturalScheduleInputSchema = z.object({
+  prompt: z.string().min(1),
+  timezone: z.string().optional(),
+});
+
 export const updateScheduleInputSchema = z.object({
   name: z.string().min(1).optional(),
   prompt: z.string().min(1).optional(),
@@ -18,4 +23,5 @@ export const updateScheduleInputSchema = z.object({
 });
 
 export type CreateScheduleInput = z.infer<typeof createScheduleInputSchema>;
+export type CreateNaturalScheduleInput = z.infer<typeof createNaturalScheduleInputSchema>;
 export type UpdateScheduleInput = z.infer<typeof updateScheduleInputSchema>;

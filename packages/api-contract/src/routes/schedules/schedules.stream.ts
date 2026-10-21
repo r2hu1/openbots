@@ -1,6 +1,7 @@
 import { getRedis } from "@openbots/db";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
+import { userLocalEmitter, type UserAgentEvent } from "../runs/runs.events.js";
 
 type Env = {
   Variables: {
@@ -22,6 +23,18 @@ export async function handleSchedulesStream(c: Context<Env>) {
       data: JSON.stringify({ userId: user.id }),
     });
 
+    const queue: string[] = [];
+    const onLocalUserEvent = (ev: UserAgentEvent) => {
+      if (
+        ev.type === "schedule_updated" ||
+        ev.type === "schedule_fired" ||
+        ev.type === ("schedules_init" as any)
+      ) {
+        queue.push(JSON.stringify(ev));
+      }
+    };
+    userLocalEmitter.on(user.id, onLocalUserEvent);
+
     let lastRedisLen = 0;
     try {
       const redis = getRedis();
@@ -34,6 +47,14 @@ export async function handleSchedulesStream(c: Context<Env>) {
     try {
       let lastPing = Date.now();
       while (!stream.aborted) {
+        while (queue.length > 0) {
+          const item = queue.shift()!;
+          await stream.writeSSE({
+            event: "schedule",
+            data: item,
+          });
+        }
+
         try {
           const redis = getRedis();
           if (redis) {
@@ -72,10 +93,12 @@ export async function handleSchedulesStream(c: Context<Env>) {
           lastPing = Date.now();
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (err) {
       console.warn("Schedules SSE stream closed or interrupted:", err);
+    } finally {
+      userLocalEmitter.off(user.id, onLocalUserEvent);
     }
   });
 }

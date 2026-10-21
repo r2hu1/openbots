@@ -110,7 +110,7 @@ export function UserMenu({
                 <p className="truncate text-xs">{email}</p>
               </div>
             </div>
-
+            <DropdownMenuSeparator />
             {onConnections && (
               <DropdownMenuItem onClick={onConnections}>
                 <Plug2 />

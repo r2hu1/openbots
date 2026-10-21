@@ -5,6 +5,7 @@ import { Button } from "@openbots/ui/components/button"
 import { cn } from "cn"
 import * as React from "react"
 import { ChevronLeft, X as XIcon } from "reicon-react"
+import { SheetResizeHandle } from "@openbots/ui/components/sheet-resize-handle"
 
 /* -------------------------------------------------------------------------- */
 /*  Back button support                                                       */
@@ -113,6 +114,8 @@ const SheetContext = React.createContext<{
 
 const SheetProviderContext = React.createContext<{
   setSidebarSide: (side: "left" | "right" | null) => void
+  sidebarWidth: string
+  setSidebarWidth: (width: string) => void
 } | null>(null)
 
 // Content renders in a portal (outside the provider div), so the CSS var
@@ -127,15 +130,34 @@ function SheetProvider({
   ...props
 }: React.ComponentProps<"div"> & { width?: string }) {
   const [side, setSide] = React.useState<"left" | "right" | null>(null)
-  const value = React.useMemo(() => ({ setSidebarSide: setSide }), [])
+  const [sidebarWidth, setSidebarWidth] = React.useState(width)
+
+  // Keep in sync if width prop changes
+  React.useEffect(() => {
+    setSidebarWidth(width)
+  }, [width])
+
+  const value = React.useMemo(
+    () => ({
+      setSidebarSide: setSide,
+      sidebarWidth,
+      setSidebarWidth,
+    }),
+    [sidebarWidth]
+  )
 
   return (
     <SheetProviderContext.Provider value={value}>
-      <SheetWidthContext.Provider value={width}>
+      <SheetWidthContext.Provider value={sidebarWidth}>
         <div
           data-slot="sheet-provider"
           data-sidebar-side={side ?? undefined}
-          style={{ "--sheet-width": width, ...style } as React.CSSProperties}
+          style={
+            {
+              "--sheet-width": sidebarWidth,
+              ...style,
+            } as React.CSSProperties
+          }
           className={cn(
             "transition-[padding] duration-100 ease-[cubic-bezier(0.32,0.72,0,1)] md:data-[sidebar-side=left]:pl-[calc(var(--sheet-width)+1.5rem)] md:data-[sidebar-side=right]:pr-[calc(var(--sheet-width)+0.7rem)]",
             className
@@ -247,11 +269,17 @@ function SheetContent({
   side = "right",
   showCloseButton = true,
   alwaysDark = true,
+  resizable = true,
+  minWidth,
+  maxWidth,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: SheetSide
   showCloseButton?: boolean
   alwaysDark?: boolean
+  resizable?: boolean
+  minWidth?: number
+  maxWidth?: number
 }) {
   const { variant, open } = React.useContext(SheetContext)
   const provider = React.useContext(SheetProviderContext)
@@ -269,6 +297,13 @@ function SheetContent({
     return () => provider.setSidebarSide(null)
   }, [provider, sidebarSide, open])
 
+  const handleResize = React.useCallback(
+    (newWidthPx: number) => {
+      provider?.setSidebarWidth(`${newWidthPx}px`)
+    },
+    [provider]
+  )
+
   return (
     <SheetPortal className={cn(alwaysDark && "dark")}>
       {!sidebarSide && <SheetOverlay />}
@@ -276,7 +311,7 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         data-variant={sidebarSide ? "sidebar" : "floating"}
-        style={sidebarSide ? { width } : undefined}
+        style={sidebarSide ? { width, maxWidth: "none" } : undefined}
         className={cn(
           "fixed z-50 flex flex-col gap-4 border bg-popover bg-clip-padding text-sm text-popover-foreground",
 
@@ -289,7 +324,7 @@ function SheetContent({
           sidebarSide
             ? [
                 // Full slide, no fade, synced with the provider padding
-                "transition-[translate] duration-100 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform",
+                "max-w-none! transition-[translate] duration-100 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform",
                 "data-[side=left]:data-ending-style:-translate-x-[calc(100%+0.75rem)] data-[side=left]:data-starting-style:-translate-x-[calc(100%+0.75rem)]",
                 "data-[side=right]:data-ending-style:translate-x-[calc(100%+0.75rem)] data-[side=right]:data-starting-style:translate-x-[calc(100%+0.75rem)]",
               ]
@@ -305,6 +340,14 @@ function SheetContent({
         )}
         {...props}
       >
+        {sidebarSide && resizable && (
+          <SheetResizeHandle
+            side={sidebarSide}
+            onResize={handleResize}
+            minWidth={minWidth}
+            maxWidth={maxWidth}
+          />
+        )}
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close

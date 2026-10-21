@@ -11,7 +11,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { formatTimestamp } from "@/modules/runs/utils"
 import type { ScheduleItem } from "../types"
-import { KNOWN_CRONS } from "./schedule-row"
+import { formatCronReadable } from "./cron-format"
 
 interface ScheduleDetailsDialogProps {
   schedule: ScheduleItem | null
@@ -60,8 +60,7 @@ export function ScheduleDetailsDialog({
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Frequency</span>
                 <span className="font-medium text-foreground">
-                  {KNOWN_CRONS[schedule.cronExpression.trim()] ??
-                    schedule.cronExpression}
+                  {formatCronReadable(schedule.cronExpression)}
                 </span>
               </div>
               <div className="flex items-center justify-between">

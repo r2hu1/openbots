@@ -20,6 +20,7 @@ import {
 import { useTheme } from "next-themes"
 import * as React from "react"
 import {
+  Calendar,
   Check,
   ChevronDown,
   Devices,
@@ -29,6 +30,7 @@ import {
   Setting,
   Sun2,
 } from "reicon-react"
+import { AllSchedulesDialog } from "@/modules/schedules/components/all-schedules-dialog"
 import { SettingsSheet } from "./settings-sheet"
 
 interface UserMenuProps {
@@ -51,6 +53,7 @@ export function UserMenu({
   const { isMobile } = useSidebar()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [settingsOpen, setSettingsOpen] = React.useState(false)
+  const [schedulesOpen, setSchedulesOpen] = React.useState(false)
 
   const handleSettingsClick = () => {
     if (onSettings) {
@@ -102,6 +105,11 @@ export function UserMenu({
 
             <DropdownMenuSeparator />
 
+            <DropdownMenuItem onClick={() => setSchedulesOpen(true)}>
+              <Calendar />
+              Schedules
+            </DropdownMenuItem>
+
             {onConnections && (
               <DropdownMenuItem onClick={onConnections}>
                 <Plug2 />
@@ -147,6 +155,10 @@ export function UserMenu({
       </SidebarMenuItem>
 
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <AllSchedulesDialog
+        open={schedulesOpen}
+        onOpenChange={setSchedulesOpen}
+      />
     </SidebarMenu>
   )
 }

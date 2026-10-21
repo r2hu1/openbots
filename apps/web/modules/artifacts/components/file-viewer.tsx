@@ -64,7 +64,7 @@ export function FileViewer({
         ? artifact.content
         : `data:image/${ext};base64,${artifact.content}`)
     return (
-      <div className="flex size-full items-center justify-center overflow-auto bg-secondary/40 p-6">
+      <div className="flex size-full items-center justify-center overflow-auto bg-sidebar p-6">
         <img
           src={imgSrc}
           alt={artifact.title}
@@ -145,7 +145,7 @@ export function FileViewer({
 
   // Generic & Document Preview / Download Screen
   return (
-    <div className="flex size-full flex-col items-center justify-center bg-secondary/40 p-8 text-center">
+    <div className="flex size-full flex-col items-center justify-center bg-sidebar p-8 text-center">
       <div className="flex max-w-md flex-col items-center p-8 shadow-sm">
         <div className="flex size-16 items-center justify-center rounded-2xl border border-border/80 bg-muted/60 text-primary shadow-xs">
           {isPdf ? (

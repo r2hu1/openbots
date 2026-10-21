@@ -136,12 +136,13 @@ export function ScheduleRow({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
               <AlertDialogAction
+                disabled={deleting}
                 onClick={() => onDelete(schedule.id)}
                 className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
               >
-                Delete
+                {deleting && <Spinner />} Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

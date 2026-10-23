@@ -10,6 +10,7 @@ import { LoadingState } from "@/components/shared/loading-state"
 import { AgentHeader } from "@/modules/agents/components/agent-header"
 import { useAgentsQuery } from "@/modules/agents/queries"
 import type { ParsedArtifact } from "@/modules/artifacts/parser"
+import { ArtifactProvider } from "@/modules/artifacts/artifact-context"
 import { ChatPane } from "./workspace/chat-pane"
 import { useIdleReady, WorkspaceModals } from "./workspace/workspace-modals"
 
@@ -102,7 +103,11 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   )
 
   return (
-    <>
+    <ArtifactProvider
+      selectedArtifact={selectedArtifact}
+      onOpenArtifact={openArtifact}
+      onCloseArtifact={() => setSelectedArtifact(null)}
+    >
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         {!selectedAgent && (
           <MemoHeader
@@ -164,6 +169,6 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
         handleArtifactOpenChange={handleArtifactOpenChange}
         idleReady={idleReady}
       />
-    </>
+    </ArtifactProvider>
   )
 }

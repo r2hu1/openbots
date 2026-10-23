@@ -11,7 +11,11 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 export { getTaskHistoryTool } from "./schedule-history.js";
 
-export function createRecurringTaskTool(userId: string, agentId: string) {
+export function createRecurringTaskTool(
+  userId: string,
+  agentId: string,
+  conversationId?: string | null,
+) {
   return tool({
     description:
       "Create a repeating or recurring scheduled task / cron job for this agent. " +
@@ -125,6 +129,7 @@ export function createRecurringTaskTool(userId: string, agentId: string) {
         .values({
           userId,
           agentId,
+          conversationId: conversationId ?? null,
           name,
           prompt,
           cronExpression: cron,

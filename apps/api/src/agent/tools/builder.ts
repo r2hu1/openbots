@@ -31,7 +31,7 @@ export async function buildAgentTools(params: {
 
   const activeTools: Record<string, any> = {
     create_schedule: createScheduleTool(userId, agentId, conversationId),
-    create_recurring_task: createRecurringTaskTool(userId, agentId),
+    create_recurring_task: createRecurringTaskTool(userId, agentId, conversationId),
     get_task_history: getTaskHistoryTool(userId, agentId),
     manage_schedule: manageScheduleTool(userId, agentId, conversationId),
     react_to_message: createReactToMessageTool(conversationId),

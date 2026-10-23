@@ -24,7 +24,7 @@
     "@modelcontextprotocol/client": "^2.2.0",
     "@openbots/api-contract": "workspace:*",
     "@openbots/db": "workspace:*",
-    "@trigger.dev/sdk": "4.7.6",
+    "@trigger.dev/sdk": "4.8.1",
     "ai": "^7.0.0",
     "better-auth": "^1.7.7",
     "docx": "^9.11.0",
@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@openbots/typescript-config": "workspace:*",
-    "@trigger.dev/build": "4.7.6",
+    "@trigger.dev/build": "4.8.1",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.5",
     "@types/web-push": "^3.6.4",

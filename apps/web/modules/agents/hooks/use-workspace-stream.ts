@@ -1,8 +1,11 @@
 "use client";
 
+import { toast } from "@openbots/ui/components/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 import { agentKeys } from "../queries";
+import { scheduleKeys } from "@/modules/schedules/queries";
+import { runKeys } from "@/modules/runs/queries";
 import type { Agent } from "../types";
 
 export interface WorkspaceStreamEvent {
@@ -180,6 +183,18 @@ export function useWorkspaceStream({ enabled = true }: UseWorkspaceStreamOptions
                   ...prev,
                   [agentId]: "running",
                 }));
+                const title = data.name ? `⏰ ${data.name}` : "⏰ Scheduled Task";
+                const desc = data.prompt
+                  ? data.prompt.slice(0, 100)
+                  : "Executing scheduled task...";
+                toast.add({
+                  title,
+                  description: desc,
+                  type: "info",
+                });
+                queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
+                queryClient.invalidateQueries({ queryKey: scheduleKeys.byAgent(agentId) });
+                queryClient.invalidateQueries({ queryKey: runKeys.byAgent(agentId) });
               }
             } catch {}
           }

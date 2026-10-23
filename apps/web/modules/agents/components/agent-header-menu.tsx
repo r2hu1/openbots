@@ -54,7 +54,7 @@ export function AgentHeaderMenu({
             <ChevronDown className="ml-2 size-3 text-muted-foreground" />
           </div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-48">
+        <DropdownMenuContent align="start" className="w-fit max-w-xs min-w-48">
           <div className="space-y-px p-1 pt-0.5">
             <p className="text-sm font-medium">{selectedAgent.name}</p>
             <p className="text-xs font-normal text-foreground/90">
@@ -62,18 +62,22 @@ export function AgentHeaderMenu({
             </p>
           </div>
           <DropdownMenuSeparator />
+          <p className="p-1 text-xs font-normal text-foreground/90">
+            {selectedAgent.model}
+          </p>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setRenameOpen(true)}>
-            <Edit className="size-4" />
             <span>Rename Agent</span>
+            <Edit className="ml-auto size-3.5" />
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onOpenConfigure}>
-            <Setting className="size-4" />
             <span>Configure Agent</span>
+            <Setting className="ml-auto size-3.5" />
           </DropdownMenuItem>
           {onOpenConnections && (
             <DropdownMenuItem onClick={onOpenConnections}>
-              <Plug2 className="size-4" />
               <span>Connections</span>
+              <Plug2 className="ml-auto size-3.5" />
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

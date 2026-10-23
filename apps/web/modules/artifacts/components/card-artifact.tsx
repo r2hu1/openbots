@@ -1,143 +1,102 @@
 "use client"
 
+import { Button } from "@openbots/ui/components/button"
+import { Spinner } from "@openbots/ui/components/spinner"
 import * as React from "react"
-import { Maximize } from "reicon-react"
 import { cn } from "@/lib/utils"
+import { useArtifact } from "../artifact-context"
 import {
   type ArtifactCardProps,
   ArtifactIcon,
-  ArtifactPreview,
-  MEDIA_CENTER,
-  THUMB_SIZE,
   TYPE_LABEL,
-  useThumbnailFrame,
 } from "./artifact-card-common"
 
 export function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
-  const { ref, width, visible } = useThumbnailFrame()
+  const artifactCtx = useArtifact()
   const isStreaming = artifact.isStreaming
+  const isOpen = artifactCtx?.isOpen(artifact) ?? false
+  const typeLabel = (TYPE_LABEL[artifact.type] ?? artifact.type).toUpperCase()
 
-  const base = THUMB_SIZE[artifact.type] ?? THUMB_SIZE.html
-  const scale = base && width ? width / base.w : 0
+  const handleClick = React.useCallback(() => {
+    if (artifactCtx) {
+      artifactCtx.toggleArtifact(artifact)
+    } else {
+      onClick()
+    }
+  }, [artifactCtx, artifact, onClick])
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
-      onClick()
+      handleClick()
     }
   }
-
-  const hasContent = artifact.content.trim().length > 0
 
   return (
     <div
       data-artifact-card="true"
+      data-artifact-type={artifact.type}
       role="button"
       tabIndex={0}
-      aria-label={`Open ${artifact.title}`}
-      onClick={onClick}
+      aria-label={`${isOpen ? "Close" : "Open"} ${artifact.title}`}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group/artifact block w-full max-w-md",
-        "cursor-pointer overflow-hidden",
-        "rounded-xl border p-1",
-        "bg-card text-left",
-        "transition-all outline-none",
+        "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
+        "rounded-xl border bg-card text-card-foreground transition-all duration-200",
+        "cursor-pointer ring-muted hover:ring-3",
+        "focus-visible:ring-3 focus-visible:ring-muted focus-visible:outline-none",
         isStreaming && "generating-border"
       )}
     >
-      <div
-        ref={ref}
-        className={cn(
-          "relative aspect-[16/10] w-full",
-          "overflow-hidden border-b border-border",
-          "bg-muted/40"
-        )}
-      >
-        {visible && base && scale > 0 && hasContent ? (
-          <div
-            className="pointer-events-none absolute top-0 left-0 origin-top-left"
-            style={{
-              width: base.w,
-              height: base.h,
-              transform: `scale(${scale})`,
-            }}
-          >
-            <ArtifactPreview
-              artifact={artifact}
-              htmlClassName="size-full border-0 bg-background"
-              mediaClassName={`${MEDIA_CENTER} size-full overflow-hidden`}
-            />
-          </div>
-        ) : (
-          <div className="flex size-full flex-col items-center justify-center gap-2 p-6 text-center">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <ArtifactIcon type={artifact.type} />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-foreground">
-                {artifact.title ||
-                  `Creating ${TYPE_LABEL[artifact.type] ?? artifact.type}...`}
-              </p>
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-                <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-                <span>
-                  {isStreaming
-                    ? "Streaming live preview..."
-                    : "Preparing preview..."}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div
-          className={cn(
-            "absolute inset-0",
-            "transition-colors",
-            "group-hover/artifact:bg-foreground/[0.03]"
-          )}
-        />
-      </div>
-
-      <div className="flex items-center gap-2.5 px-3 py-2.5">
-        <div
-          className={cn(
-            "flex size-7 shrink-0",
-            "items-center justify-center",
-            "rounded-md text-foreground",
-            "bg-muted"
-          )}
-        >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-foreground transition-colors">
           <ArtifactIcon type={artifact.type} />
         </div>
 
         <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              "truncate text-[13px]",
-              "leading-tight font-medium",
-              "text-foreground"
-            )}
-          >
-            {artifact.title}
+          <p className="truncate text-sm font-medium tracking-tight text-foreground transition-colors group-hover/artifact:text-primary">
+            {artifact.title ||
+              `Untitled ${TYPE_LABEL[artifact.type] ?? artifact.type}`}
           </p>
 
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <p className="text-[11px] text-muted-foreground">
-              {TYPE_LABEL[artifact.type] ?? artifact.type}
-            </p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="text-[10px] font-semibold tracking-wide text-muted-foreground/80 uppercase">
+              {typeLabel}
+            </span>
+            {isStreaming && (
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                <span className="inline-flex items-center gap-1 text-[11px] text-primary">
+                  <Spinner className="size-2.5" />
+                  Generating...
+                </span>
+              </>
+            )}
           </div>
         </div>
+      </div>
 
-        <Maximize
+      <div className="flex shrink-0 items-center gap-1">
+        <Button
+          type="button"
+          variant={isOpen ? "secondary" : "outline"}
+          size="xs"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleClick()
+          }}
           className={cn(
-            "size-4 shrink-0",
-            "text-muted-foreground/50",
-            "transition-colors",
-            "group-hover/artifact:text-foreground"
+            "h-7 rounded-md transition-all active:scale-95",
+            isOpen
+              ? "bg-primary/15 font-medium text-primary hover:bg-primary/25"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
-        />
+          title={isOpen ? "Close preview" : "Open preview"}
+          aria-label={isOpen ? "Close preview" : "Open preview"}
+        >
+          {isOpen ? "Close" : "Open"}
+        </Button>
       </div>
     </div>
   )

@@ -11,6 +11,8 @@ import { CardArtifact } from "./components/card-artifact"
 import { FileArtifact } from "./components/file-artifact"
 import { InlineArtifact } from "./components/inline-artifact"
 
+export * from "./artifact-context"
+
 export {
   type ArtifactCardProps,
   ArtifactIcon,

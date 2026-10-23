@@ -34,7 +34,7 @@ export function HtmlSandbox({
 
     const timer = setTimeout(() => {
       setDebouncedCode(code)
-    }, 250)
+    }, 400)
 
     return () => clearTimeout(timer)
   }, [code, isStreaming])

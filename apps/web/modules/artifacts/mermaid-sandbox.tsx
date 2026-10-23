@@ -51,6 +51,13 @@ export function MermaidSandbox({
 
         if (isMounted && containerRef.current) {
           containerRef.current.innerHTML = svg
+          const svgEl = containerRef.current.querySelector("svg")
+          if (svgEl) {
+            svgEl.removeAttribute("height")
+            svgEl.style.width = "100%"
+            svgEl.style.maxWidth = "100%"
+            svgEl.style.height = "auto"
+          }
           setError(null)
         }
       } catch (err) {
@@ -116,7 +123,7 @@ export function MermaidSandbox({
     >
       <div
         ref={containerRef}
-        className="max-h-full max-w-full [&_svg]:h-auto [&_svg]:max-h-full [&_svg]:max-w-full"
+        className="w-full max-w-full overflow-x-auto py-2 [&_svg]:block [&_svg]:h-auto [&_svg]:w-full [&_svg]:max-w-full"
       />
     </div>
   )

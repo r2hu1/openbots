@@ -25,7 +25,7 @@ export function SvgSandbox({
 
     const timer = setTimeout(() => {
       setDebouncedSvg(svg)
-    }, 250)
+    }, 400)
 
     return () => clearTimeout(timer)
   }, [svg, isStreaming])

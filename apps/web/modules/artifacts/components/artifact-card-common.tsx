@@ -36,17 +36,19 @@ export const MEDIA_CENTER =
 export function ArtifactIcon({
   type,
   fileType,
+  className,
 }: {
   type: ParsedArtifact["type"]
   fileType?: string
+  className?: string
 }) {
   if (type === "file") {
     const ext = fileType?.toLowerCase()
     if (ext === "pdf") {
-      return <FilePdf className="size-4" />
+      return <FilePdf className={className ?? "size-4"} />
     }
     if (ext === "xlsx" || ext === "xls" || ext === "csv" || ext === "sheet") {
-      return <DocumentText className="size-4" />
+      return <DocumentText className={className ?? "size-4"} />
     }
     if (
       ext === "json" ||
@@ -55,20 +57,20 @@ export function ArtifactIcon({
       ext === "py" ||
       ext === "code"
     ) {
-      return <CodeFile className="size-4" />
+      return <CodeFile className={className ?? "size-4"} />
     }
-    return <DocumentText className="size-4" />
+    return <DocumentText className={className ?? "size-4"} />
   }
 
   switch (type) {
     case "svg":
-      return <VectorSquare className="size-4" />
+      return <VectorSquare className={className ?? "size-4"} />
 
     case "mermaid":
-      return <ChartSquare className="size-4" />
+      return <ChartSquare className={className ?? "size-4"} />
 
     default:
-      return <Code className="size-4" />
+      return <Code className={className ?? "size-4"} />
   }
 }
 

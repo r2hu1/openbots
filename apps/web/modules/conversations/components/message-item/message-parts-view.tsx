@@ -49,8 +49,16 @@ export function MessagePartsView({
                 const artifact = seg.artifact
                 const typeOfA = artifact.type
                 if (!typeOfA) return null
+                const isInlineVisual = artifact.mode === "inline"
                 return (
-                  <div key={seg.id} className="relative w-full max-w-2xl">
+                  <div
+                    key={seg.id}
+                    className={
+                      isInlineVisual
+                        ? "relative w-full max-w-3xl"
+                        : "relative w-full max-w-2xl"
+                    }
+                  >
                     <ArtifactCard
                       artifact={artifact}
                       onClick={() => onOpenArtifact?.(artifact)}

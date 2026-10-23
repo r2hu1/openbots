@@ -106,13 +106,23 @@ export function SheetHeaderToolbar({
 
       <div className="flex shrink-0 items-center gap-1">
         {isFileArtifact ? (
-          <Button variant="secondary" size="sm" onClick={onDownload}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onDownload}
+            className="h-8 px-2 text-xs"
+          >
             <IconDownload className="size-3.5" />
-            Download
+            <span>Download</span>
           </Button>
         ) : (
           <ButtonGroup>
-            <Button variant="secondary" size="sm" onClick={onCopy}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onCopy}
+              className="h-7 px-2 text-xs"
+            >
               {copied ? <IconCheck className="size-3.5" /> : null}
               {copied ? "Copied" : "Copy"}
             </Button>
@@ -123,10 +133,11 @@ export function SheetHeaderToolbar({
                 aria-label="More actions"
                 className={buttonVariants({
                   variant: "secondary",
-                  size: "icon-sm",
+                  size: "icon-xs",
+                  className: "size-7",
                 })}
               >
-                <IconChevronDown className="size-4" />
+                <IconChevronDown className="size-3.5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 {!isFileArtifact && (

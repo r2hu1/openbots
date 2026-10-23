@@ -291,7 +291,7 @@ export function PdfViewer({ source, content, title }: PdfViewerProps) {
 
         {/* Right: Controls (Zoom, Fit, Print) */}
         <div className="flex items-center gap-1">
-          <div className="hidden items-center gap-0.5 rounded-lg border border-border/60 bg-muted/30 p-0.5 sm:flex">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/30 p-0.5">
             <Button
               type="button"
               variant="ghost"

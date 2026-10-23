@@ -16,17 +16,20 @@ export function SheetPreview({
   view: View
   onDownload: () => void
 }) {
+  const isFile = artifact.type === "file"
+
   return (
     <div
       className={cn(
-        "min-h-0 flex-1 overflow-hidden",
+        "min-h-0 flex-1 overflow-auto",
+        isFile ? "p-0" : "p-4 sm:p-6",
         view !== "preview" && "hidden"
       )}
     >
       {artifact.type === "html" && (
         <HtmlSandbox
           code={artifact.content}
-          className="size-full border-0 bg-transparent"
+          className="size-full min-h-[500px] border-0 bg-transparent"
         />
       )}
       {artifact.type === "svg" && (

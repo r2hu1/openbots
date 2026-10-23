@@ -54,5 +54,5 @@ export function withDesignSystem(
 }
 
 export function svgDocument(svg: string, theme: "light" | "dark" = "light") {
-  return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:100%}body{display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}svg{max-width:100%;max-height:100%;height:auto}</style></head><body>${svg}</body></html>`
+  return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:100%}body{display:flex;align-items:center;justify-content:center;padding:0;overflow:hidden}svg{max-width:100%;max-height:100%;height:auto}</style></head><body>${svg}</body></html>`
 }

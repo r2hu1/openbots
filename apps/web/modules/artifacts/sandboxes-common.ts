@@ -21,7 +21,7 @@ export const MERMAID_THEME_VARIABLES: Record<ThemeName, Record<string, string>> 
     noteBkgColor: "#f5f5f5",
     noteTextColor: "#0a0a0a",
     fontFamily: "ui-sans-serif, system-ui, sans-serif",
-    fontSize: "13px",
+    fontSize: "15px",
   },
 
   dark: {
@@ -36,7 +36,7 @@ export const MERMAID_THEME_VARIABLES: Record<ThemeName, Record<string, string>> 
     noteBkgColor: "#262626",
     noteTextColor: "#fafafa",
     fontFamily: "ui-sans-serif, system-ui, sans-serif",
-    fontSize: "13px",
+    fontSize: "15px",
   },
 }
 

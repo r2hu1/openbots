@@ -26,8 +26,9 @@ self.addEventListener("push", (event) => {
     data: {
       url: payload.url || "/",
     },
-    requireInteraction: false,
+    requireInteraction: true,
     vibrate: [200, 100, 200],
+    renotify: true,
   };
 
   event.waitUntil(

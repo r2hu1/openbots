@@ -144,11 +144,11 @@ export function createRecurringTaskTool(
 
       try {
         const triggerSched = await triggerSchedules.create({
-          task: "run-scheduled-agent",
+          task: "scheduled-agent-task",
           cron,
           timezone: normalizedTz,
           externalId: schedule.id,
-          deduplicationKey: `agent-recurring-${schedule.id}`,
+          deduplicationKey: schedule.id,
         });
 
         if (triggerSched?.id) {

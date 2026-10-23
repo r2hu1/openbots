@@ -160,7 +160,12 @@ export function WorkspaceSidebar({
                             "h-11 rounded-md group-data-[collapsible=icon]:p-0!"
                           )}
                         >
-                          <span className="relative flex shrink-0 group-data-[collapsible=icon]:mx-auto">
+                          <span
+                            className={cn(
+                              "relative flex shrink-0 group-data-[collapsible=icon]:mx-auto",
+                              isRunning && "generating-border"
+                            )}
+                          >
                             <Blobatar
                               name={agent.name || agent.id}
                               className="size-7! group-data-[collapsible=icon]:size-6"

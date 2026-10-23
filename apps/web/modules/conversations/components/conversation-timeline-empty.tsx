@@ -24,8 +24,7 @@ export function ConversationTimelineEmpty({
         Ready to chat with {agentName}
       </h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Send a task or query below. The agent will execute tool steps as needed
-        and return the verified output.
+        Send a task or query below. or just say Hii!
       </p>
     </div>
   )

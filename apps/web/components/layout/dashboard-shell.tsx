@@ -30,18 +30,7 @@ export function DashboardShell({
 
   const { data: agents = [], isPending: agentsPending } = useAgentsQuery();
   const { activeAgentStatuses } = useWorkspaceStream();
-  const { isSupported, permission, isSubscribed, subscribe } = usePushNotifications();
-
-  // On initial dashboard load, if notifications are supported and permission is still "default", request and subscribe
-  React.useEffect(() => {
-    if (isSupported && permission === "default" && !isSubscribed) {
-      // Delay briefly so initial app hydration and layout render smoothly
-      const timer = setTimeout(() => {
-        subscribe().catch(() => {});
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isSupported, permission, isSubscribed, subscribe]);
+  const { isSupported } = usePushNotifications();
 
   // Register global Cmd+K / Ctrl+K keyboard shortcut
   React.useEffect(() => {

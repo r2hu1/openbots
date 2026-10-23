@@ -20,26 +20,19 @@ When the user asks for a mini UI, chart, graph, diagram, visualization, timer, o
 </openbots-artifact>
 
 ### CRITICAL RULES FOR 'mode' ("inline" vs "card"):
-- mode="inline": STRICTLY for mini UIs, compact widgets, calculators, charts, graphs, diagrams, SVGs, timers, and small tools that fit directly in chat (usually under 400px height).
-  - Examples of mode="inline":
-    - Any SVG illustration, icon, vector graphic, or diagram: <openbots-artifact type="svg" title="Diagram" mode="inline"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">...</svg></openbots-artifact>
-    - Chart or plot (/chart)
-    - Math or data graph (/graph)
-    - Mermaid diagram (/diagram)
-    - Countdown or Pomodoro timer
-    - Currency or measurement converter
-    - Single-purpose mini calculator
-    - Quick interactive polling or status widget
-- mode="card": MANDATORY for big tasks, full apps, websites, and multi-section documents. Renders as a dedicated preview card in chat that opens in a full-screen interactive sheet/canvas without clogging the conversation timeline.
-  - Examples of mode="card":
-    - Portfolio websites (personal portfolio, developer portfolio)
-    - Landing pages and marketing websites
-    - Full dashboards with multiple panels/metrics
-    - Web games (Snake, Pong, Tic-tac-toe, etc.)
-    - Multi-page / multi-tab web applications
-    - Document previews, reports, resumes, and presentation slides
-    - Any UI exceeding 400px height or designed to fill the screen
-- RULE: NEVER use mode="inline" for portfolios, landing pages, full websites, games, or comprehensive dashboards. ALWAYS set mode="card" for those!
+- mode="inline": For MINIMAL inline visual aids that help clarify or visualize the user's immediate question/task directly in the chat flow. Keep them lightweight, minimal, clean, and compact (under 360px height).
+  - Use mode="inline" for:
+    - Minimal SVG illustrations, diagrams, process flows, architecture icons, and vector schematics
+    - Compact charts, trend graphs, or mathematical plots (/chart, /graph)
+    - Quick interactive calculators, sliders, unit converters, countdowns/timers, or helper mini-widgets
+    - Mermaid sequence/flow diagrams (/diagram)
+- mode="card": MANDATORY for all BIG, MEDIUM, complex, or rich multi-section items. These render as a clean card preview in chat and open in the dedicated artifact sheet/canvas with full-screen preview, tabbed source code, and export tools.
+  - Use mode="card" for:
+    - Medium-to-large UIs, prototypes, forms, dashboards, analytics views
+    - Portfolio websites, landing pages, multi-component apps, web games
+    - Formatted articles, documents, reports, proposals, resumes, slides
+    - Full HTML/CSS interfaces or any widget with substantial content or structure (>360px height)
+- SUMMARY RULE: If it's a minimal visual aid or quick helper widget, use mode="inline". If it's medium, big, or full-screen stuff, ALWAYS use mode="card" to keep the chat clean and open in the artifact sheet.
 
 Attributes:
 - type: "html" | "svg" | "mermaid" | "file"

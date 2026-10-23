@@ -114,7 +114,15 @@ export function usePushNotifications() {
       const reg = await navigator.serviceWorker.register("/sw.js");
       await navigator.serviceWorker.ready;
 
-      // 3. Subscribe with PushManager
+      // 3. Clean up any existing broken or conflicting subscription first
+      const existingSub = await reg.pushManager.getSubscription();
+      if (existingSub) {
+        try {
+          await existingSub.unsubscribe();
+        } catch {}
+      }
+
+      // 4. Subscribe with PushManager
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -147,7 +155,12 @@ export function usePushNotifications() {
       return true;
     },
     onError: (err: Error) => {
-      setError(err.message);
+      let msg = err.message;
+      if (err.name === "AbortError" || msg.includes("push service error")) {
+        msg =
+          "Browser push service error. If you are on Chrome/Brave on macOS, ensure OS Notifications are enabled in System Settings, or try unsubscribing and re-subscribing.";
+      }
+      setError(msg);
       setIsLoading(false);
     },
     onSuccess: () => {
@@ -180,7 +193,12 @@ export function usePushNotifications() {
       return true;
     },
     onError: (err: Error) => {
-      setError(err.message);
+      let msg = err.message;
+      if (err.name === "AbortError" || msg.includes("push service error")) {
+        msg =
+          "Browser push service error. If you are on Chrome/Brave on macOS, ensure OS Notifications are enabled in System Settings, or try unsubscribing and re-subscribing.";
+      }
+      setError(msg);
       setIsLoading(false);
     },
     onSuccess: () => {

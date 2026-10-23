@@ -121,7 +121,7 @@ export function SheetHeaderToolbar({
               variant="secondary"
               size="sm"
               onClick={onCopy}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
             >
               {copied ? <IconCheck className="size-3.5" /> : null}
               {copied ? "Copied" : "Copy"}
@@ -134,7 +134,7 @@ export function SheetHeaderToolbar({
                 className={buttonVariants({
                   variant: "secondary",
                   size: "icon-xs",
-                  className: "size-7",
+                  className: "size-8",
                 })}
               >
                 <IconChevronDown className="size-3.5" />

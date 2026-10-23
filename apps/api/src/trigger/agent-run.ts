@@ -101,16 +101,27 @@ export const scheduledAgentTask = triggerSchedules.task({
       return;
     }
 
-    // Look up schedule by id, triggerScheduleId, or externalId
-    let [scheduleRecord] = await db
-      .select()
-      .from(schedules)
-      .where(
-        or(
-          eq(schedules.id, targetId),
-          eq(schedules.triggerScheduleId, targetId),
-        ),
+    // Look up schedule by id (UUID) or triggerScheduleId (text like 'sched_xxx')
+    const isUuid =
+      typeof targetId === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        targetId,
       );
+
+    let [scheduleRecord] = isUuid
+      ? await db
+          .select()
+          .from(schedules)
+          .where(
+            or(
+              eq(schedules.id, targetId),
+              eq(schedules.triggerScheduleId, targetId),
+            ),
+          )
+      : await db
+          .select()
+          .from(schedules)
+          .where(eq(schedules.triggerScheduleId, targetId));
 
     // If still not found by direct ID (e.g., if trigger.dev scheduled task fired for an orphaned schedule ID
     // or externalId was not propagated), attempt matching active schedules

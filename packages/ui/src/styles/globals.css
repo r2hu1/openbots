@@ -8,6 +8,10 @@
 @source "../../../components/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 
+/* --------------------------------------------------
+   Theme
+-------------------------------------------------- */
+
 @theme inline {
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -38,9 +42,9 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,34 +52,49 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
   --font-sans: var(--font-sans);
 }
+
+/* --------------------------------------------------
+   Light theme
+-------------------------------------------------- */
 
 :root {
   --background: oklch(0.97 0 0);
   --foreground: oklch(0 0 0);
+
   --card: oklch(0.989 0 0);
   --card-foreground: oklch(0 0 0);
+
   --popover: oklch(0.99 0 0);
   --popover-foreground: oklch(0 0 0);
+
   --primary: oklch(0 0 0);
   --primary-foreground: oklch(1 0 0);
+
   --secondary: oklch(0.95 0 0);
   --secondary-foreground: oklch(0 0 0);
+
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.44 0 0);
+
   --accent: oklch(0.94 0 0);
   --accent-foreground: oklch(0 0 0);
+
   --destructive: oklch(0.63 0.19 23.03);
   --destructive-foreground: oklch(1 0 0);
+
   --border: oklch(0.92 0 0);
   --input: oklch(0.94 0 0);
   --ring: oklch(0 0 0);
+
   --chart-1: oklch(0.81 0.17 75.35);
   --chart-2: oklch(0.55 0.22 264.53);
   --chart-3: oklch(0.72 0 0);
   --chart-4: oklch(0.92 0 0);
   --chart-5: oklch(0.56 0 0);
+
   --sidebar: oklch(0.98 0 0);
   --sidebar-foreground: oklch(0 0 0);
   --sidebar-primary: oklch(0 0 0);
@@ -84,55 +103,84 @@
   --sidebar-accent-foreground: oklch(0 0 0);
   --sidebar-border: oklch(0.94 0 0);
   --sidebar-ring: oklch(0 0 0);
+
   --radius: 0.875rem;
+
   --shadow-x: 0px;
   --shadow-y: 1px;
   --shadow-blur: 2px;
   --shadow-spread: 0px;
   --shadow-opacity: 0.18;
   --shadow-color: hsl(0 0% 0%);
+
   --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
   --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
+
   --shadow-sm:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+
   --shadow:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+
   --shadow-md:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 2px 4px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 2px 4px -1px hsl(0 0% 0% / 0.18);
+
   --shadow-lg:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 4px 6px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 4px 6px -1px hsl(0 0% 0% / 0.18);
+
   --shadow-xl:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 8px 10px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 8px 10px -1px hsl(0 0% 0% / 0.18);
+
   --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.45);
+
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
 
+/* --------------------------------------------------
+   Dark theme
+-------------------------------------------------- */
+
 .dark {
   --background: oklch(0.2 0 0);
   --foreground: oklch(1 0 0);
+
   --card: oklch(0.18 0 0);
   --card-foreground: oklch(1 0 0);
+
   --popover: oklch(0.18 0 0);
   --popover-foreground: oklch(1 0 0);
+
   --primary: oklch(1 0 0);
   --primary-foreground: oklch(0 0 0);
+
   --secondary: oklch(0.25 0 0);
   --secondary-foreground: oklch(1 0 0);
+
   --muted: oklch(0.23 0 0);
   --muted-foreground: oklch(0.72 0 0);
+
   --accent: oklch(0.32 0 0);
   --accent-foreground: oklch(1 0 0);
+
   --destructive: oklch(0.69 0.2 23.91);
   --destructive-foreground: oklch(0 0 0);
+
   --border: oklch(0.26 0 0);
   --input: oklch(0.32 0 0);
   --ring: oklch(0.72 0 0);
+
   --chart-1: oklch(0.81 0.17 75.35);
   --chart-2: oklch(0.58 0.21 260.84);
   --chart-3: oklch(0.56 0 0);
   --chart-4: oklch(0.44 0 0);
   --chart-5: oklch(0.92 0 0);
+
   --sidebar: oklch(0.18 0 0);
   --sidebar-foreground: oklch(1 0 0);
   --sidebar-primary: oklch(1 0 0);
@@ -141,164 +189,178 @@
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0.26 0 0);
   --sidebar-ring: oklch(0.72 0 0);
+
   --radius: 0.875rem;
+
   --shadow-x: 0px;
   --shadow-y: 1px;
   --shadow-blur: 2px;
   --shadow-spread: 0px;
   --shadow-opacity: 0.18;
   --shadow-color: hsl(0 0% 0%);
+
   --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
   --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
+
   --shadow-sm:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+
   --shadow:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+
   --shadow-md:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 2px 4px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 2px 4px -1px hsl(0 0% 0% / 0.18);
+
   --shadow-lg:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 4px 6px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 4px 6px -1px hsl(0 0% 0% / 0.18);
+
   --shadow-xl:
-    0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 8px 10px -1px hsl(0 0% 0% / 0.18);
+    0px 1px 2px 0px hsl(0 0% 0% / 0.18),
+    0px 8px 10px -1px hsl(0 0% 0% / 0.18);
+
   --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.45);
 }
+
+/* --------------------------------------------------
+   Global styles
+-------------------------------------------------- */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
+  html {
+    @apply font-sans;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
-  @keyframes material-dash {
-    0% {
-      stroke-dasharray: 1 150;
-      stroke-dashoffset: 0;
-    }
+}
 
-    50% {
-      stroke-dasharray: 90 150;
-      stroke-dashoffset: -35;
-    }
+/* --------------------------------------------------
+   Bounce pulse
+-------------------------------------------------- */
 
-    100% {
-      stroke-dasharray: 90 150;
-      stroke-dashoffset: -124;
-    }
-  }
-  html {
-    @apply font-sans;
-  }
-  @keyframes bounce-pulse {
-    0%,
-    100% {
-      transform: translateY(-25%);
-      opacity: 1;
-      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
-    }
-
-    50% {
-      transform: translateY(0);
-      opacity: 0.5;
-      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-    }
+@keyframes bounce-pulse {
+  0%,
+  100% {
+    transform: translateY(-25%);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
   }
 
-  .animate-bounce-pulse {
-    animation: bounce-pulse 1s infinite;
+  50% {
+    transform: translateY(0);
+    opacity: 0.5;
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
   }
-  .animated-border {
-    position: relative;
-    isolation: isolate;
-    border-radius: inherit;
+}
+
+.animate-bounce-pulse {
+  animation: bounce-pulse 1s infinite;
+}
+
+/* --------------------------------------------------
+   Animated borders
+-------------------------------------------------- */
+
+/* Register the custom angle once. */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes border-rotate {
+  from {
+    --border-angle: 0deg;
   }
 
-  .animated-border::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(
-      from var(--border-angle, 0deg),
-      transparent 0%,
-      var(--color-primary, #6366f1) 10%,
-      #a855f7 20%,
-      transparent 30%
-    );
-    animation: border-rotate 3s linear infinite;
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    z-index: -1;
+  to {
+    --border-angle: 360deg;
   }
+}
 
-  .generating-border {
-    position: relative;
-    isolation: isolate;
-    border-radius: inherit;
-  }
+/* Shared border structure */
+.animated-border,
+.generating-border {
+  position: relative;
+  isolation: isolate;
+  border-radius: inherit;
+}
 
+/* Keep the border visible above the element's background. */
+.animated-border::before,
+.generating-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 0%,
+    #6366f1 10%,
+    #a855f7 20%,
+    transparent 30%,
+    transparent 100%
+  );
+
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+
+  animation: border-rotate 3s linear infinite;
+}
+
+/* Animated decorative border */
+.animated-border::before {
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 0%,
+    var(--color-primary, #6366f1) 10%,
+    #a855f7 20%,
+    transparent 30%,
+    transparent 100%
+  );
+
+  animation-duration: 3s;
+}
+
+/* Border shown while AI or another task is generating */
+.generating-border::before {
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 0%,
+    transparent 65%,
+    #818cf8 78%,
+    #c084fc 88%,
+    #818cf8 94%,
+    transparent 100%
+  );
+
+  animation-duration: 2.5s;
+}
+
+/* Respect the operating system's reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  .animated-border::before,
   .generating-border::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1.5px;
-    background: conic-gradient(
-      from var(--border-angle, 0deg),
-      transparent 0%,
-      transparent 65%,
-      #818cf8 78%,
-      #c084fc 88%,
-      #818cf8 94%,
-      transparent 100%
-    );
-    animation: generating-spin 2.5s linear infinite;
-    pointer-events: none;
-    z-index: -1;
-
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-  }
-
-  @property --border-angle {
-    syntax: "<angle>";
-    initial-value: 0deg;
-    inherits: false;
-  }
-
-  @keyframes generating-spin {
-    to {
-      --border-angle: 360deg;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .generating-border::before {
-      animation: none;
-    }
-  }
-
-  @keyframes border-rotate {
-    to {
-      --border-angle: 360deg;
-    }
-  }
-
-  @property --border-angle {
-    syntax: "<angle>";
-    initial-value: 0deg;
-    inherits: false;
+    animation: none;
   }
 }

@@ -70,7 +70,7 @@ ${COLOR_SCHEME_CSS}
 *, *::before, *::after { box-sizing: border-box; border-color: var(--border); }
 html, body { margin: 0; background: transparent; color: var(--foreground); }
 html { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
-body { padding: 16px; font-size: 14px; line-height: 1.5; }
+body { padding: 0; font-size: 14px; line-height: 1.5; }
 `
 
 export const THEME_CSS = `
@@ -112,7 +112,7 @@ export const THEME_CSS = `
   html { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
   body {
     margin: 0;
-    padding: 16px;
+    padding: 0;
     background: transparent;
     color: var(--foreground);
     font-size: 14px;

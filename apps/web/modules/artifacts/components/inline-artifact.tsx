@@ -2,7 +2,7 @@
 
 import { Button } from "@openbots/ui/components/button"
 import * as React from "react"
-import { Check, Copy, Maximize } from "reicon-react"
+import { Check, Copy } from "reicon-react"
 import { cn } from "@/lib/utils"
 import {
   type ArtifactCardProps,
@@ -10,7 +10,6 @@ import {
   useCopy,
 } from "./artifact-card-common"
 import { Skeleton } from "@openbots/ui/components/skeleton"
-import { Separator } from "@openbots/ui/components/separator"
 
 export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
   const { copied, copy } = useCopy(artifact.content)
@@ -67,17 +66,6 @@ export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
             className="size-6"
           >
             {copied ? <Check /> : <Copy />}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={onClick}
-            title="Open"
-            aria-label="Open"
-            className="size-6"
-          >
-            <Maximize />
           </Button>
         </div>
       )}

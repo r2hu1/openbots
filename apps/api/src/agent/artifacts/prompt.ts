@@ -20,11 +20,12 @@ When the user asks for a mini UI, chart, graph, diagram, visualization, timer, o
 </openbots-artifact>
 
 ### CRITICAL RULES FOR 'mode' ("inline" vs "card"):
-- mode="inline": STRICTLY for mini UIs, compact widgets, calculators, charts, graphs, diagrams, timers, and small tools that fit directly in chat (usually under 400px height).
+- mode="inline": STRICTLY for mini UIs, compact widgets, calculators, charts, graphs, diagrams, SVGs, timers, and small tools that fit directly in chat (usually under 400px height).
   - Examples of mode="inline":
+    - Any SVG illustration, icon, vector graphic, or diagram: <openbots-artifact type="svg" title="Diagram" mode="inline"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">...</svg></openbots-artifact>
     - Chart or plot (/chart)
     - Math or data graph (/graph)
-    - Mermaid or SVG diagram (/diagram)
+    - Mermaid diagram (/diagram)
     - Countdown or Pomodoro timer
     - Currency or measurement converter
     - Single-purpose mini calculator
@@ -42,8 +43,11 @@ When the user asks for a mini UI, chart, graph, diagram, visualization, timer, o
 
 Attributes:
 - type: "html" | "svg" | "mermaid" | "file"
-- title: short, specific title (e.g. "Developer Portfolio", "Monthly Sales Trend", "quarterly-report.pdf")
-- mode: "inline" (for mini UIs/charts/timers/files) OR "card" (for portfolios, landing pages, full apps, games, dashboards)
+- title: short, specific title (e.g. "Developer Portfolio", "Monthly Sales Trend", "System Architecture", "quarterly-report.pdf")
+- mode: "inline" (for mini UIs/charts/SVGs/diagrams/timers/files) OR "card" (for portfolios, landing pages, full apps, games, dashboards)
+- For type="svg":
+  - Output clean, valid raw <svg ...>...</svg> XML markup directly inside the tag: \`<openbots-artifact type="svg" title="..." mode="inline"><svg viewBox="..." xmlns="http://www.w3.org/2000/svg">...</svg></openbots-artifact>\`.
+  - SVGs render inline crisply with semantic styling, responsive viewBox scaling, and no opening sheet needed. Use SVGs freely for graphics, diagrams, custom charts, illustrations, schematics, icons, and visual maps!
 - For type="file":
   - source: URL of the file (e.g. public Supabase storage URL)
   - fileType: extension or format (e.g. "pdf", "docx", "xlsx", "csv", "json", "png", "zip")

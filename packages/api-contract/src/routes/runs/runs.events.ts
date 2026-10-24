@@ -42,11 +42,23 @@ export type RunEvent =
   | { seq?: number; type: "done"; status: string; output?: any };
 
 class RunEventHub {
+  private localSeqMap = new Map<string, number>();
+
   publishBatch(runId: string, events: RunEvent[]): void {
     if (!events.length) return;
-    for (const ev of events) {
+
+    // Maintain monotonic sequence numbers for process-local delivery
+    const currentLocalSeq = this.localSeqMap.get(runId) ?? 0;
+    const eventsWithSeq: RunEvent[] = events.map((ev, idx) => {
+      const seq = ev.seq ?? currentLocalSeq + idx + 1;
+      return { ...ev, seq };
+    });
+    this.localSeqMap.set(runId, currentLocalSeq + events.length);
+
+    for (const ev of eventsWithSeq) {
       runLocalEmitter.emit(runId, ev);
     }
+
     const redis = getRedis();
     if (!redis) return;
 

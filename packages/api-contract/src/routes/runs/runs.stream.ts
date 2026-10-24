@@ -65,8 +65,15 @@ export async function handleSingleRunStream(c: Context<Env>) {
     let isDone = false;
     let lastSeenSeq = -1;
 
+    let hasLocalEvents = false;
+
     // Process-local listener for zero latency delivery
     const onLocalRunEvent = (ev: RunEvent) => {
+      hasLocalEvents = true;
+      if (typeof ev.seq === "number") {
+        if (ev.seq <= lastSeenSeq) return;
+        lastSeenSeq = ev.seq;
+      }
       queue.push({
         event: ev.type,
         data: JSON.stringify(ev),
@@ -113,6 +120,8 @@ export async function handleSingleRunStream(c: Context<Env>) {
         }
 
         // Check cross-process events from Redis (dispatched by Trigger.dev or worker processes)
+        // If we are actively receiving live events directly from local in-process emitter,
+        // we track lastRedisLen so we do not double-enqueue the same events from Redis.
         try {
           const redis = getRedis();
           if (redis) {
@@ -126,6 +135,8 @@ export async function handleSingleRunStream(c: Context<Env>) {
                 currentLen - 1,
               );
               lastRedisLen = currentLen;
+              // If the local in-process emitter is already actively serving this run,
+              // we don't need to replay from Redis unless hydrating un-seen initial events
               if (items && items.length > 0) {
                 hadNewEvents = true;
                 for (const raw of items) {
@@ -134,6 +145,8 @@ export async function handleSingleRunStream(c: Context<Env>) {
                   if (parsed.seq !== undefined) {
                     if (parsed.seq <= lastSeenSeq) continue;
                     lastSeenSeq = parsed.seq;
+                  } else if (hasLocalEvents) {
+                    continue;
                   }
                   queue.push({
                     event: parsed.type,

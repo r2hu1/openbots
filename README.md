@@ -35,8 +35,9 @@ Create distinct agents for any purpose. Give each agent their own:
 
 - **System Instructions**: Define their tone, rules, domain knowledge, and exact boundaries.
 - **Model Intelligence**: Select from state-of-the-art reasoning models like Google's Gemini, Anthropic Claude, OpenAI or OpenRouter.
-- **Distinct Avatars**: Auto-generated animated Avatars give each agent an expressive visual identity.
+- **Distinct Avatars**: Auto-generated animated Avatars give each agent an expressive visual identity with dynamic execution indicators.
 - **Allowed Tools**: Turn specific tools on or off so agents only have the capabilities they need.
+- **Cascading Lifecycle Management**: Deleting an agent cleanly removes associated Daytona sandboxes, background Trigger.dev schedules, memories, and Redis cached state.
 
 ### 2. Rich Conversational Workspace
 
@@ -44,13 +45,14 @@ Create distinct agents for any purpose. Give each agent their own:
 
 Collaborate in a focused, clutter-free chat environment:
 
-- **Streaming Responses**: Clean, jitter-free streaming that renders smoothly as thoughts are formed.
+- **Streaming Responses**: Clean, jitter-free streaming that renders smoothly as thoughts are formed with monotonic sequence tracking.
 - **Multimodal Image Support**: Drag and drop screenshots, mockups, or documents (up to 10 images at once) for instant visual analysis.
 - **Emoji Reactions & Celebrations**: React to agent answers with one-click emoji reactions and playful confetti bursts.
 
 ![Reactions](./apps/web/public/preview-reactions.png)
 
 - **Thread History & Message Splitting**: Long conversational responses are cleanly structured into digestible thoughts with full search and history.
+- **Persistent Long-Term Memory**: Agents remember key user preferences, project details, and past conversations across sessions with built-in memory search, creation, and deletion tools, plus an intuitive **Agent Memory Sheet** UI to inspect and manage memories directly from chat.
 
 ### 3. Human-Readable Activity Stream (Not Raw Debug Logs)
 
@@ -71,10 +73,10 @@ When autonomous agents think and work, you shouldn't have to decipher walls of r
 When your agent creates code, designs, diagrams, or downloadable reports, it doesn't just print raw text — it generates living **Artifacts**:
 
 - **Interactive HTML/CSS**: Live preview responsive web interfaces, dashboards, and UI prototypes directly in an expandable side sheet.
-- **Mermaid Flowcharts & Architectures**: Automatically render system flows, sequence diagrams, and entity-relationship models.
-- **Vector SVGs**: Render logos, icons, and illustrations.
+- **Mermaid Flowcharts & Architectures**: Automatically render system flows, sequence diagrams, and entity-relationship models with full-width responsive scaling.
+- **Vector SVGs**: Render logos, icons, and illustrations with auto-detected dimensions and adaptive inline presentation.
 - **Rich Document Rendering & Generation**:
-  - **PDF Documents**: High-fidelity multi-page PDF rendering via canvas rendering (`pdfjs-dist`) with client-side and server-side PDF generation (`pdf-lib`, `jspdf`).
+  - **PDF Documents**: High-fidelity multi-page PDF rendering via canvas rendering (`pdfjs-dist`) with an interactive zoom, fit-width, and print toolbar, along with client-side and server-side PDF generation (`pdf-lib`, `jspdf`).
   - **Microsoft Word (DOCX)**: In-app Word document parsing and rendering (`docx-preview`, `docx`).
   - **Formatted Markdown & Text**: Direct rendering of `.md`, `.txt`, `.json`, `.yaml` files with seamless styling that flows naturally into the canvas.
   - **Spreadsheets (XLSX, CSV)**: Interactive multi-sheet tabular data preview with cell formatting (`xlsx`).

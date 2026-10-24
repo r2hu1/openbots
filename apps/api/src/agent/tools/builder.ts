@@ -16,6 +16,8 @@ import { getTaskHistoryTool } from "./schedule-history.js";
 import { manageScheduleTool } from "./schedule-manager.js";
 import { createDownloadableFileTool } from "./document-downloadable.js";
 import { createReactToMessageTool } from "./react-tool.js";
+import { createMemoryTools } from "./memory-tools.js";
+import { createChatHistoryTool } from "./chat-history-tool.js";
 
 export interface ResolvedTools {
   tools: Record<string, any>;
@@ -29,6 +31,8 @@ export async function buildAgentTools(params: {
 }): Promise<ResolvedTools> {
   const { userId, agentId, conversationId } = params;
 
+  const memoryTools = createMemoryTools(userId, agentId);
+
   const activeTools: Record<string, any> = {
     create_schedule: createScheduleTool(userId, agentId, conversationId),
     create_recurring_task: createRecurringTaskTool(userId, agentId, conversationId),
@@ -36,6 +40,10 @@ export async function buildAgentTools(params: {
     manage_schedule: manageScheduleTool(userId, agentId, conversationId),
     react_to_message: createReactToMessageTool(conversationId),
     create_downloadable_file: createDownloadableFileTool(userId),
+    search_memory: memoryTools.search_memory,
+    save_memory: memoryTools.save_memory,
+    delete_memory: memoryTools.delete_memory,
+    get_chat_history: createChatHistoryTool(conversationId),
   };
   const cleanupTasks: Array<() => Promise<void>> = [];
 

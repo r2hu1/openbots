@@ -176,6 +176,27 @@ export const TOOL_SECTIONS: { title: string; tools: ToolDoc[] }[] = [
     ],
   },
   {
+    title: "Long-term Memory & Chat History",
+    tools: [
+      {
+        name: "search_memory",
+        desc: "Retrieves stored long-term facts, preferences, user instructions, notes, and profile details across sessions.",
+      },
+      {
+        name: "save_memory",
+        desc: "Saves or updates durable facts, user preferences, tech stack choices, or instructions into persistent database memory.",
+      },
+      {
+        name: "delete_memory",
+        desc: "Removes outdated or irrelevant facts from long-term memory.",
+      },
+      {
+        name: "get_chat_history",
+        desc: "Inspects previous messages, user questions, code, or context at any point in the current conversation.",
+      },
+    ],
+  },
+  {
     title: "External SaaS Integrations (Composio) & MCP Tools",
     tools: [
       {

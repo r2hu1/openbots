@@ -15,4 +15,6 @@ export * from "./tools/document-pdf.js";
 export * from "./tools/document-docx.js";
 export * from "./tools/internal-registry.js";
 export * from "./tools/react-tool.js";
+export * from "./tools/memory-tools.js";
+export * from "./tools/chat-history-tool.js";
 export * from "./tools/builder.js";

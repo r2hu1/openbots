@@ -23,7 +23,7 @@ https://github.com/user-attachments/assets/98400eca-4bea-44be-8d6d-b6c478e92def
 | **Conversational Workspace**<br>[![Chat](./apps/web/public/preview-chat.png)](#2-rich-conversational-workspace) | **Cloud Isolated Desktop & Browser**<br>[![Cloud Isolated Desktop](./apps/web/public/preview-vm.png)](#7-cloud-isolated-desktop--browser-automation) |
 | **Interactive Artifacts**<br>[![Artifacts](./apps/web/public/preview-artifacts.png)](#5-interactive-artifacts-documents--sandboxes) | **Inline Artifact Previews**<br>[![Inline Artifacts](./apps/web/public/preview-artifacts-inline.png)](#5-interactive-artifacts-documents--sandboxes) |
 | **Durable Schedules & Workflows**<br>[![Schedules](./apps/web/public/preview-schedules.png)](#6-durable-background-workflows-scheduling--web-push) | **200+ SaaS Connections**<br>[![Connections](./apps/web/public/preview-connections.png)](#8-200-saas-integrations-via-composio--mcp) |
-| **Persistent Agent Memory**<br>[![Chat](./apps/web/public/preview-chat.png)](#3-persistent-agent-memory--knowledge-recall) | **AI Providers & Intelligence**<br>[![Providers](./apps/web/public/preview-providers.png)](#1-dedicated-agents-with-personalities--roles) |
+| **Persistent Agent Memory**<br>[![Agent Memory](./apps/web/public/preview-memory.png)](#3-persistent-agent-memory--knowledge-recall) | **AI Providers & Intelligence**<br>[![Providers](./apps/web/public/preview-providers.png)](#1-dedicated-agents-with-personalities--roles) |
 | **Reactions & Celebrations**<br>[![Reactions](./apps/web/public/preview-reactions.png)](#2-rich-conversational-workspace) | |
 
 Take a visual tour through everything you can do in OpenBots:
@@ -55,6 +55,8 @@ Collaborate in a focused, clutter-free chat environment:
 - **Thread History & Message Splitting**: Long conversational responses are cleanly structured into digestible thoughts with full search and history.
 
 ### 3. Persistent Agent Memory & Knowledge Recall
+
+![Agent Memory](./apps/web/public/preview-memory.png)
 
 Give each agent a brain that grows with every interaction:
 

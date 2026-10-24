@@ -5,7 +5,11 @@ import { Input } from "@openbots/ui/components/input"
 import { Spinner } from "@openbots/ui/components/spinner"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
-import { Plus as IconPlus, Search as IconSearch, Trash2 as IconTrash } from "reicon-react"
+import {
+  Plus as IconPlus,
+  Search as IconSearch,
+  Trash2 as IconTrash,
+} from "reicon-react"
 
 export interface MemoryItem {
   id: string
@@ -91,11 +95,14 @@ export function AgentMemoryContent({
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${apiBaseUrl}/api/memories/${id}?agentId=${agentId}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-        credentials: "include",
-      })
+      const res = await fetch(
+        `${apiBaseUrl}/api/memories/${id}?agentId=${agentId}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+          credentials: "include",
+        }
+      )
       if (!res.ok) throw new Error("Failed to delete memory")
       return res.json()
     },
@@ -105,7 +112,7 @@ export function AgentMemoryContent({
   })
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-4 px-3">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <IconSearch className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -117,18 +124,15 @@ export function AgentMemoryContent({
           />
         </div>
         <Button
-          size="sm"
           variant={isAdding ? "secondary" : "default"}
           onClick={() => setIsAdding(!isAdding)}
-          className="gap-1.5 text-xs"
         >
-          <IconPlus className="size-3.5" />
-          {isAdding ? "Cancel" : "Add Memory"}
+          {isAdding ? <Spinner /> : <IconPlus />}
         </Button>
       </div>
 
       {isAdding && (
-        <div className="rounded-lg border bg-card p-3 space-y-3">
+        <div className="space-y-3 rounded-lg border bg-card p-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[11px] font-medium text-muted-foreground">
@@ -162,13 +166,15 @@ export function AgentMemoryContent({
               onChange={(e) => setNewContent(e.target.value)}
               placeholder="What should this agent remember?"
               rows={2}
-              className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
             />
           </div>
           <div className="flex justify-end gap-2">
             <Button
               size="sm"
-              disabled={!newKey.trim() || !newContent.trim() || addMutation.isPending}
+              disabled={
+                !newKey.trim() || !newContent.trim() || addMutation.isPending
+              }
               onClick={() => addMutation.mutate()}
               className="text-xs"
             >
@@ -187,7 +193,8 @@ export function AgentMemoryContent({
           <div className="flex h-48 flex-col items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
             <p className="font-medium text-foreground">No memories saved yet</p>
             <p className="max-w-xs text-[11px]">
-              This agent can automatically save memories during conversations, or you can add them manually above.
+              This agent can automatically save memories during conversations,
+              or you can add them manually above.
             </p>
           </div>
         ) : (
@@ -206,7 +213,7 @@ export function AgentMemoryContent({
                       {m.category}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground break-words whitespace-pre-wrap">
+                  <p className="mt-1.5 text-xs leading-relaxed break-words whitespace-pre-wrap text-muted-foreground">
                     {m.content}
                   </p>
                   <p className="mt-1 text-[10px] text-muted-foreground/60">
@@ -216,7 +223,7 @@ export function AgentMemoryContent({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
+                  className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
                   onClick={() => deleteMutation.mutate(m.id)}
                   title="Delete memory"
                 >

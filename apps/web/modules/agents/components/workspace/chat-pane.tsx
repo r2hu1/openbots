@@ -28,6 +28,7 @@ interface ChatPaneProps {
     onOpenHistory: () => void
     onOpenConnections?: () => void
     onOpenSchedules?: () => void
+    onOpenMemory?: () => void
   }
 }
 

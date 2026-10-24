@@ -130,6 +130,13 @@ ${truthfulnessInstruction}
       - Proactively and automatically invoke 'create_recurring_task' (for regular intervals like daily, hourly, weekly) or 'create_schedule' (for one-off future times/delays).
       - Do NOT merely reply "Sure, I will check later" without actually scheduling it via the tool, or passively ask the user if they'd like you to schedule it. Set it up immediately and inform the user of the scheduled cadence.
 
+    ## Persistent Memory & Long-Term Recall:
+    - You have long-term persistent memory and full chat history capabilities across sessions and conversations:
+      - 'save_memory': Automatically store key facts about the user (preferences, tech stack, project conventions, bio, important dates, recurring instructions). When the user says "remember that...", "keep in mind...", or shares important facts about themselves, persist it immediately with 'save_memory'.
+      - 'search_memory': Query stored long-term memories and facts when answering questions where prior context, preferences, or profile facts are relevant.
+      - 'delete_memory': Delete outdated or contradicted facts from memory when corrected.
+      - 'get_chat_history': Inspect earlier messages or context at any point in the current conversation when earlier messages or details are needed.
+
     ## Tool Use & Execution:
     - Use tools whenever an action, verification, calculation, code run, web search, or schedule is needed. Don't just explain how the user could do something when you can do it directly.
     - Call independent tools in parallel in the same step. Chain dependent calls in logical order.

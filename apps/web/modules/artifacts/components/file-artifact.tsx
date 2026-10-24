@@ -42,20 +42,20 @@ export function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
-        "rounded-xl border bg-card text-card-foreground transition-all duration-200",
+        "group/artifact relative flex w-[80%] max-w-md items-center justify-between gap-3 p-2.5 select-none sm:w-full",
+        "rounded-lg border bg-card text-card-foreground transition-all duration-200",
         "cursor-pointer ring-muted hover:ring-3",
         "focus-visible:ring-3 focus-visible:ring-muted focus-visible:outline-none",
         isStreaming && "generating-border"
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-foreground transition-colors">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-foreground transition-colors">
           <ArtifactIcon type="file" fileType={artifact.fileType} />
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium tracking-tight text-foreground transition-colors group-hover/artifact:text-primary">
+          <p className="truncate text-[13px] font-medium tracking-tight text-foreground transition-colors group-hover/artifact:text-primary">
             {artifact.title}
           </p>
 
@@ -82,12 +82,7 @@ export function FileArtifact({ artifact, onClick }: ArtifactCardProps) {
             e.stopPropagation()
             handleClick()
           }}
-          className={cn(
-            "h-7 rounded-md transition-all active:scale-95",
-            isOpen
-              ? "bg-primary/15 text-primary hover:bg-primary/25 font-medium"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          )}
+          className="h-7 rounded-md transition-all active:scale-95"
           title={isOpen ? "Close preview" : "Open preview"}
           aria-label={isOpen ? "Close preview" : "Open preview"}
         >

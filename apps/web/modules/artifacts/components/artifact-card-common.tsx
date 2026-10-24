@@ -45,10 +45,10 @@ export function ArtifactIcon({
   if (type === "file") {
     const ext = fileType?.toLowerCase()
     if (ext === "pdf") {
-      return <FilePdf className={className ?? "size-4"} />
+      return <FilePdf className={className ?? "size-3"} />
     }
     if (ext === "xlsx" || ext === "xls" || ext === "csv" || ext === "sheet") {
-      return <DocumentText className={className ?? "size-4"} />
+      return <DocumentText className={className ?? "size-3"} />
     }
     if (
       ext === "json" ||
@@ -57,20 +57,20 @@ export function ArtifactIcon({
       ext === "py" ||
       ext === "code"
     ) {
-      return <CodeFile className={className ?? "size-4"} />
+      return <CodeFile className={className ?? "size-3.5"} />
     }
-    return <DocumentText className={className ?? "size-4"} />
+    return <DocumentText className={className ?? "size-3.5"} />
   }
 
   switch (type) {
     case "svg":
-      return <VectorSquare className={className ?? "size-4"} />
+      return <VectorSquare className={className ?? "size-3.5"} />
 
     case "mermaid":
-      return <ChartSquare className={className ?? "size-4"} />
+      return <ChartSquare className={className ?? "size-3.5"} />
 
     default:
-      return <Code className={className ?? "size-4"} />
+      return <Code className={className ?? "size-3.5"} />
   }
 }
 

@@ -43,7 +43,7 @@ export function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
       onKeyDown={handleKeyDown}
       className={cn(
         "group/artifact relative flex w-full max-w-md items-center justify-between gap-3 p-3 select-none",
-        "rounded-xl border bg-card text-card-foreground transition-all duration-200",
+        "bg-card rounded-xl border text-card-foreground transition-all duration-200",
         "cursor-pointer ring-muted hover:ring-3",
         "focus-visible:ring-3 focus-visible:ring-muted focus-visible:outline-none",
         isStreaming && "generating-border"

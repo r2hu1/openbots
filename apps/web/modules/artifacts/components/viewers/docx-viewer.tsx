@@ -182,9 +182,7 @@ export function DocxViewer({ source, content, title }: DocxViewerProps) {
 
   return (
     <div className="relative flex size-full flex-col overflow-hidden bg-muted/20 dark:bg-zinc-950">
-      {/* Claude-style Minimal Sticky Viewer Toolbar */}
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-border/70 bg-background/95 px-3 py-1.5 backdrop-blur-xs sm:px-4">
-        {/* Left: Document info & badge */}
+      <div className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-background px-3 py-1 sm:px-4">
         <div className="flex min-w-0 items-center gap-2">
           {stats && (
             <span className="inline-block text-xs text-muted-foreground/80">
@@ -196,7 +194,7 @@ export function DocxViewer({ source, content, title }: DocxViewerProps) {
 
         {/* Right: Controls (Zoom, Fit, Copy, Print, Download) */}
         <div className="flex items-center gap-1">
-          <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/30 p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-card p-0.5">
             <Button
               type="button"
               variant="ghost"
@@ -271,9 +269,6 @@ export function DocxViewer({ source, content, title }: DocxViewerProps) {
         {loading && (
           <div className="flex size-full flex-col items-center justify-center py-24">
             <Spinner className="size-6 text-primary" />
-            <span className="mt-3 text-xs font-medium text-muted-foreground">
-              Preparing document preview...
-            </span>
           </div>
         )}
 
@@ -314,20 +309,9 @@ export function DocxViewer({ source, content, title }: DocxViewerProps) {
               }}
               className={cn(
                 "w-full rounded-md border border-border/70 bg-white text-zinc-900 transition-shadow select-text",
-                "shadow-xs hover:shadow-md dark:border-border/40 dark:bg-zinc-900 dark:text-zinc-100",
+                "dark:border-border/40 dark:bg-zinc-900 dark:text-zinc-100",
                 "p-6 sm:p-12",
-                "typeset",
-                "[&_h1]:border-b [&_h1]:border-border/60 [&_h1]:pb-3 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:text-foreground",
-                "[&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-foreground",
-                "[&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-medium [&_h3]:text-foreground",
-                "[&_p]:leading-relaxed [&_p]:text-foreground/90",
-                "[&_table]:my-6 [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
-                "[&_td]:border [&_td]:border-border/70 [&_td]:p-3 [&_td]:align-top",
-                "[&_th]:border [&_th]:border-border/70 [&_th]:bg-muted/40 [&_th]:p-3 [&_th]:text-left [&_th]:font-semibold",
-                "[&_blockquote]:rounded-r-md [&_blockquote]:border-l-3 [&_blockquote]:border-primary/60 [&_blockquote]:bg-muted/20 [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:italic",
-                "[&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6",
-                "[&_li]:mb-1.5 [&_li]:leading-relaxed",
-                "[&_img]:my-6 [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border/60 [&_img]:shadow-xs"
+                "typeset"
               )}
             >
               {htmlContent ? (

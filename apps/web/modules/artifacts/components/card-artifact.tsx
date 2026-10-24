@@ -42,7 +42,7 @@ export function CardArtifact({ artifact, onClick }: ArtifactCardProps) {
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group/artifact relative flex w-[80%] max-w-md items-center justify-between gap-3 p-2.5 select-none sm:w-full",
+        "group/artifact relative flex w-[80%] max-w-md items-center justify-between gap-3 p-2.5 select-none",
         "rounded-lg border bg-card text-card-foreground transition-all duration-200",
         "cursor-pointer ring-muted hover:ring-3",
         "focus-visible:ring-3 focus-visible:ring-muted focus-visible:outline-none",

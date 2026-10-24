@@ -12,9 +12,7 @@ Build a team of AI agents that research, write and execute code, use your apps, 
 
 </div>
 
-
-https://github.com/user-attachments/assets/56415126-bafe-477a-9932-8d037a997e1c
-
+https://github.com/user-attachments/assets/98400eca-4bea-44be-8d6d-b6c478e92def
 
 ---
 

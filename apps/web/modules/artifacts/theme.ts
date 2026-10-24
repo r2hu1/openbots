@@ -53,6 +53,17 @@ export function withDesignSystem(
   return `<!DOCTYPE html><html><head>${head}</head><body>${cleaned}</body></html>`
 }
 
-export function svgDocument(svg: string, theme: "light" | "dark" = "light") {
-  return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:100%}body{display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}svg{max-width:100%;max-height:100%;height:auto}</style></head><body>${svg}</body></html>`
+export function svgDocument(
+  svg: string,
+  theme: "light" | "dark" = "light",
+  fitContent: boolean = false
+) {
+  const bodyStyles = fitContent
+    ? "display:block;margin:0;padding:0;overflow:visible;background:transparent;"
+    : "display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;background:transparent;"
+  const svgStyles = fitContent
+    ? "display:block;width:100%;max-width:100%;height:auto;"
+    : "max-width:100%;max-height:100%;height:auto;"
+
+  return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:auto;}body{${bodyStyles}}svg{${svgStyles}}</style></head><body>${svg}</body></html>`
 }

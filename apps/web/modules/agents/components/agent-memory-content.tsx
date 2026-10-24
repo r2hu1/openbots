@@ -2,6 +2,11 @@
 
 import { Button } from "@openbots/ui/components/button"
 import { Input } from "@openbots/ui/components/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@openbots/ui/components/input-group"
 import { Spinner } from "@openbots/ui/components/spinner"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
@@ -114,16 +119,18 @@ export function AgentMemoryContent({
   return (
     <div className="flex h-full flex-col gap-4 px-3">
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <IconSearch className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+        <InputGroup>
+          <InputGroupAddon>
+            <IconSearch />
+          </InputGroupAddon>
+          <InputGroupInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={`Search ${agentName || "agent"}'s memories...`}
-            className="pl-8 text-xs"
           />
-        </div>
+        </InputGroup>
         <Button
+          size="icon"
           variant={isAdding ? "secondary" : "default"}
           onClick={() => setIsAdding(!isAdding)}
         >

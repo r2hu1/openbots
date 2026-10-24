@@ -97,6 +97,7 @@ export function PdfCanvasFallback({
           if (context) {
             await page.render({
               canvasContext: context,
+              canvas,
               viewport: scaledViewport,
             }).promise
           }

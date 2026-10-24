@@ -105,7 +105,7 @@ export function useCreateAgentMutation(options?: {
       });
 
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
+        const data = (await res.json()) as unknown as { error?: string };
         throw new Error(data?.error || "Failed to create agent");
       }
 
@@ -139,7 +139,7 @@ export function useUpdateAgentMutation(agentId: string | null | undefined) {
       });
 
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
+        const data = (await res.json()) as unknown as { error?: string };
         throw new Error(data?.error || "Failed to update agent");
       }
 

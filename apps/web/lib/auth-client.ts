@@ -22,7 +22,9 @@ export const authClient = createAuthClient({
   },
 });
 
-export const { useSession, signIn, signUp } = authClient;
+export const useSession: typeof authClient.useSession = authClient.useSession;
+export const signIn: typeof authClient.signIn = authClient.signIn;
+export const signUp: typeof authClient.signUp = authClient.signUp;
 
 export const signOut = async () => {
   if (typeof window !== "undefined") {

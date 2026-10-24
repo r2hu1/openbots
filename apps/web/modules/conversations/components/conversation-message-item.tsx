@@ -1,17 +1,11 @@
 "use client"
 
-import {
-  Bubble,
-  BubbleContent,
-} from "@openbots/ui/components/bubble"
+import { Bubble, BubbleContent } from "@openbots/ui/components/bubble"
 import {
   ContextMenu,
   ContextMenuTrigger,
 } from "@openbots/ui/components/context-menu"
-import {
-  Message,
-  MessageContent,
-} from "@openbots/ui/components/message"
+import { Message, MessageContent } from "@openbots/ui/components/message"
 import * as React from "react"
 import type { ParsedArtifact } from "@/modules/artifacts/parser"
 import { parseArtifacts } from "@/modules/artifacts/parser"
@@ -54,8 +48,14 @@ export const ConversationMessageItem = React.memo(
     const bubbleRef = React.useRef<HTMLDivElement>(null)
 
     const text = getMessageText(message.content)
-    const images = React.useMemo(() => getMessageImages(message.content), [message.content])
-    const attachments = React.useMemo(() => getMessageAttachments(message.content), [message.content])
+    const images = React.useMemo(
+      () => getMessageImages(message.content),
+      [message.content]
+    )
+    const attachments = React.useMemo(
+      () => getMessageAttachments(message.content),
+      [message.content]
+    )
 
     const { reactions, handleReaction } = useMessageReactions({
       messageId: message.id,
@@ -68,15 +68,21 @@ export const ConversationMessageItem = React.memo(
 
     const messageParts = React.useMemo(() => {
       if (isUser) {
-        return [{
-          partId: `usr-${message.id}`,
-          segments: [{ id: `usr-${message.id}`, type: "text" as const, text }],
-        }]
+        return [
+          {
+            partId: `usr-${message.id}`,
+            segments: [
+              { id: `usr-${message.id}`, type: "text" as const, text },
+            ],
+          },
+        ]
       }
-      return [{
-        partId: `asst-${message.id}`,
-        segments: parseArtifacts(text).segments,
-      }]
+      return [
+        {
+          partId: `asst-${message.id}`,
+          segments: parseArtifacts(text).segments,
+        },
+      ]
     }, [isUser, message.id, text])
 
     const { copied, shared, handleCopy, handleShare, handleDownload } =
@@ -105,12 +111,19 @@ export const ConversationMessageItem = React.memo(
     })
 
     return (
-      <ContextMenu open={isContextOpen} onOpenChange={() => setIsContextOpen(!isContextOpen)}>
+      <ContextMenu
+        open={isContextOpen}
+        onOpenChange={() => setIsContextOpen(!isContextOpen)}
+      >
         <ContextMenuTrigger className="block w-full">
           <Message align={isUser ? "end" : "start"} className="group">
             <MessageHeaderAvatar isUser={isUser} agentName={agentName} />
             <MessageContent>
-              <div ref={bubbleRef} onMouseUp={handleMouseUp} className="relative flex w-full flex-col gap-2">
+              <div
+                ref={bubbleRef}
+                onMouseUp={handleMouseUp}
+                className="relative flex w-full flex-col gap-2"
+              >
                 <MessageSelectionToolbar
                   position={selectionPosition}
                   selectedText={selectedText}
@@ -125,8 +138,14 @@ export const ConversationMessageItem = React.memo(
                       onOpenArtifact={onOpenArtifact}
                     />
                     {text && (
-                      <Bubble variant="default" align="end" className="relative">
-                        <BubbleContent className="whitespace-pre-wrap">{text}</BubbleContent>
+                      <Bubble
+                        variant="default"
+                        align="end"
+                        className="relative"
+                      >
+                        <BubbleContent className="whitespace-pre-wrap">
+                          {text}
+                        </BubbleContent>
                         <MessageReactions
                           reactions={reactions}
                           align="end"

@@ -23,7 +23,8 @@ https://github.com/user-attachments/assets/98400eca-4bea-44be-8d6d-b6c478e92def
 | **Conversational Workspace**<br>[![Chat](./apps/web/public/preview-chat.png)](#2-rich-conversational-workspace) | **Cloud Isolated Desktop & Browser**<br>[![Cloud Isolated Desktop](./apps/web/public/preview-vm.png)](#6-cloud-isolated-desktop--browser-automation) |
 | **Interactive Artifacts**<br>[![Artifacts](./apps/web/public/preview-artifacts.png)](#4-interactive-artifacts--sandboxes) | **Inline Artifact Previews**<br>[![Inline Artifacts](./apps/web/public/preview-artifacts-inline.png)](#4-interactive-artifacts--sandboxes) |
 | **Durable Schedules & Workflows**<br>[![Schedules](./apps/web/public/preview-schedules.png)](#5-durable-background-workflows-scheduling--web-push) | **200+ SaaS Connections**<br>[![Connections](./apps/web/public/preview-connections.png)](#7-200-saas-integrations-via-composio--mcp) |
-| **Reactions & Celebrations**<br>[![Reactions](./apps/web/public/preview-reactions.png)](#2-rich-conversational-workspace) | **AI Providers & Intelligence**<br>[![Providers](./apps/web/public/preview-providers.png)](#1-dedicated-agents-with-personalities--roles) |
+| **Persistent Agent Memory**<br>[![Chat](./apps/web/public/preview-chat.png)](#3-persistent-agent-memory--knowledge-recall) | **AI Providers & Intelligence**<br>[![Providers](./apps/web/public/preview-providers.png)](#1-dedicated-agents-with-personalities--roles) |
+| **Reactions & Celebrations**<br>[![Reactions](./apps/web/public/preview-reactions.png)](#2-rich-conversational-workspace) | |
 
 Take a visual tour through everything you can do in OpenBots:
 
@@ -52,9 +53,17 @@ Collaborate in a focused, clutter-free chat environment:
 ![Reactions](./apps/web/public/preview-reactions.png)
 
 - **Thread History & Message Splitting**: Long conversational responses are cleanly structured into digestible thoughts with full search and history.
-- **Persistent Long-Term Memory**: Agents remember key user preferences, project details, and past conversations across sessions with built-in memory search, creation, and deletion tools, plus an intuitive **Agent Memory Sheet** UI to inspect and manage memories directly from chat.
 
-### 3. Human-Readable Activity Stream (Not Raw Debug Logs)
+### 3. Persistent Agent Memory & Knowledge Recall
+
+Give each agent a brain that grows with every interaction:
+
+- **Cross-Session Long-Term Recall**: Agents autonomously remember key facts, user preferences, project details, and past solutions across conversations without re-prompting.
+- **Dedicated Memory Tools**: Equipped with `search_memory`, `save_memory`, and `delete_memory` tools scoped strictly to each agent.
+- **Agent Memory Sheet UI**: Manage, search, view timestamps, and delete saved memories at any time via the dedicated Memory sheet accessible right from the agent header in chat.
+- **Autonomous Conversation History Retrieval**: Agents can recall previous discussion context via the `get_chat_history` tool when resuming multi-day tasks.
+
+### 4. Human-Readable Activity Stream (Not Raw Debug Logs)
 
 When autonomous agents think and work, you shouldn't have to decipher walls of raw API JSON:
 

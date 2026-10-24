@@ -36,7 +36,7 @@ export const TOKENS_CSS = `
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
@@ -108,11 +108,11 @@ export const THEME_CSS = `
   --radius-2xl: calc(var(--radius) * 1.8);
 }
 @layer base {
-  *, ::before, ::after { border-color: var(--border); }
+  *, ::before, ::after { border-color: var(--border); scrollbar-width: thin; -ms-overflow-style: none; }
   html { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
   body {
     margin: 0;
-    padding: 16px;
+    padding: 0px;
     background: transparent;
     color: var(--foreground);
     font-size: 14px;

@@ -13,24 +13,24 @@
     "@daytona/sdk": "^0.223.1",
     "@hono/zod-validator": "^0.5.0",
     "@openbots/db": "workspace:*",
-    "@trigger.dev/sdk": "^4.6.0",
-    "ai": "^7.0.0",
-    "better-auth": "^1.7.0",
-    "drizzle-orm": "^0.45.3",
-    "hono": "^4.7.11",
+    "@trigger.dev/sdk": "^4.8.1",
+    "ai": "^7.0.152",
+    "better-auth": "^1.7.12",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.13",
     "jszip": "^3.10.2",
     "mammoth": "^1.13.0",
     "pdf-parse": "1.1.1",
     "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@openbots/typescript-config": "workspace:*",
-    "@types/node": "^20",
+    "@types/node": "^20.19.43",
     "@types/pdf-parse": "^1.1.5",
     "@types/web-push": "^3.6.4",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "exports": {
     ".": "./src/index.ts",

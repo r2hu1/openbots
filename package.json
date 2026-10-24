@@ -4,8 +4,8 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@openbots/typescript-config": "workspace:*",
-    "turbo": "^2.11.5",
-    "typescript": "^5"
+    "turbo": "^2.11.10",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20.9.0"

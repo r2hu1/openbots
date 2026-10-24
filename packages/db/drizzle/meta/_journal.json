@@ -57,6 +57,13 @@
       "when": 1792853799245,
       "tag": "0007_youthful_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792855295495,
+      "tag": "0008_stale_turbo",
+      "breakpoints": true
     }
   ]
 }

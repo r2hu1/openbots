@@ -17,9 +17,11 @@ export const memories = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    agentId: uuid("agent_id").references(() => agents.id, {
-      onDelete: "cascade",
-    }),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id, {
+        onDelete: "cascade",
+      }),
     key: text("key").notNull(),
     content: text("content").notNull(),
     category: text("category").notNull().default("general"),
@@ -37,7 +39,7 @@ export const memories = pgTable(
     index("memories_agent_id_idx").on(table.agentId),
     index("memories_key_idx").on(table.key),
     index("memories_category_idx").on(table.category),
-    index("memories_user_key_idx").on(table.userId, table.key),
+    index("memories_agent_key_idx").on(table.agentId, table.key),
   ],
 );
 

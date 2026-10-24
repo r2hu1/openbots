@@ -6,7 +6,6 @@ import {
   Plug2 as IconPlug,
   Settings as IconSettings,
   Shield as IconShield,
-  Sparkle as IconSparkle,
   User as IconUser,
 } from "reicon-react";
 

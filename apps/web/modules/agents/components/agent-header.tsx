@@ -5,7 +5,7 @@ import { ButtonGroup } from "@openbots/ui/components/button-group"
 import { SidebarTrigger } from "@openbots/ui/components/sidebar"
 import { useIsMobile } from "@openbots/ui/hooks/use-mobile"
 import * as React from "react"
-import { Calendar2Newicons, Display, History2 } from "reicon-react"
+import { Calendar2Newicons, Display, History2, Sparkle } from "reicon-react"
 import { cn } from "@/lib/utils"
 import type { Agent } from "../types"
 import { AgentHeaderMenu } from "./agent-header-menu"
@@ -16,6 +16,7 @@ interface AgentHeaderProps {
   onOpenHistory: () => void
   onOpenConnections?: () => void
   onOpenSchedules?: () => void
+  onOpenMemory?: () => void
   onAgentRenamed?: (updatedAgent: Agent) => void
   onAgentDeleted?: (deletedId: string) => void
   isBrowserActive?: boolean
@@ -30,6 +31,7 @@ export function AgentHeader({
   onOpenHistory,
   onOpenConnections,
   onOpenSchedules,
+  onOpenMemory,
   onAgentRenamed,
   onAgentDeleted,
   isBrowserActive,
@@ -78,6 +80,19 @@ export function AgentHeader({
               >
                 <Display className="size-3.5" />
                 <span className="hidden sm:inline">Desktop</span>
+              </Button>
+            )}
+
+            {onOpenMemory && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onOpenMemory}
+                className="cursor-pointer gap-1.5 bg-secondary text-xs font-medium text-foreground backdrop-blur-sm"
+                title="Agent Memory"
+              >
+                <Sparkle className="size-3.5" />
+                <span className="hidden md:inline">Memory</span>
               </Button>
             )}
 

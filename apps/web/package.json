@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@composio/core": "^0.22.0",
+    "@composio/core": "^0.27.0",
     "@openbots/api-client": "workspace:*",
     "@openbots/ui": "workspace:*",
     "@tabler/icons-react": "^3.49.0",
@@ -30,11 +30,11 @@
     "mammoth": "^1.13.0",
     "marked": "^18.1.1",
     "mermaid": "^12.2.0",
-    "next": "16.3.6",
+    "next": "16.4.3",
     "next-themes": "^0.4.6",
-    "pdfjs-dist": "4.10.38",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "pdfjs-dist": "6.4.299",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "react-markdown": "^10.1.0",
     "reicon-react": "^1.2.6",
     "remark-gfm": "^4.0.1",
@@ -42,10 +42,10 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^20.19.43",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@openbots/typescript-config": "workspace:*",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   }
 }

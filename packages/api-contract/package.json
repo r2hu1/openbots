@@ -9,28 +9,28 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@composio/core": "^0.22.0",
-    "@daytona/sdk": "^0.223.1",
-    "@hono/zod-validator": "^0.5.0",
+    "@composio/core": "^0.27.0",
+    "@daytona/sdk": "^0.226.1",
+    "@hono/zod-validator": "^0.9.1",
     "@openbots/db": "workspace:*",
     "@trigger.dev/sdk": "^4.8.1",
-    "ai": "^7.0.152",
+    "ai": "^7.0.153",
     "better-auth": "^1.7.12",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",
     "jszip": "^3.10.2",
     "mammoth": "^1.13.0",
-    "pdf-parse": "1.1.1",
+    "pdf-parse": "2.4.5",
     "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@openbots/typescript-config": "workspace:*",
-    "@types/node": "^20.19.43",
+    "@types/node": "^26.6.5",
     "@types/pdf-parse": "^1.1.5",
     "@types/web-push": "^3.6.4",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts",

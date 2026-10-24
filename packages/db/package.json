@@ -21,9 +21,9 @@
   },
   "devDependencies": {
     "@openbots/typescript-config": "workspace:*",
-    "@types/node": "^20.19.43",
+    "@types/node": "^26.6.5",
     "drizzle-kit": "^0.31.11",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts",

@@ -2,6 +2,7 @@ export { HtmlSandbox, type HtmlSandboxProps } from "./html-sandbox"
 export { MermaidSandbox } from "./mermaid-sandbox"
 export {
   MERMAID_THEME_VARIABLES,
+  parseSvgDimensions,
   parseViewBoxRatio,
   type ThemeName,
   useIframeTheme,

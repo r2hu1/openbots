@@ -44,6 +44,18 @@ export function SvgSandbox({
     [activeSvg]
   )
 
+  const inlineStyle: React.CSSProperties = fitContent
+    ? {
+        width: "100%",
+        height: "auto",
+        aspectRatio: aspectRatio ?? undefined,
+        minHeight: isStreaming ? "120px" : "fit-content",
+        display: "block",
+      }
+    : aspectRatio
+      ? { aspectRatio }
+      : { height: "100%", minHeight: 240 }
+
   return (
     <div
       className={
@@ -58,19 +70,10 @@ export function SvgSandbox({
         title="SVG artifact"
         className={
           fitContent
-            ? "block w-full max-w-full border-0 bg-transparent"
+            ? "block w-full max-w-full border-0 bg-transparent transition-all"
             : "max-h-full w-full border-0 bg-transparent"
         }
-        style={
-          aspectRatio
-            ? {
-                aspectRatio,
-              }
-            : {
-                height: "100%",
-                minHeight: 240,
-              }
-        }
+        style={inlineStyle}
       />
     </div>
   )

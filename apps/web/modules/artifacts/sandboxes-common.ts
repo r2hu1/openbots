@@ -41,16 +41,29 @@ export const MERMAID_THEME_VARIABLES: Record<ThemeName, Record<string, string>> 
 }
 
 export function parseViewBoxRatio(svg: string): string | null {
-  const match = svg.match(
-    /viewBox\s*=\s*["']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*["']/i
-  )
+  const dims = parseSvgDimensions(svg)
+  return dims ? `${dims.width} / ${dims.height}` : null
+}
 
-  if (!match) {
-    return null
+export function parseSvgDimensions(
+  svg: string
+): { width: number; height: number } | null {
+  const match = svg.match(
+    /viewBox\s*=\s*["']\s*([-\d.]+[\s,]+[-\d.]+[\s,]+)?([\d.]+)[\s,]+([\d.]+)\s*["']/i
+  )
+  if (match) {
+    const width = Number(match[2])
+    const height = Number(match[3])
+    if (width > 0 && height > 0) return { width, height }
   }
 
-  const width = Number(match[1])
-  const height = Number(match[2])
+  const wMatch = svg.match(/\bwidth\s*=\s*["']([\d.]+)(px)?["']/i)
+  const hMatch = svg.match(/\bheight\s*=\s*["']([\d.]+)(px)?["']/i)
+  if (wMatch && hMatch) {
+    const width = Number(wMatch[1])
+    const height = Number(hMatch[1])
+    if (width > 0 && height > 0) return { width, height }
+  }
 
-  return width > 0 && height > 0 ? `${width} / ${height}` : null
+  return null
 }

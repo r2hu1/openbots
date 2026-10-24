@@ -59,10 +59,10 @@ export function svgDocument(
   fitContent: boolean = false
 ) {
   const bodyStyles = fitContent
-    ? "display:block;margin:0;padding:0;overflow:visible;background:transparent;"
+    ? "display:flex;align-items:flex-start;justify-content:flex-start;margin:0;padding:0;overflow:visible;background:transparent;width:100%;"
     : "display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;background:transparent;"
   const svgStyles = fitContent
-    ? "display:block;width:100%;max-width:100%;height:auto;"
+    ? "display:block;width:100%;max-width:100%;height:auto;min-width:0;"
     : "max-width:100%;max-height:100%;height:auto;"
 
   return `<!DOCTYPE html><html class="${theme === "dark" ? "dark" : ""}"><head><meta charset="utf-8"><style>${TOKENS_CSS}${PLAIN_BASE_CSS}html,body{height:auto;}body{${bodyStyles}}svg{${svgStyles}}</style></head><body>${svg}</body></html>`

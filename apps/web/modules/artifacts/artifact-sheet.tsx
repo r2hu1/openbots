@@ -180,7 +180,7 @@ export function ArtifactSheet({
         showCloseButton={false}
         side="right"
         className={cn(
-          "gap-0 overflow-hidden p-0!",
+          "gap-0 p-0!",
           maximized
             ? "ring-0 data-[side=right]:sm:left-3 data-[side=right]:sm:w-auto! data-[side=right]:sm:max-w-none!"
             : "data-[variant=sidebar]:max-w-none!"

@@ -127,17 +127,17 @@ export function UserMenu({
                 <DropdownMenuItem onClick={() => setTheme("light")}>
                   <Sun2 />
                   Light
-                  {theme === "light" && <Check className="ml-auto size-4" />}
+                  {theme === "light" && <Check className="ml-auto size-3.5" />}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("dark")}>
                   <Moon3 />
                   Dark
-                  {theme === "dark" && <Check className="ml-auto size-4" />}
+                  {theme === "dark" && <Check className="ml-auto size-3.5" />}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("system")}>
                   <Devices />
                   System
-                  {theme === "system" && <Check className="ml-auto size-4" />}
+                  {theme === "system" && <Check className="ml-auto size-3.5" />}
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>

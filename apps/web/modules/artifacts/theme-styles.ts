@@ -10,7 +10,7 @@ export const TOKENS_CSS = `
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --background: rgba(252 252 251);
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: oklch(0.98 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);

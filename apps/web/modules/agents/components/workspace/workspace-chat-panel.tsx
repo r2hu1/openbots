@@ -21,6 +21,7 @@ interface WorkspaceChatPanelProps {
     onOpenHistory: () => void
     onOpenConnections?: () => void
     onOpenSchedules?: () => void
+    onOpenMemory?: () => void
   }
   hasLiveBrowser: boolean
   toggleBrowser: () => void
@@ -89,6 +90,7 @@ export function WorkspaceChatPanel({
           onOpenHistory={headerProps.onOpenHistory}
           onOpenConnections={headerProps.onOpenConnections}
           onOpenSchedules={headerProps.onOpenSchedules}
+          onOpenMemory={headerProps.onOpenMemory}
           isBrowserActive={hasLiveBrowser}
           isBrowserOpen={isLivePreviewOpen}
           onToggleBrowser={toggleBrowser}

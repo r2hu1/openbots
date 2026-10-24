@@ -57,6 +57,7 @@ export function AgentHeader({
             selectedAgent={selectedAgent}
             onOpenConfigure={onOpenConfigure}
             onOpenConnections={onOpenConnections}
+            onOpenMemory={onOpenMemory}
             onAgentRenamed={onAgentRenamed}
             onAgentDeleted={onAgentDeleted}
           />

@@ -28,6 +28,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   const [historySheetOpen, setHistorySheetOpen] = React.useState(false)
   const [connectionsSheetOpen, setConnectionsSheetOpen] = React.useState(false)
   const [schedulesSheetOpen, setSchedulesSheetOpen] = React.useState(false)
+  const [memorySheetOpen, setMemorySheetOpen] = React.useState(false)
   const [inspectedRunId, setInspectedRunId] = React.useState<string | null>(null)
   const [selectedArtifact, setSelectedArtifact] = React.useState<ParsedArtifact | null>(null)
 
@@ -63,6 +64,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
   }, [])
   const openConnections = React.useCallback(() => setConnectionsSheetOpen(true), [])
   const openSchedules = React.useCallback(() => setSchedulesSheetOpen(true), [])
+  const openMemory = React.useCallback(() => setMemorySheetOpen(true), [])
   const openCreate = React.useCallback(() => setCreateDialogOpen(true), [])
   useHotkey("mod+shift+a", openCreate)
 
@@ -98,8 +100,9 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
       onOpenHistory: openHistory,
       onOpenConnections: openConnections,
       onOpenSchedules: openSchedules,
+      onOpenMemory: openMemory,
     }),
-    [selectedAgent, openConfigure, openHistory, openConnections, openSchedules]
+    [selectedAgent, openConfigure, openHistory, openConnections, openSchedules, openMemory]
   )
 
   return (
@@ -116,6 +119,7 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
             onOpenHistory={openHistory}
             onOpenConnections={openConnections}
             onOpenSchedules={openSchedules}
+            onOpenMemory={openMemory}
             isBrowserActive={false}
             isBrowserOpen={false}
             onToggleBrowser={() => {}}

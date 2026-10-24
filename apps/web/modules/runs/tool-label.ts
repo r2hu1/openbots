@@ -3,6 +3,7 @@ import { parseActionTool } from "./labels/action-labels"
 import { resolveBuiltinTool } from "./labels/builtin-labels"
 import { resolveComposioMetaTool } from "./labels/composio-labels"
 import { resolveDaytonaTool } from "./labels/daytona-labels"
+import { resolveMemoryAndChatLabels } from "./labels/memory-labels"
 import { humanizeIdentifier } from "./labels/label-utils"
 
 export {
@@ -64,6 +65,11 @@ export function formatToolStepLabel(
   }
 
   // 2. Builtin utilities, web search, scheduling, etc.
+  const memoryResolved = resolveMemoryAndChatLabels(normalized, status, inputObj)
+  if (memoryResolved) {
+    return memoryResolved
+  }
+
   const builtinResolved = resolveBuiltinTool(normalized, status, inputObj)
   if (builtinResolved) {
     return builtinResolved

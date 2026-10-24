@@ -69,7 +69,7 @@ export function UserMenu({
     <SidebarMenu className="min-w-0 flex-1 gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
       <SidebarMenuItem>
         <SidebarMenuButton onClick={() => setSchedulesOpen(true)}>
-          <Calendar2Newicons />
+          <Calendar2Newicons className="opacity-60" />
           Schedules
         </SidebarMenuButton>
       </SidebarMenuItem>

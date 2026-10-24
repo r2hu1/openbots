@@ -10,12 +10,10 @@ import {
   Message,
   MessageAvatar,
   MessageContent,
-  MessageFooter,
-  MessageGroup,
 } from "@openbots/ui/components/message"
 import { Spinner } from "@openbots/ui/components/spinner"
 import { Blobatar } from "@openbots/ui/components/ui/blobatar"
-import { IconAlertCircle, IconCheck, IconPlayerStop } from "@tabler/icons-react"
+import { IconAlertCircle, IconPlayerStop } from "@tabler/icons-react"
 import { formatToolStepLabel } from "@/modules/runs/tool-label"
 import type { RunRecord, StepItem } from "@/modules/runs/types"
 
@@ -55,6 +53,11 @@ export function ConversationLiveStatus({
 
     const isLatestToolRunning = latestToolStep?.status === "running"
 
+    // If text is already actively streaming, only render if there is an active running tool
+    if (hasStreamingContent && !isLatestToolRunning) {
+      return null
+    }
+
     return (
       <Message align="start" className="gap-2">
         {!hasStreamingContent && (
@@ -72,19 +75,9 @@ export function ConversationLiveStatus({
               {latestToolLabel && isLatestToolRunning ? (
                 <Marker className="text-xs text-muted-foreground">
                   <MarkerIcon className="flex items-center justify-center">
-                    {isLatestToolRunning ? (
-                      <Spinner className="size-3" />
-                    ) : (
-                      <IconCheck className="size-3" />
-                    )}
+                    <Spinner className="size-3" />
                   </MarkerIcon>
-                  <MarkerContent
-                    className={
-                      isLatestToolRunning
-                        ? "shimmer font-medium"
-                        : "truncate text-muted-foreground"
-                    }
-                  >
+                  <MarkerContent className="shimmer font-medium">
                     {latestToolLabel}
                   </MarkerContent>
                 </Marker>
@@ -120,6 +113,15 @@ export function ConversationLiveStatus({
             <MarkerContent className="font-mono text-xs leading-relaxed">
               {activeRun.error}
             </MarkerContent>
+          </Marker>
+        )}
+
+        {activeRun.status === "cancelled" && (
+          <Marker className="text-xs text-muted-foreground">
+            <MarkerIcon>
+              <IconPlayerStop className="size-3.5" />
+            </MarkerIcon>
+            <MarkerContent>Run was stopped.</MarkerContent>
           </Marker>
         )}
       </div>

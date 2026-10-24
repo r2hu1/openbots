@@ -20,9 +20,9 @@ https://github.com/user-attachments/assets/98400eca-4bea-44be-8d6d-b6c478e92def
 
 | | |
 |:---:|:---:|
-| **Conversational Workspace**<br>[![Chat](./apps/web/public/preview-chat.png)](#2-rich-conversational-workspace) | **Cloud Isolated Desktop & Browser**<br>[![Cloud Isolated Desktop](./apps/web/public/preview-vm.png)](#6-cloud-isolated-desktop--browser-automation) |
-| **Interactive Artifacts**<br>[![Artifacts](./apps/web/public/preview-artifacts.png)](#4-interactive-artifacts--sandboxes) | **Inline Artifact Previews**<br>[![Inline Artifacts](./apps/web/public/preview-artifacts-inline.png)](#4-interactive-artifacts--sandboxes) |
-| **Durable Schedules & Workflows**<br>[![Schedules](./apps/web/public/preview-schedules.png)](#5-durable-background-workflows-scheduling--web-push) | **200+ SaaS Connections**<br>[![Connections](./apps/web/public/preview-connections.png)](#7-200-saas-integrations-via-composio--mcp) |
+| **Conversational Workspace**<br>[![Chat](./apps/web/public/preview-chat.png)](#2-rich-conversational-workspace) | **Cloud Isolated Desktop & Browser**<br>[![Cloud Isolated Desktop](./apps/web/public/preview-vm.png)](#7-cloud-isolated-desktop--browser-automation) |
+| **Interactive Artifacts**<br>[![Artifacts](./apps/web/public/preview-artifacts.png)](#5-interactive-artifacts-documents--sandboxes) | **Inline Artifact Previews**<br>[![Inline Artifacts](./apps/web/public/preview-artifacts-inline.png)](#5-interactive-artifacts-documents--sandboxes) |
+| **Durable Schedules & Workflows**<br>[![Schedules](./apps/web/public/preview-schedules.png)](#6-durable-background-workflows-scheduling--web-push) | **200+ SaaS Connections**<br>[![Connections](./apps/web/public/preview-connections.png)](#8-200-saas-integrations-via-composio--mcp) |
 | **Persistent Agent Memory**<br>[![Chat](./apps/web/public/preview-chat.png)](#3-persistent-agent-memory--knowledge-recall) | **AI Providers & Intelligence**<br>[![Providers](./apps/web/public/preview-providers.png)](#1-dedicated-agents-with-personalities--roles) |
 | **Reactions & Celebrations**<br>[![Reactions](./apps/web/public/preview-reactions.png)](#2-rich-conversational-workspace) | |
 
@@ -69,11 +69,12 @@ When autonomous agents think and work, you shouldn't have to decipher walls of r
 
 - Instead of showing messy internal tool calls like `web_search -> http_request -> json_parse`, OpenBots presents high-level activity:
   - **"Researching"** _(4 sources analyzed)_
+  - **"Recalling memory"** _(retrieved user preferences)_
   - **"Created the report"** _(analysis.md)_
   - **"Sent the email"** _(to the requested recipient)_
 - Need to look under the hood? Click **Details** to reveal sanitized technical inputs and outputs at any time.
 
-### 4. Interactive Artifacts, Documents & Sandboxes
+### 5. Interactive Artifacts, Documents & Sandboxes
 
 ![Artifacts-Inline](./apps/web/public/preview-artifacts-inline.png)
 
@@ -91,7 +92,7 @@ When your agent creates code, designs, diagrams, or downloadable reports, it doe
   - **Spreadsheets (XLSX, CSV)**: Interactive multi-sheet tabular data preview with cell formatting (`xlsx`).
 - **One-Click Export**: Switch seamlessly between preview and raw code, or download as styled PDF, Word, or native formats with zero extra configuration.
 
-### 5. Durable Background Workflows, Scheduling & Web Push
+### 6. Durable Background Workflows, Scheduling & Web Push
 
 ![Schedules](./apps/web/public/preview-schedules.png)
 
@@ -103,7 +104,7 @@ Agents don't only react when you prompt them — they can run autonomously on th
 - **Native Web Push Notifications**: Stay updated even when away from your browser with desktop & mobile Web Push notifications when scheduled tasks finish.
 - **Survives Restarts**: Powered by Trigger.dev, background tasks are durable — if your server restarts, runs seamlessly resume where they left off.
 
-### 6. Cloud Isolated Desktop & Browser Automation
+### 7. Cloud Isolated Desktop & Browser Automation
 
 ![Cloud Isolated Desktop](./apps/web/public/preview-vm.png)
 
@@ -114,7 +115,7 @@ Empower your agents with a dedicated, isolated cloud desktop sandbox powered by 
 - **Dedicated Sandbox per Agent**: Each bot/agent is provisioned with its own isolated Daytona cloud sandbox with persistent state, dedicated compute, and automatic lifecycle management (created on agent creation, deleted on agent deletion).
 - **Full Desktop Computer Use**: Programmatic mouse, keyboard, window, and screenshot controls powered by Daytona's Computer Use API.
 
-### 7. 200+ SaaS Integrations via Composio & MCP
+### 8. 200+ SaaS Integrations via Composio & MCP
 
 ![Connections](./apps/web/public/preview-connections.png)
 

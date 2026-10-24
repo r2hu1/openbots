@@ -102,15 +102,6 @@ export function ConversationLiveStatus({
             </MarkerContent>
           </Marker>
         )}
-
-        {activeRun.status === "cancelled" && (
-          <Marker className="text-xs text-muted-foreground">
-            <MarkerIcon>
-              <IconPlayerStop className="size-3.5" />
-            </MarkerIcon>
-            <MarkerContent>Run was stopped.</MarkerContent>
-          </Marker>
-        )}
       </div>
     )
   }

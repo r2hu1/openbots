@@ -21,6 +21,7 @@ import { ConversationTimelineError } from "./conversation-timeline-error"
 import { ConversationTimelineLoadOlder } from "./conversation-timeline-load-older"
 import { StreamingAssistantMessage } from "./streaming-assistant-message"
 import { ChevronDown } from "reicon-react"
+import { cn } from "@/lib/utils"
 
 interface ConversationTimelineProps {
   messages: MessageItem[]
@@ -227,6 +228,7 @@ export function ConversationTimeline({
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton
+          className={cn(activeRun?.status !== "running" && "bg-card")}
           variant={activeRun?.status === "running" ? "default" : "outline"}
         >
           {activeRun?.status === "running" ? (

@@ -101,6 +101,7 @@ export function ArtifactPreview({
         <SvgSandbox
           svg={artifact.content}
           className={mediaClassName}
+          fitContent={fitContent}
           isStreaming={artifact.isStreaming}
         />
       )

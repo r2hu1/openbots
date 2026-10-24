@@ -7,10 +7,12 @@ import { svgDocument } from "./theme"
 export function SvgSandbox({
   svg,
   className,
+  fitContent = false,
   isStreaming = false,
 }: {
   svg: string
   className?: string
+  fitContent?: boolean
   isStreaming?: boolean
 }) {
   const theme = useIframeTheme()
@@ -33,8 +35,8 @@ export function SvgSandbox({
   const activeSvg = isStreaming ? debouncedSvg : svg
 
   const srcDoc = React.useMemo(
-    () => svgDocument(activeSvg, theme),
-    [activeSvg, theme]
+    () => svgDocument(activeSvg, theme, fitContent),
+    [activeSvg, theme, fitContent]
   )
 
   const aspectRatio = React.useMemo(
@@ -54,7 +56,11 @@ export function SvgSandbox({
         sandbox=""
         scrolling="no"
         title="SVG artifact"
-        className="max-h-full w-full border-0 bg-transparent"
+        className={
+          fitContent
+            ? "block w-full max-w-full border-0 bg-transparent"
+            : "max-h-full w-full border-0 bg-transparent"
+        }
         style={
           aspectRatio
             ? {

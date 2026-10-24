@@ -33,10 +33,6 @@ export function ConversationLiveStatus({
   hasStreamingContent = false,
 }: ConversationLiveStatusProps) {
   if (isActiveRunOngoing) {
-    if (activeRunSteps.length === 0 && hasStreamingContent) {
-      return null
-    }
-
     // Find the latest active or completed tool step to display minimally
     const latestToolStep = [...activeRunSteps]
       .reverse()
@@ -53,22 +49,15 @@ export function ConversationLiveStatus({
 
     const isLatestToolRunning = latestToolStep?.status === "running"
 
-    // If text is already actively streaming, only render if there is an active running tool
-    if (hasStreamingContent && !isLatestToolRunning) {
-      return null
-    }
-
     return (
       <Message align="start" className="gap-2">
-        {!hasStreamingContent && (
-          <MessageAvatar className="-mr-0.5">
-            <Blobatar
-              name={agentName}
-              className="size-8"
-              blobatar={{ animate: "always" }}
-            />
-          </MessageAvatar>
-        )}
+        <MessageAvatar className="-mr-0.5">
+          <Blobatar
+            name={agentName}
+            className="size-8"
+            blobatar={{ animate: "always" }}
+          />
+        </MessageAvatar>
         <MessageContent className="gap-2">
           <Bubble variant="secondary" align="start">
             <BubbleContent>
@@ -82,15 +71,13 @@ export function ConversationLiveStatus({
                   </MarkerContent>
                 </Marker>
               ) : (
-                !hasStreamingContent && (
-                  <Marker className="text-xs text-muted-foreground">
-                    <MarkerContent className="flex items-center gap-2 py-0">
-                      <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-75" />
-                      <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-150" />
-                      <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-200" />
-                    </MarkerContent>
-                  </Marker>
-                )
+                <Marker className="text-xs text-muted-foreground">
+                  <MarkerContent className="flex items-center gap-2 py-0">
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-75" />
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-150" />
+                    <div className="animate-bounce-pulse size-1.5 rounded-full bg-foreground/30 delay-200" />
+                  </MarkerContent>
+                </Marker>
               )}
             </BubbleContent>
           </Bubble>

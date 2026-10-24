@@ -41,6 +41,10 @@ export const StreamingAssistantMessage = React.memo(
       [msgId, conversationId, streamingText]
     )
 
+    if (!streamingText || !streamingText.trim()) {
+      return null
+    }
+
     return (
       <MessageScrollerItem
         key={msgId}

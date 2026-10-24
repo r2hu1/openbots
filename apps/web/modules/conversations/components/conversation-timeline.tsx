@@ -149,11 +149,26 @@ export function ConversationTimeline({
                 </MessageScrollerItem>
               ))}
 
-            {/* Live tool execution steps and thinking indicator */}
+            {/* Assistant message: streaming text if available */}
             {!isLoading &&
             isActiveRunOngoing &&
             !isCurrentRunAlreadyRendered &&
-            !streamingText ? (
+            streamingText &&
+            streamingText.trim() ? (
+              <StreamingAssistantMessage
+                activeRunId={activeRun?.id}
+                conversationId={activeRun?.conversationId}
+                streamingText={streamingText}
+                agentName={agentName}
+                onOpenArtifact={onOpenArtifact}
+              />
+            ) : null}
+
+            {/* Live tool execution steps and thinking indicator when no text streamed yet */}
+            {!isLoading &&
+            isActiveRunOngoing &&
+            !isCurrentRunAlreadyRendered &&
+            (!streamingText || !streamingText.trim()) ? (
               <MessageScrollerItem
                 key={`live-status-${activeRun?.id || "current"}`}
                 id={`live-status-${activeRun?.id || "current"}`}
@@ -168,11 +183,11 @@ export function ConversationTimeline({
               </MessageScrollerItem>
             ) : null}
 
-            {/* Live tool execution steps when streaming text is already active */}
+            {/* Live tool execution steps and thinking indicator after text is already streamed */}
             {!isLoading &&
             isActiveRunOngoing &&
             streamingText &&
-            activeRunSteps.length > 0 ? (
+            streamingText.trim() ? (
               <MessageScrollerItem key="live-steps">
                 <ConversationLiveStatus
                   agentName={agentName}
@@ -182,20 +197,6 @@ export function ConversationTimeline({
                   hasStreamingContent={true}
                 />
               </MessageScrollerItem>
-            ) : null}
-
-            {/* Assistant message: streaming text if available */}
-            {!isLoading &&
-            isActiveRunOngoing &&
-            !isCurrentRunAlreadyRendered &&
-            streamingText ? (
-              <StreamingAssistantMessage
-                activeRunId={activeRun?.id}
-                conversationId={activeRun?.conversationId}
-                streamingText={streamingText}
-                agentName={agentName}
-                onOpenArtifact={onOpenArtifact}
-              />
             ) : null}
 
             {/* Terminal failure or cancellation marker */}

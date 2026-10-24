@@ -2,7 +2,7 @@ import type { Token } from "./sheet-common"
 
 export function SheetCodeEditor({ lines }: { lines: Token[][] }) {
   return (
-    <div className="min-h-0 flex-1 overflow-auto bg-sidebar py-4 font-mono text-[13px] leading-6 [scrollbar-width:thin]">
+    <div className="no-scrollbar min-h-0 flex-1 overflow-auto py-4 font-mono text-[13px] leading-6 [scrollbar-width:0]">
       <table className="w-full border-collapse">
         <tbody>
           {lines.map((tokens, i) => (

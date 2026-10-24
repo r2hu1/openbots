@@ -21,7 +21,7 @@ export function SheetPreview({
   return (
     <div
       className={cn(
-        "min-h-0 flex-1 overflow-auto",
+        "min-h-0 flex-1 overflow-auto [scrollbar-width:0]",
         isFile ? "p-0" : "p-4 sm:p-6",
         view !== "preview" && "hidden"
       )}

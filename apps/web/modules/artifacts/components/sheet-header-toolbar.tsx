@@ -74,7 +74,7 @@ export function SheetHeaderToolbar({
         >
           <TabsList className="h-fit! px-1!">
             <TabsTrigger
-              className="size-7"
+              className="size-6"
               value="preview"
               aria-label="Preview"
               title="Preview"
@@ -82,7 +82,7 @@ export function SheetHeaderToolbar({
               <IconEye className="size-3.5" />
             </TabsTrigger>
             <TabsTrigger
-              className="size-7"
+              className="size-6"
               value="code"
               aria-label="Code"
               title="Code"

@@ -16,7 +16,6 @@ export type SettingsTab =
   | "connections"
   | "account"
   | "keys"
-  | "memory"
   | "security"
   | "sessions";
 
@@ -30,7 +29,6 @@ export const NAV_ITEMS: Array<{
   { id: "connections", label: "Connections", icon: IconPlug },
   { id: "account", label: "Account", icon: IconUser },
   { id: "keys", label: "API keys", icon: IconKey },
-  { id: "memory", label: "Memory", icon: IconSparkle },
   { id: "security", label: "Security", icon: IconShield },
   { id: "sessions", label: "Sessions", icon: IconDevices },
 ];

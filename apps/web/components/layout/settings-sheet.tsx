@@ -14,7 +14,6 @@ import { ApiKeysTab } from "./settings/api-keys-tab";
 import { AppearanceTab } from "./settings/appearance-tab";
 import { ConnectionsTab } from "./settings/connections-tab";
 import { GeneralTab } from "./settings/general-tab";
-import { MemoryTab } from "./settings/memory-tab";
 import { SecurityTab } from "./settings/security-tab";
 import { SessionsTab } from "./settings/sessions-tab";
 import { SCROLL_CLASS } from "./settings/settings-shared";
@@ -94,10 +93,6 @@ export function SettingsSheet({
 
             <TabsContent value="keys" className={CONTENT_CLASS}>
               <ApiKeysTab />
-            </TabsContent>
-
-            <TabsContent value="memory" className={CONTENT_CLASS}>
-              <MemoryTab />
             </TabsContent>
 
             <TabsContent value="security" className={CONTENT_CLASS}>

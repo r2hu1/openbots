@@ -1,9 +1,6 @@
 "use client"
 
-import {
-  Bubble,
-  BubbleContent,
-} from "@openbots/ui/components/bubble"
+import { Bubble, BubbleContent } from "@openbots/ui/components/bubble"
 import * as React from "react"
 import { Markdown } from "@/components/shared/markdown"
 import { ArtifactCard } from "@/modules/artifacts/artifact-card"
@@ -35,16 +32,52 @@ export function MessagePartsView({
   onOpenArtifact,
   onReact,
 }: MessagePartsViewProps) {
+  // Reorder segments so all text content appears first, and artifacts render at the end
+  const orderedParts = React.useMemo(() => {
+    return messageParts.map((part) => {
+      const textSegments = part.segments.filter((s) => s.type === "text" && s.text)
+      const artifactSegments = part.segments.filter(
+        (s) => s.type === "artifact" && s.artifact
+      )
+      return {
+        ...part,
+        segments: [...textSegments, ...artifactSegments],
+      }
+    })
+  }, [messageParts])
+
   return (
     <>
-      {messageParts.map((part, partIndex) => {
-        const isLastPart = partIndex === messageParts.length - 1
+      {orderedParts.map((part, partIndex) => {
+        const isLastPart = partIndex === orderedParts.length - 1
         return (
           <React.Fragment key={part.partId}>
             {part.segments.map((seg, segIndex) => {
               const isVeryLastSegment =
                 isLastPart && segIndex === part.segments.length - 1
-
+              if (seg.text) {
+                return (
+                  <Bubble
+                    key={seg.id}
+                    variant="secondary"
+                    align="start"
+                    className="relative"
+                  >
+                    <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
+                      <Markdown>{seg.text}</Markdown>
+                    </BubbleContent>
+                    {isVeryLastSegment && (
+                      <MessageReactions
+                        reactions={reactions}
+                        align="start"
+                        isUser={false}
+                        agentName={agentName}
+                        onReact={onReact}
+                      />
+                    )}
+                  </Bubble>
+                )
+              }
               if (seg.type === "artifact" && seg.artifact) {
                 const artifact = seg.artifact
                 const typeOfA = artifact.type
@@ -73,29 +106,6 @@ export function MessagePartsView({
                       />
                     )}
                   </div>
-                )
-              }
-              if (seg.text) {
-                return (
-                  <Bubble
-                    key={seg.id}
-                    variant="secondary"
-                    align="start"
-                    className="relative"
-                  >
-                    <BubbleContent className="typeset typeset-chat text-sm text-sidebar-foreground">
-                      <Markdown>{seg.text}</Markdown>
-                    </BubbleContent>
-                    {isVeryLastSegment && (
-                      <MessageReactions
-                        reactions={reactions}
-                        align="start"
-                        isUser={false}
-                        agentName={agentName}
-                        onReact={onReact}
-                      />
-                    )}
-                  </Bubble>
                 )
               }
               return null

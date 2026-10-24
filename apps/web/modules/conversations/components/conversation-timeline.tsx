@@ -20,6 +20,7 @@ import { ConversationTimelineEmpty } from "./conversation-timeline-empty"
 import { ConversationTimelineError } from "./conversation-timeline-error"
 import { ConversationTimelineLoadOlder } from "./conversation-timeline-load-older"
 import { StreamingAssistantMessage } from "./streaming-assistant-message"
+import { ChevronDown } from "reicon-react"
 
 interface ConversationTimelineProps {
   messages: MessageItem[]
@@ -225,7 +226,19 @@ export function ConversationTimeline({
             )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton variant="outline" />
+        <MessageScrollerButton
+          variant={activeRun?.status === "running" ? "default" : "outline"}
+        >
+          {activeRun?.status === "running" ? (
+            <div className="flex items-center gap-0.5 py-0">
+              <div className="animate-bounce-pulse size-1 rounded-full bg-primary-foreground delay-75" />
+              <div className="animate-bounce-pulse size-1 rounded-full bg-primary-foreground delay-150" />
+              <div className="animate-bounce-pulse size-1 rounded-full bg-primary-foreground delay-200" />
+            </div>
+          ) : (
+            <ChevronDown />
+          )}
+        </MessageScrollerButton>
       </MessageScroller>
     </MessageScrollerProvider>
   )

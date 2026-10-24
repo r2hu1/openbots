@@ -163,14 +163,15 @@ export function WorkspaceSidebar({
                           <span
                             className={cn(
                               "relative flex shrink-0 group-data-[collapsible=icon]:mx-auto",
-                              isRunning && "generating-border"
+                              !isActive && isRunning && "generating-border"
                             )}
                           >
                             <Blobatar
                               name={agent.name || agent.id}
                               className="size-7! group-data-[collapsible=icon]:size-6"
                               blobatar={{
-                                animate: isRunning ? "always" : "hover",
+                                animate:
+                                  !isActive && isRunning ? "always" : "hover",
                               }}
                             />
                           </span>
@@ -193,7 +194,7 @@ export function WorkspaceSidebar({
                             </span>
                           </span>
                         </SidebarMenuButton>
-                        {isRunning && (
+                        {!isActive && isRunning && (
                           <SidebarMenuAction>
                             <span className="relative flex gap-px">
                               <span className="animate-bounce-pulse size-1 rounded-full bg-foreground/40 [animation-delay:-0.3s]" />

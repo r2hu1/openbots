@@ -30,9 +30,13 @@ export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
       {isStreaming && (
         <div className="mb-2 flex items-center justify-between rounded-md border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <ArtifactIcon type={artifact.type} className="size-3.5 text-primary" />
+            <ArtifactIcon
+              type={artifact.type}
+              className="size-3.5 text-primary"
+            />
             <span className="font-medium text-foreground">
-              {artifact.title || `Generating ${artifact.type.toUpperCase()} artifact...`}
+              {artifact.title ||
+                `Generating ${artifact.type.toUpperCase()} artifact...`}
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px]">
@@ -59,34 +63,6 @@ export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
             <Spinner className="size-4 text-primary" />
             <span>Preparing visual artifact...</span>
           </div>
-        </div>
-      )}
-
-      {!isStreaming && (
-        <div
-          className={cn(
-            "absolute top-1 right-1 z-20",
-            "flex items-center gap-0.5",
-            "rounded-xl bg-background p-0.5",
-            "border backdrop-blur-sm",
-            "opacity-0 transition-opacity",
-            "group-hover/artifact:opacity-100",
-            "group-focus-within/artifact:opacity-100",
-            "[@media(hover:none)]:opacity-100"
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={copy}
-            title={copied ? "Copied" : "Copy"}
-            aria-label={copied ? "Copied" : "Copy"}
-            className="size-6"
-          >
-            {copied ? <Check /> : <Copy />}
-          </Button>
         </div>
       )}
     </div>

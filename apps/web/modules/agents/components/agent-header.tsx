@@ -84,19 +84,6 @@ export function AgentHeader({
               </Button>
             )}
 
-            {onOpenMemory && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onOpenMemory}
-                className="cursor-pointer gap-1.5 bg-secondary text-xs font-medium text-foreground backdrop-blur-sm"
-                title="Agent Memory"
-              >
-                <Sparkle className="size-3.5" />
-                <span className="hidden md:inline">Memory</span>
-              </Button>
-            )}
-
             {onOpenSchedules && (
               <Button
                 variant="secondary"
@@ -106,7 +93,7 @@ export function AgentHeader({
                 title="Scheduled Autonomous Tasks"
               >
                 <Calendar2Newicons className="size-4" />
-                <span className="hidden md:inline">Schedules</span>
+                <span>Schedules</span>
               </Button>
             )}
 

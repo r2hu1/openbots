@@ -10,10 +10,12 @@ import {
   Search as IconSearch,
   Trash2 as IconTrash,
 } from "reicon-react";
+import { useAgentsQuery } from "@/modules/agents/queries";
 import { Panel, SectionHeader } from "./settings-shared";
 
 interface MemoryItem {
   id: string;
+  agentId: string;
   key: string;
   content: string;
   category: string;
@@ -22,6 +24,15 @@ interface MemoryItem {
 
 export function MemoryTab() {
   const queryClient = useQueryClient();
+  const { data: agents = [], isLoading: isLoadingAgents } = useAgentsQuery();
+  const [selectedAgentId, setSelectedAgentId] = React.useState<string>("");
+
+  React.useEffect(() => {
+    if (agents.length > 0 && !selectedAgentId) {
+      setSelectedAgentId(agents[0]?.id || "");
+    }
+  }, [agents, selectedAgentId]);
+
   const [search, setSearch] = React.useState("");
   const [newKey, setNewKey] = React.useState("");
   const [newContent, setNewContent] = React.useState("");
@@ -43,10 +54,12 @@ export function MemoryTab() {
     return headers;
   }, []);
 
-  const { data: memories = [], isLoading } = useQuery({
-    queryKey: ["memories", search],
+  const { data: memories = [], isLoading: isLoadingMemories } = useQuery({
+    queryKey: ["memories", selectedAgentId, search],
+    enabled: Boolean(selectedAgentId),
     queryFn: async () => {
       const url = new URL(`${apiBaseUrl}/api/memories`);
+      url.searchParams.set("agentId", selectedAgentId);
       if (search.trim()) url.searchParams.set("query", search.trim());
       const res = await fetch(url.toString(), {
         headers: getHeaders(),
@@ -65,6 +78,7 @@ export function MemoryTab() {
         headers: getHeaders(),
         credentials: "include",
         body: JSON.stringify({
+          agentId: selectedAgentId,
           key: newKey.trim(),
           content: newContent.trim(),
           category: newCategory.trim() || "general",
@@ -78,13 +92,17 @@ export function MemoryTab() {
       setNewContent("");
       setNewCategory("general");
       setIsAdding(false);
-      queryClient.invalidateQueries({ queryKey: ["memories"] });
+      queryClient.invalidateQueries({
+        queryKey: ["memories", selectedAgentId],
+      });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${apiBaseUrl}/api/memories/${id}`, {
+      const url = new URL(`${apiBaseUrl}/api/memories/${id}`);
+      url.searchParams.set("agentId", selectedAgentId);
+      const res = await fetch(url.toString(), {
         method: "DELETE",
         headers: getHeaders(),
         credentials: "include",
@@ -93,16 +111,44 @@ export function MemoryTab() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["memories"] });
+      queryClient.invalidateQueries({
+        queryKey: ["memories", selectedAgentId],
+      });
     },
   });
+
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
 
   return (
     <div className="space-y-6">
       <SectionHeader
         title="Agent Memory"
-        description="Persistent long-term memories, facts, preferences, and instructions stored in database with high-speed Redis caching."
+        description="Persistent long-term memories and facts scoped per agent with high-speed Redis caching."
       />
+
+      {/* Agent Selector */}
+      {agents.length > 0 && (
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="agent-select"
+            className="text-xs font-medium text-muted-foreground shrink-0"
+          >
+            Select Agent:
+          </label>
+          <select
+            id="agent-select"
+            value={selectedAgentId}
+            onChange={(e) => setSelectedAgentId(e.target.value)}
+            className="h-9 rounded-lg border border-border bg-background px-3 py-1 text-sm font-medium text-foreground outline-none focus:ring-1 focus:ring-primary"
+          >
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
@@ -110,7 +156,7 @@ export function MemoryTab() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search memories by keyword, key, or category..."
+            placeholder={`Search ${selectedAgent?.name || "agent"}'s memories...`}
             className="pl-9 text-sm"
           />
         </div>
@@ -120,6 +166,7 @@ export function MemoryTab() {
           variant={isAdding ? "secondary" : "default"}
           onClick={() => setIsAdding(!isAdding)}
           className="gap-1.5"
+          disabled={!selectedAgentId}
         >
           <IconPlus className="size-3.5" />
           {isAdding ? "Cancel" : "Add Memory"}
@@ -129,13 +176,13 @@ export function MemoryTab() {
       {isAdding && (
         <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            New Memory Entry
+            New Memory for {selectedAgent?.name || "Agent"}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Input
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
-              placeholder="Key (e.g. user_tech_stack)"
+              placeholder="Key (e.g. user_preferred_framework)"
               className="text-sm"
             />
             <Input
@@ -170,19 +217,19 @@ export function MemoryTab() {
         </div>
       )}
 
-      {isLoading ? (
+      {isLoadingAgents || isLoadingMemories ? (
         <div className="flex justify-center py-12">
           <Spinner className="size-5" />
         </div>
       ) : memories.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-12 text-center">
           <p className="text-sm font-medium text-foreground">
-            No memories found
+            No memories found for {selectedAgent?.name || "this agent"}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {search
               ? "Try searching for a different keyword."
-              : "Agents will automatically save memories during conversations, or you can add one manually."}
+              : `${selectedAgent?.name || "This agent"} will save memories during conversations, or you can add one manually.`}
           </p>
         </div>
       ) : (

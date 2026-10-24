@@ -50,6 +50,13 @@
       "when": 1791734295364,
       "tag": "0006_breezy_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792853799245,
+      "tag": "0007_youthful_magma",
+      "breakpoints": true
     }
   ]
 }

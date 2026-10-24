@@ -174,10 +174,10 @@ export function DesktopLivePreview({
               <Hand className="size-3.5 animate-pulse" />
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="text-[11px] font-semibold tracking-wider">
+              <span className="text-xs font-semibold tracking-wider">
                 Your Input Needed
               </span>
-              <span className="truncate text-xs font-medium text-foreground">
+              <span className="truncate text-xs font-medium text-background/80">
                 {hitlPrompt?.instruction}
               </span>
             </div>
@@ -189,7 +189,7 @@ export function DesktopLivePreview({
               size="xs"
               disabled={isSubmittingHitl}
               onClick={() => onHitlResponse?.(hitlPrompt.runId, "skipped")}
-              className="h-7 text-xs"
+              className="h-7 text-xs hover:bg-secondary/10 hover:text-background"
             >
               Skip
             </Button>
@@ -222,7 +222,7 @@ export function DesktopLivePreview({
           </div>
         )}
 
-        <div className="relative flex aspect-[16/10] h-auto max-h-full w-full max-w-5xl items-center justify-center overflow-hidden rounded-xs border border-border bg-background">
+        <div className="relative flex aspect-[16/10] h-auto max-h-full w-full max-w-5xl items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
           <iframe
             key={iframeKey}
             src={iframeSrc}

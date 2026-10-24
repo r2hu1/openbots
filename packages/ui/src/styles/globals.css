@@ -163,6 +163,57 @@
   --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.45);
 }
 
+/* Top-level: @property and keyframes must not live inside @layer */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes generating-spin {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+@keyframes border-rotate {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+@keyframes material-dash {
+  0% {
+    stroke-dasharray: 1 150;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 90 150;
+    stroke-dashoffset: -35;
+  }
+
+  100% {
+    stroke-dasharray: 90 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+@keyframes bounce-pulse {
+  0%,
+  100% {
+    transform: translateY(-25%);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  50% {
+    transform: translateY(0);
+    opacity: 0.5;
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -177,40 +228,8 @@
     cursor: pointer;
   }
 
-  @keyframes material-dash {
-    0% {
-      stroke-dasharray: 1 150;
-      stroke-dashoffset: 0;
-    }
-
-    50% {
-      stroke-dasharray: 90 150;
-      stroke-dashoffset: -35;
-    }
-
-    100% {
-      stroke-dasharray: 90 150;
-      stroke-dashoffset: -124;
-    }
-  }
-
   html {
     @apply font-sans;
-  }
-
-  @keyframes bounce-pulse {
-    0%,
-    100% {
-      transform: translateY(-25%);
-      opacity: 1;
-      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
-    }
-
-    50% {
-      transform: translateY(0);
-      opacity: 0.5;
-      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-    }
   }
 
   .animate-bounce-pulse {
@@ -230,7 +249,7 @@
     border-radius: inherit;
     padding: 1px;
     background: conic-gradient(
-      from var(--border-angle, 0deg),
+      from var(--border-angle),
       transparent 0%,
       var(--color-primary, #6366f1) 10%,
       #a855f7 20%,
@@ -255,11 +274,11 @@
   .generating-border::before {
     content: "";
     position: absolute;
-    inset: -1px;
+    inset: -1.5px;
     border-radius: inherit;
     padding: 1.5px;
     background: conic-gradient(
-      from var(--border-angle, 0deg),
+      from var(--border-angle),
       transparent 0%,
       transparent 65%,
       #818cf8 78%,
@@ -270,7 +289,6 @@
     animation: generating-spin 2.5s linear infinite;
     pointer-events: none;
     z-index: -1;
-
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
@@ -278,27 +296,10 @@
     mask-composite: exclude;
   }
 
-  @property --border-angle {
-    syntax: "<angle>";
-    initial-value: 0deg;
-    inherits: false;
-  }
-
-  @keyframes generating-spin {
-    to {
-      --border-angle: 360deg;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .generating-border::before {
+    .generating-border::before,
+    .animated-border::before {
       animation: none;
-    }
-  }
-
-  @keyframes border-rotate {
-    to {
-      --border-angle: 360deg;
     }
   }
 }

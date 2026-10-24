@@ -168,6 +168,8 @@ export function AgentWorkspace({ initialAgentId }: AgentWorkspaceProps) {
         setConnectionsSheetOpen={setConnectionsSheetOpen}
         schedulesSheetOpen={schedulesSheetOpen}
         setSchedulesSheetOpen={setSchedulesSheetOpen}
+        memorySheetOpen={memorySheetOpen}
+        setMemorySheetOpen={setMemorySheetOpen}
         selectedArtifact={selectedArtifact}
         lastArtifact={lastArtifact.current}
         handleArtifactOpenChange={handleArtifactOpenChange}

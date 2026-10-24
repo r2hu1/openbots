@@ -228,7 +228,6 @@ export function ConversationTimeline({
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton
-          className={cn(activeRun?.status !== "running" && "bg-card")}
           variant={activeRun?.status === "running" ? "default" : "outline"}
         >
           {activeRun?.status === "running" ? (

@@ -3,9 +3,12 @@ import {
   agentTools,
   conversations,
   db,
+  getRedis,
   messages,
+  schedules,
 } from "@openbots/db";
 import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
+import { schedules as triggerSchedules } from "@trigger.dev/sdk";
 import { ALL_INTERNAL_TOOLS } from "./agents.tools-list.js";
 import type {
   CreateAgentInput,
@@ -134,13 +137,45 @@ export async function deleteAgent(id: string, userId: string) {
     .from(agents)
     .where(and(eq(agents.id, id), eq(agents.userId, userId)));
 
-  if (existing?.sandboxId) {
-    // Asynchronously delete the Daytona sandbox
+  if (!existing) {
+    return null;
+  }
+
+  // 1. Delete Daytona cloud sandbox if one exists
+  if (existing.sandboxId) {
     import("../../daytona/sandbox.js")
       .then(({ deleteAgentSandbox }) => deleteAgentSandbox(existing.sandboxId!))
       .catch((err) => console.warn("Failed to delete Daytona sandbox:", err));
   }
 
+  // 2. Cancel and clean up all associated Trigger.dev schedules
+  try {
+    const agentSchedules = await db
+      .select({ id: schedules.id, triggerScheduleId: schedules.triggerScheduleId })
+      .from(schedules)
+      .where(and(eq(schedules.agentId, id), eq(schedules.userId, userId)));
+
+    for (const sched of agentSchedules) {
+      if (sched.triggerScheduleId) {
+        triggerSchedules.del(sched.triggerScheduleId).catch((err) => {
+          console.warn(`Failed to delete Trigger.dev schedule ${sched.triggerScheduleId}:`, err);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to query/cleanup agent schedules before deletion:", err);
+  }
+
+  // 3. Invalidate Redis memory and agent caches
+  const redis = getRedis();
+  if (redis) {
+    Promise.all([
+      redis.del(`memory:agent:${id}:all`),
+      redis.del(`agent:${id}`),
+    ]).catch(() => {});
+  }
+
+  // 4. Delete agent (cascades to agentTools, schedules, conversations, messages, runs, memories)
   const [deleted] = await db
     .delete(agents)
     .where(and(eq(agents.id, id), eq(agents.userId, userId)))

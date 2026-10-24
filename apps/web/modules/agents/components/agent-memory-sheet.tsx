@@ -10,6 +10,7 @@ import {
 import * as React from "react"
 import { Sparkle } from "reicon-react"
 import { AgentMemoryContent } from "./agent-memory-content"
+import { IconBrain } from "@tabler/icons-react"
 
 interface AgentMemorySheetProps {
   agentId: string | null
@@ -29,16 +30,17 @@ export function AgentMemorySheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side="right"
+        side="left"
         className="flex min-h-0 w-full flex-col sm:max-w-lg"
       >
         <SheetHeader className="shrink-0 pb-2">
           <div className="flex items-center gap-2">
-            <Sparkle className="size-4 text-primary" />
+            <IconBrain className="size-4 text-primary" />
             <SheetTitle>{agentName || "Agent"} Memory</SheetTitle>
           </div>
           <SheetDescription>
-            Inspect and manage persistent long-term memories saved specifically for this agent.
+            Inspect and manage persistent long-term memories saved specifically
+            for this agent.
           </SheetDescription>
         </SheetHeader>
 

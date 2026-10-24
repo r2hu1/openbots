@@ -10,10 +10,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@openbots/ui/components/dropdown-menu"
-import { ChevronDown, Edit, Plug2, Setting, Sparkle, Trash2 } from "reicon-react"
+import {
+  ChevronDown,
+  Edit,
+  Plug2,
+  Setting,
+  Sparkle,
+  Trash2,
+} from "reicon-react"
 import type { Agent } from "../types"
 import { DeleteAgentDialog } from "./delete-agent-dialog"
 import { RenameAgentDialog } from "./rename-agent-dialog"
+import { IconBrain } from "@tabler/icons-react"
 
 interface AgentHeaderMenuProps {
   selectedAgent: Agent
@@ -79,7 +87,7 @@ export function AgentHeaderMenu({
           {onOpenMemory && (
             <DropdownMenuItem onClick={onOpenMemory}>
               <span>Memory</span>
-              <Sparkle className="ml-auto size-3.5" />
+              <IconBrain className="ml-auto size-3.5" />
             </DropdownMenuItem>
           )}
           {onOpenConnections && (

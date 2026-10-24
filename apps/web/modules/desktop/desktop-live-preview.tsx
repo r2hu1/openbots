@@ -11,7 +11,7 @@ import {
 } from "@tabler/icons-react"
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { Check, Display, Hand } from "reicon-react"
+import { Check, Display, Hand, Handshake } from "reicon-react"
 
 export interface HitlPromptData {
   instruction: string
@@ -171,25 +171,25 @@ export function DesktopLivePreview({
         <div className="flex shrink-0 items-center justify-between gap-3 bg-red-700 px-3 py-1.5 text-primary-foreground text-white transition-all">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="flex size-6 shrink-0 items-center justify-center rounded-full">
-              <Hand className="size-3.5 animate-pulse" />
+              <Handshake className="size-4 animate-pulse" />
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="text-xs font-semibold tracking-wider">
                 Your Input Needed
               </span>
-              <span className="truncate text-xs font-medium text-background/80">
+              <span className="truncate text-xs font-medium opacity-80">
                 {hitlPrompt?.instruction}
               </span>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1">
             <Button
               variant="ghost"
               size="xs"
               disabled={isSubmittingHitl}
               onClick={() => onHitlResponse?.(hitlPrompt.runId, "skipped")}
-              className="h-7 text-xs hover:bg-secondary/10 hover:text-background"
+              className="h-7 text-xs"
             >
               Skip
             </Button>

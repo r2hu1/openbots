@@ -14,6 +14,7 @@ import {
   Plus as IconPlus,
   Search as IconSearch,
   Trash2 as IconTrash,
+  X,
 } from "reicon-react"
 
 export interface MemoryItem {
@@ -119,7 +120,7 @@ export function AgentMemoryContent({
   return (
     <div className="flex h-full flex-col gap-4 px-3">
       <div className="flex items-center gap-2">
-        <InputGroup>
+        <InputGroup className="flex-1">
           <InputGroupAddon>
             <IconSearch />
           </InputGroupAddon>
@@ -129,12 +130,8 @@ export function AgentMemoryContent({
             placeholder={`Search ${agentName || "agent"}'s memories...`}
           />
         </InputGroup>
-        <Button
-          size="icon"
-          variant={isAdding ? "secondary" : "default"}
-          onClick={() => setIsAdding(!isAdding)}
-        >
-          {isAdding ? <Spinner /> : <IconPlus />}
+        <Button size="icon" onClick={() => setIsAdding(!isAdding)}>
+          {isAdding ? <X /> : <IconPlus />}
         </Button>
       </div>
 
@@ -208,7 +205,7 @@ export function AgentMemoryContent({
           memories.map((m) => (
             <div
               key={m.id}
-              className="group relative rounded-lg border bg-card p-3 transition-colors hover:border-foreground/20"
+              className="group relative rounded-lg border bg-secondary p-3 text-secondary-foreground transition-colors hover:border-foreground/20"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">

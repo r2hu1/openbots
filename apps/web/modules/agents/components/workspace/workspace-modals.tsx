@@ -28,6 +28,10 @@ const SchedulesSheet = dynamic(
   () => import("@/modules/schedules/components/schedules-sheet").then((m) => m.SchedulesSheet),
   { ssr: false }
 )
+const AgentMemorySheet = dynamic(
+  () => import("@/modules/agents/components/agent-memory-sheet").then((m) => m.AgentMemorySheet),
+  { ssr: false }
+)
 
 export function useIdleReady() {
   const [ready, setReady] = React.useState(false)
@@ -66,6 +70,8 @@ interface WorkspaceModalsProps {
   setConnectionsSheetOpen: (open: boolean) => void
   schedulesSheetOpen: boolean
   setSchedulesSheetOpen: (open: boolean) => void
+  memorySheetOpen: boolean
+  setMemorySheetOpen: (open: boolean) => void
   selectedArtifact: ParsedArtifact | null
   lastArtifact: ParsedArtifact | null
   handleArtifactOpenChange: (open: boolean) => void
@@ -88,6 +94,8 @@ export function WorkspaceModals({
   setConnectionsSheetOpen,
   schedulesSheetOpen,
   setSchedulesSheetOpen,
+  memorySheetOpen,
+  setMemorySheetOpen,
   selectedArtifact,
   lastArtifact,
   handleArtifactOpenChange,
@@ -98,6 +106,7 @@ export function WorkspaceModals({
   const historyMounted = useMountedOnce(historySheetOpen) || idleReady
   const connectionsMounted = useMountedOnce(connectionsSheetOpen) || idleReady
   const schedulesMounted = useMountedOnce(schedulesSheetOpen) || idleReady
+  const memoryMounted = useMountedOnce(memorySheetOpen) || idleReady
   const artifactMounted = useMountedOnce(Boolean(selectedArtifact)) || idleReady
 
   return (
@@ -141,6 +150,15 @@ export function WorkspaceModals({
           agentName={selectedAgent?.name}
           open={schedulesSheetOpen}
           onOpenChange={setSchedulesSheetOpen}
+        />
+      )}
+
+      {memoryMounted && (
+        <AgentMemorySheet
+          agentId={selectedAgentId}
+          agentName={selectedAgent?.name}
+          open={memorySheetOpen}
+          onOpenChange={setMemorySheetOpen}
         />
       )}
 

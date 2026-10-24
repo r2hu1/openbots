@@ -16,16 +16,19 @@ export const memoriesRoute = new Hono<Env>()
   // GET /api/memories - search or list memories
   .get("/", async (c) => {
     const user = c.get("user");
+    const agentId = c.req.query("agentId");
+    if (!agentId) {
+      return c.json({ error: "agentId query parameter is required" }, 400);
+    }
     const query = c.req.query("query") || undefined;
     const category = c.req.query("category") || undefined;
-    const agentId = c.req.query("agentId") || undefined;
     const limit = Number(c.req.query("limit")) || 50;
 
     const results = await searchMemories({
       userId: user.id,
+      agentId,
       query,
       category,
-      agentId,
       limit,
     });
     return c.json({ memories: results });
@@ -37,23 +40,23 @@ export const memoriesRoute = new Hono<Env>()
     zValidator(
       "json",
       z.object({
+        agentId: z.string().uuid(),
         key: z.string().min(1),
         content: z.string().min(1),
         category: z.string().optional(),
-        agentId: z.string().uuid().optional(),
         metadata: z.record(z.string(), z.any()).optional(),
       }),
     ),
     async (c) => {
       const user = c.get("user");
-      const { key, content, category, agentId, metadata } = c.req.valid("json");
+      const { agentId, key, content, category, metadata } = c.req.valid("json");
 
       const memory = await setMemory({
         userId: user.id,
+        agentId,
         key,
         content,
         category,
-        agentId,
         metadata,
       });
 
@@ -64,7 +67,11 @@ export const memoriesRoute = new Hono<Env>()
   // DELETE /api/memories/:idOrKey - delete a memory by key or ID
   .delete("/:idOrKey", async (c) => {
     const user = c.get("user");
+    const agentId = c.req.query("agentId");
+    if (!agentId) {
+      return c.json({ error: "agentId query parameter is required" }, 400);
+    }
     const idOrKey = c.req.param("idOrKey");
-    const success = await deleteMemory(user.id, idOrKey);
+    const success = await deleteMemory(user.id, agentId, idOrKey);
     return c.json({ success });
   });

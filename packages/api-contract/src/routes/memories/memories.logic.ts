@@ -1,23 +1,23 @@
 import { db, getRedis, type Memory, memories } from "@openbots/db";
-import { and, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 
-const MEMORY_CACHE_PREFIX = "memory:user:";
+const MEMORY_CACHE_PREFIX = "memory:agent:";
 const MEMORY_TTL = 3600; // 1 hour
 
-function getUserMemoriesCacheKey(userId: string): string {
-  return `${MEMORY_CACHE_PREFIX}${userId}:all`;
+function getAgentMemoriesCacheKey(agentId: string): string {
+  return `${MEMORY_CACHE_PREFIX}${agentId}:all`;
 }
 
-async function invalidateUserMemoryCache(userId: string): Promise<void> {
+async function invalidateAgentMemoryCache(agentId: string): Promise<void> {
   const redis = getRedis();
   if (redis) {
-    await redis.del(getUserMemoriesCacheKey(userId)).catch(() => {});
+    await redis.del(getAgentMemoriesCacheKey(agentId)).catch(() => {});
   }
 }
 
 export interface SearchMemoriesParams {
   userId: string;
-  agentId?: string | null;
+  agentId: string;
   query?: string;
   category?: string;
   limit?: number;
@@ -30,9 +30,11 @@ export async function searchMemories(
   const redis = getRedis();
 
   // If simple listing without filter, try redis cache first
-  if (!query && !category && !agentId && redis) {
+  if (!query && !category && redis) {
     try {
-      const cached = await redis.get<Memory[]>(getUserMemoriesCacheKey(userId));
+      const cached = await redis.get<Memory[]>(
+        getAgentMemoriesCacheKey(agentId),
+      );
       if (cached && Array.isArray(cached)) {
         return cached.slice(0, limit);
       }
@@ -41,17 +43,10 @@ export async function searchMemories(
     }
   }
 
-  const conditions: SQL[] = [eq(memories.userId, userId)];
-
-  if (agentId) {
-    const agentMatch = or(
-      eq(memories.agentId, agentId),
-      isNull(memories.agentId),
-    );
-    if (agentMatch) {
-      conditions.push(agentMatch);
-    }
-  }
+  const conditions: SQL[] = [
+    eq(memories.userId, userId),
+    eq(memories.agentId, agentId),
+  ];
 
   if (category) {
     conditions.push(eq(memories.category, category));
@@ -76,10 +71,10 @@ export async function searchMemories(
     .orderBy(desc(memories.updatedAt))
     .limit(limit);
 
-  // Cache if all memories for user
-  if (!query && !category && !agentId && redis) {
+  // Cache if all memories for agent
+  if (!query && !category && redis) {
     await redis
-      .set(getUserMemoriesCacheKey(userId), JSON.stringify(results), {
+      .set(getAgentMemoriesCacheKey(agentId), JSON.stringify(results), {
         ex: MEMORY_TTL,
       })
       .catch(() => {});
@@ -90,7 +85,7 @@ export async function searchMemories(
 
 export interface SetMemoryParams {
   userId: string;
-  agentId?: string | null;
+  agentId: string;
   key: string;
   content: string;
   category?: string;
@@ -107,11 +102,17 @@ export async function setMemory(params: SetMemoryParams): Promise<Memory> {
     metadata,
   } = params;
 
-  // Check if existing memory with same key for this user
+  // Check if existing memory with same key for this agent
   const [existing] = await db
     .select()
     .from(memories)
-    .where(and(eq(memories.userId, userId), eq(memories.key, key)));
+    .where(
+      and(
+        eq(memories.userId, userId),
+        eq(memories.agentId, agentId),
+        eq(memories.key, key),
+      ),
+    );
 
   let result: Memory;
   if (existing) {
@@ -120,7 +121,6 @@ export async function setMemory(params: SetMemoryParams): Promise<Memory> {
       .set({
         content,
         category,
-        agentId: agentId || existing.agentId,
         metadata: metadata ?? (existing.metadata as Record<string, unknown>),
         updatedAt: new Date(),
       })
@@ -135,7 +135,7 @@ export async function setMemory(params: SetMemoryParams): Promise<Memory> {
       .insert(memories)
       .values({
         userId,
-        agentId: agentId ?? null,
+        agentId,
         key,
         content,
         category,
@@ -148,12 +148,13 @@ export async function setMemory(params: SetMemoryParams): Promise<Memory> {
     result = created;
   }
 
-  await invalidateUserMemoryCache(userId);
+  await invalidateAgentMemoryCache(agentId);
   return result;
 }
 
 export async function deleteMemory(
   userId: string,
+  agentId: string,
   keyOrId: string,
 ): Promise<boolean> {
   const isUuid =
@@ -166,9 +167,15 @@ export async function deleteMemory(
 
   const deleted = await db
     .delete(memories)
-    .where(and(eq(memories.userId, userId), deleteFilter))
+    .where(
+      and(
+        eq(memories.userId, userId),
+        eq(memories.agentId, agentId),
+        deleteFilter,
+      ),
+    )
     .returning();
 
-  await invalidateUserMemoryCache(userId);
+  await invalidateAgentMemoryCache(agentId);
   return deleted.length > 0;
 }

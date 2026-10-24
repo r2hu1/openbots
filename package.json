@@ -1,6 +1,16 @@
 {
   "name": "openbots",
   "version": "0.0.1",
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@openbots/typescript-config": "workspace:*",
+    "turbo": "^2.11.5",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "packageManager": "bun@1.4.0",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -9,16 +19,6 @@
     "format": "biome format --write .",
     "check": "biome check --write .",
     "typecheck": "turbo typecheck"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.5.15",
-    "@openbots/typescript-config": "workspace:*",
-    "turbo": "^2.11.5",
-    "typescript": "^5"
-  },
-  "packageManager": "bun@1.4.0",
-  "engines": {
-    "node": ">=20.9.0"
   },
   "workspaces": [
     "apps/*",

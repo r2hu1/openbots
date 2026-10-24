@@ -6,10 +6,10 @@ import {
 import { tool } from "ai";
 import { z } from "zod";
 
-export function createMemoryTools(userId: string, agentId?: string | null) {
+export function createMemoryTools(userId: string, agentId: string) {
   const search_memory = tool({
     description:
-      "Search and retrieve stored memories, user facts, preferences, instructions, or notes from long-term memory across sessions. If query is omitted or empty, lists recent memories.",
+      "Search and retrieve stored memories, user facts, preferences, instructions, or notes from this agent's long-term memory across sessions. If query is omitted or empty, lists recent memories for this agent.",
     inputSchema: z.object({
       query: z
         .string()
@@ -73,7 +73,7 @@ export function createMemoryTools(userId: string, agentId?: string | null) {
 
   const save_memory = tool({
     description:
-      "Save or update a fact, preference, user instruction, or piece of knowledge into long-term memory. Overwrites if a memory with the same key already exists.",
+      "Save or update a fact, preference, user instruction, or piece of knowledge into this agent's long-term memory. Overwrites if a memory with the same key already exists for this agent.",
     inputSchema: z.object({
       key: z
         .string()
@@ -127,7 +127,7 @@ export function createMemoryTools(userId: string, agentId?: string | null) {
 
   const delete_memory_tool = tool({
     description:
-      "Permanently delete a memory by key or ID if outdated, invalidated, or no longer relevant.",
+      "Permanently delete a memory by key or ID from this agent's memory if outdated, invalidated, or no longer relevant.",
     inputSchema: z.object({
       keyOrId: z
         .string()
@@ -136,7 +136,7 @@ export function createMemoryTools(userId: string, agentId?: string | null) {
     }),
     execute: async ({ keyOrId }) => {
       try {
-        const deleted = await deleteMemory(userId, keyOrId);
+        const deleted = await deleteMemory(userId, agentId, keyOrId);
         if (!deleted) {
           return {
             success: false,

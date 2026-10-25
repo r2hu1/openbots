@@ -65,7 +65,7 @@ export default function MemorySection() {
           </div>
 
           <div className="lg:col-span-7">
-            <div className="overflow-hidden rounded-lg border bg-background">
+            <div className="overflow-hidden rounded-lg border bg-card">
               <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
                 <span className="size-2.5 rounded-full bg-red-400/80" />
                 <span className="size-2.5 rounded-full bg-amber-400/80" />

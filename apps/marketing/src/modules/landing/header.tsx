@@ -12,19 +12,10 @@ export default function Header() {
         <Logo />
         <ButtonGroup className="hidden sm:flex">
           <Button
-            variant="ghost"
-            className="text-muted-foreground"
-            nativeButton={false}
-            render={<Link href="https://github.com/r2hu1/openbots" />}
-          >
-            Contribute
-          </Button>
-
-          <Button
             nativeButton={false}
             variant="ghost"
             className="text-muted-foreground"
-            render={<Link href="https://github.com/r2hu1/openbots" />}
+            render={<Link href="#features" />}
           >
             Features
           </Button>
@@ -33,7 +24,13 @@ export default function Header() {
             nativeButton={false}
             variant="ghost"
             className="text-muted-foreground"
-            render={<Link href="https://github.com/r2hu1/openbots" />}
+            render={
+              <Link
+                href="https://github.com/r2hu1/openbots/blob/main/DOCUMENTATION.md"
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
           >
             Docs
           </Button>
@@ -42,7 +39,28 @@ export default function Header() {
             nativeButton={false}
             variant="ghost"
             className="text-muted-foreground"
-            render={<Link href="https://github.com/r2hu1/openbots" />}
+            render={
+              <Link
+                href="https://github.com/r2hu1/openbots/blob/main/SELF_HOST.md"
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
+          >
+            Self-Hosting
+          </Button>
+
+          <Button
+            variant="ghost"
+            className="text-muted-foreground"
+            nativeButton={false}
+            render={
+              <Link
+                href="https://github.com/r2hu1/openbots/fork"
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
           >
             Fork
           </Button>
@@ -50,7 +68,13 @@ export default function Header() {
         <div className="flex items-center gap-1">
           <Button
             nativeButton={false}
-            render={<Link href="https://github.com/r2hu1/openbots" />}
+            render={
+              <Link
+                href="https://github.com/r2hu1/openbots"
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
           >
             Get Started
             <ArrowUpRight />

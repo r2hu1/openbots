@@ -53,7 +53,7 @@ export default function Hero() {
         controls
         className="mx-auto mt-15 w-full max-w-5xl rounded-lg border"
         playsInline
-        poster="/preview-chat.png"
+        poster="/preview-video.png"
       >
         Your browser does not support video playback.
       </video>

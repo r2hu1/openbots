@@ -227,14 +227,12 @@ export function ConversationTimeline({
             )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton
-          variant={activeRun?.status === "running" ? "default" : "outline"}
-        >
+        <MessageScrollerButton className="border border-input bg-sidebar!">
           {activeRun?.status === "running" ? (
-            <div className="flex items-center gap-0.5 py-0">
-              <div className="animate-bounce-pulse size-1 rounded-full bg-primary-foreground delay-75" />
-              <div className="animate-bounce-pulse size-1 rounded-full bg-primary-foreground delay-150" />
-              <div className="animate-bounce-pulse size-1 rounded-full bg-primary-foreground delay-200" />
+            <div className="flex items-center gap-1 py-0">
+              <div className="animate-bounce-pulse size-1 rounded-full bg-foreground delay-75" />
+              <div className="animate-bounce-pulse size-1 rounded-full bg-foreground delay-150" />
+              <div className="animate-bounce-pulse size-1 rounded-full bg-foreground delay-200" />
             </div>
           ) : (
             <ChevronDown />

@@ -130,7 +130,7 @@ function keyLabel(key: string, apple: boolean) {
   return (
     names[key] ??
     sharedKeys[key] ??
-    (key.length === 1 ? key.toUpperCase() : key[0].toUpperCase() + key.slice(1))
+    (key.length === 1 ? key.toUpperCase() : (key[0]?.toUpperCase() ?? "") + key.slice(1))
   )
 }
 
@@ -156,7 +156,10 @@ function eventKeys(event: KeyboardEvent) {
   const keys = new Set([normalizeKey(event.key === " " ? "space" : event.key)])
   const physical = /^(?:Key([A-Z])|Digit([0-9]))$/.exec(event.code ?? "")
   if (physical) {
-    keys.add((physical[1] ?? physical[2]).toLowerCase())
+    const char = physical[1] ?? physical[2]
+    if (char) {
+      keys.add(char.toLowerCase())
+    }
   }
   return keys
 }

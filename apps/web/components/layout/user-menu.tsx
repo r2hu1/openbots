@@ -20,8 +20,6 @@ import {
 import { useTheme } from "next-themes"
 import * as React from "react"
 import {
-  Calendar,
-  Calendar2Newicons,
   Check,
   ChevronDown,
   Devices,
@@ -29,8 +27,8 @@ import {
   Moon3,
   Plug2,
   Setting,
-  SidebarBottom,
   Sun2,
+  TimeFwd,
 } from "reicon-react"
 import { AllSchedulesDialog } from "@/modules/schedules/components/all-schedules-dialog"
 import { SettingsSheet } from "./settings-sheet"
@@ -66,10 +64,13 @@ export function UserMenu({
   }
 
   return (
-    <SidebarMenu className="min-w-0 flex-1 gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
+    <SidebarMenu className="min-w-0 flex-1 gap-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
       <SidebarMenuItem>
-        <SidebarMenuButton onClick={() => setSchedulesOpen(true)}>
-          <Calendar2Newicons className="opacity-60" />
+        <SidebarMenuButton
+          className="bg-sidebar-accent/50"
+          onClick={() => setSchedulesOpen(true)}
+        >
+          <TimeFwd />
           Schedules
         </SidebarMenuButton>
       </SidebarMenuItem>

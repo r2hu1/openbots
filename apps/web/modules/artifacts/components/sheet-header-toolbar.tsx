@@ -65,7 +65,7 @@ export function SheetHeaderToolbar({
   const isFileArtifact = artifact.type === "file"
 
   return (
-    <div className="flex shrink-0 items-center gap-3 rounded-t-xl border-b border-border bg-sidebar p-1.5">
+    <div className="flex items-center gap-3 rounded-t-xl border-b border-border bg-card p-1.5">
       {hasCode ? (
         <Tabs
           value={view}
@@ -96,7 +96,7 @@ export function SheetHeaderToolbar({
       )}
 
       <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-        <SheetTitle className="truncate text-sm font-medium">
+        <SheetTitle className="truncate text-[13px] font-medium">
           {artifact.title}
         </SheetTitle>
         <SheetDescription className="sr-only">
@@ -110,7 +110,7 @@ export function SheetHeaderToolbar({
             variant="secondary"
             size="sm"
             onClick={onDownload}
-            className="h-8 px-2 text-xs"
+            className="h-8 px-2"
           >
             <IconDownload className="size-3.5" />
             <span>Download</span>
@@ -119,9 +119,9 @@ export function SheetHeaderToolbar({
           <ButtonGroup>
             <Button
               variant="secondary"
-              size="sm"
+              size="xs"
               onClick={onCopy}
-              className="h-8 px-2 text-xs"
+              className="h-7 px-2"
             >
               {copied ? <IconCheck className="size-3.5" /> : null}
               {copied ? "Copied" : "Copy"}
@@ -134,7 +134,7 @@ export function SheetHeaderToolbar({
                 className={buttonVariants({
                   variant: "secondary",
                   size: "icon-xs",
-                  className: "size-8",
+                  className: "size-7",
                 })}
               >
                 <IconChevronDown className="size-3.5" />
@@ -199,21 +199,22 @@ export function SheetHeaderToolbar({
 
         <Button
           variant="secondary"
-          size="icon-sm"
+          size="icon-xs"
           onClick={onToggleMaximize}
           aria-label={maximized ? "Restore size" : "Expand"}
           title={maximized ? "Restore" : "Expand"}
-          className="hidden sm:flex"
+          className="hidden size-7 sm:flex"
         >
           {maximized ? <IconArrowsDiagonalMinimize2 /> : <IconArrowsDiagonal />}
         </Button>
 
         <Button
           variant="secondary"
-          size="icon-sm"
+          size="icon-xs"
           onClick={onClose}
           aria-label="Close"
           title="Close"
+          className="size-7"
         >
           <IconX />
         </Button>

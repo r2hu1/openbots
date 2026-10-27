@@ -47,7 +47,13 @@ export function SharedArtifactCard({
       ).toUpperCase()
     }
     return (TYPE_LABEL[artifact.type] ?? artifact.type).toUpperCase()
-  }, [isFile, artifact.type, artifact.fileType, artifact.source, artifact.title])
+  }, [
+    isFile,
+    artifact.type,
+    artifact.fileType,
+    artifact.source,
+    artifact.title,
+  ])
 
   const handleClick = React.useCallback(() => {
     if (artifactCtx) {
@@ -74,16 +80,16 @@ export function SharedArtifactCard({
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group/artifact relative flex w-[80%] max-w-md items-center justify-between gap-3 p-2.5 select-none",
-        "rounded-lg border bg-card text-card-foreground transition-all duration-200",
-        "cursor-pointer ring-muted hover:ring-3",
-        "focus-visible:ring-3 focus-visible:ring-muted focus-visible:outline-none",
+        "group/artifact relative flex w-[80%] max-w-md items-center justify-between gap-3 p-3 select-none",
+        "rounded-xl border bg-card text-card-foreground transition-all duration-200",
+        "cursor-pointer ring-border hover:ring-2",
+        "focus-visible:ring-2 focus-visible:ring-border focus-visible:outline-none",
         isStreaming && "generating-border",
         className
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-foreground transition-colors">
+        <div className="flex size-8.5 shrink-0 items-center justify-center rounded-lg border bg-muted text-foreground transition-colors">
           <ArtifactIcon
             type={artifact.type}
             fileType={isFile ? artifact.fileType : undefined}
@@ -91,11 +97,16 @@ export function SharedArtifactCard({
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-medium tracking-tight text-foreground transition-colors group-hover/artifact:text-primary">
+          <p
+            className={cn(
+              "truncate text-[13px] font-medium tracking-tight text-foreground transition-colors group-hover/artifact:text-primary",
+              isStreaming && "shimmer"
+            )}
+          >
             {title}
           </p>
 
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="mt-[3px] flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
             <span className="text-[10px] font-semibold tracking-wide text-muted-foreground/80 uppercase">
               {subtitle}
             </span>
@@ -103,15 +114,6 @@ export function SharedArtifactCard({
               <>
                 <span className="text-muted-foreground/40">·</span>
                 <span>{artifact.size}</span>
-              </>
-            )}
-            {isStreaming && (
-              <>
-                <span className="text-muted-foreground/40">·</span>
-                <span className="inline-flex items-center gap-1 text-[11px] text-primary">
-                  <Spinner className="size-2.5" />
-                  Generating...
-                </span>
               </>
             )}
           </div>
@@ -122,7 +124,7 @@ export function SharedArtifactCard({
         <Button
           type="button"
           variant={isOpen ? "secondary" : "outline"}
-          size="xs"
+          size="sm"
           onClick={(e) => {
             e.stopPropagation()
             handleClick()

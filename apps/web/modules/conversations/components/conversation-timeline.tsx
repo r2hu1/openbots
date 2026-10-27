@@ -19,9 +19,7 @@ import { ConversationMessageItem } from "./conversation-message-item"
 import { ConversationTimelineEmpty } from "./conversation-timeline-empty"
 import { ConversationTimelineError } from "./conversation-timeline-error"
 import { ConversationTimelineLoadOlder } from "./conversation-timeline-load-older"
-import { StreamingAssistantMessage } from "./streaming-assistant-message"
 import { ChevronDown } from "reicon-react"
-import { cn } from "@/lib/utils"
 
 interface ConversationTimelineProps {
   messages: MessageItem[]
@@ -97,8 +95,48 @@ export function ConversationTimeline({
     activeRun?.status === "queued" ||
     activeRun?.status === "running"
 
-  const { topSentinelRef, viewportRef, handleScroll } = useConversationScroll({
+  // Pin the streaming message's createdAt so it doesn't jump on every delta
+  const streamingCreatedAtRef = React.useRef(new Date())
+  const prevActiveRunIdRef = React.useRef<string | null>(null)
+  if (activeRun?.id && activeRun.id !== prevActiveRunIdRef.current) {
+    prevActiveRunIdRef.current = activeRun.id
+    streamingCreatedAtRef.current = new Date()
+  }
+
+  // Inject streaming text into the messages array with the same key it will
+  // have once reconciled (`run-asst-{runId}`). This lets React UPDATE the
+  // existing ConversationMessageItem instead of unmounting the separate
+  // StreamingAssistantMessage and mounting a new map item — eliminating the
+  // flash during the streaming → completed transition.
+  const displayMessages = React.useMemo(() => {
+    if (
+      !isActiveRunOngoing ||
+      !activeRun?.id ||
+      isCurrentRunAlreadyRendered ||
+      !streamingText?.trim()
+    ) {
+      return messages
+    }
+
+    const streamingMsg: MessageItem = {
+      id: `run-asst-${activeRun.id}`,
+      conversationId: activeRun.conversationId || "current",
+      role: "assistant",
+      content: { text: streamingText },
+      createdAt: streamingCreatedAtRef.current,
+    }
+
+    return [...messages, streamingMsg]
+  }, [
     messages,
+    isActiveRunOngoing,
+    activeRun,
+    isCurrentRunAlreadyRendered,
+    streamingText,
+  ])
+
+  const { topSentinelRef, viewportRef, handleScroll } = useConversationScroll({
+    messages: displayMessages,
     isLoading,
     hasOlderMessages,
     isLoadingOlder,
@@ -129,12 +167,12 @@ export function ConversationTimeline({
               <div className="space-y-6 py-30">
                 <Spinner className="mx-auto size-6" />
               </div>
-            ) : messages.length === 0 && !activeRun && !executionError ? (
+            ) : displayMessages.length === 0 && !activeRun && !executionError ? (
               <ConversationTimelineEmpty agentName={agentName} />
             ) : null}
 
             {!isLoading &&
-              messages.map((msg) => (
+              displayMessages.map((msg) => (
                 <MessageScrollerItem
                   key={msg.id}
                   id={`message-${msg.id}`}
@@ -151,26 +189,9 @@ export function ConversationTimeline({
                 </MessageScrollerItem>
               ))}
 
-            {/* Assistant message: streaming text if available */}
-            {!isLoading &&
-            isActiveRunOngoing &&
-            !isCurrentRunAlreadyRendered &&
-            streamingText &&
-            streamingText.trim() ? (
-              <StreamingAssistantMessage
-                activeRunId={activeRun?.id}
-                conversationId={activeRun?.conversationId}
-                streamingText={streamingText}
-                agentName={agentName}
-                onOpenArtifact={onOpenArtifact}
-              />
-            ) : null}
-
-            {/* Live tool execution steps and thinking indicator when no text streamed yet */}
-            {!isLoading &&
-            isActiveRunOngoing &&
-            !isCurrentRunAlreadyRendered &&
-            (!streamingText || !streamingText.trim()) ? (
+            {/* Live typing / tool indicator — single stable block that stays
+                mounted for the entire run lifetime, preventing key-change remounts */}
+            {!isLoading && isActiveRunOngoing && !isCurrentRunAlreadyRendered ? (
               <MessageScrollerItem
                 key={`live-status-${activeRun?.id || "current"}`}
                 id={`live-status-${activeRun?.id || "current"}`}
@@ -180,23 +201,6 @@ export function ConversationTimeline({
                   activeRun={activeRun}
                   activeRunSteps={activeRunSteps}
                   isActiveRunOngoing={true}
-                  hasStreamingContent={false}
-                />
-              </MessageScrollerItem>
-            ) : null}
-
-            {/* Live tool execution steps and thinking indicator after text is already streamed */}
-            {!isLoading &&
-            isActiveRunOngoing &&
-            streamingText &&
-            streamingText.trim() ? (
-              <MessageScrollerItem key="live-steps">
-                <ConversationLiveStatus
-                  agentName={agentName}
-                  activeRun={activeRun}
-                  activeRunSteps={activeRunSteps}
-                  isActiveRunOngoing={true}
-                  hasStreamingContent={true}
                 />
               </MessageScrollerItem>
             ) : null}
@@ -212,7 +216,6 @@ export function ConversationTimeline({
                     activeRun={activeRun}
                     activeRunSteps={[]}
                     isActiveRunOngoing={false}
-                    hasStreamingContent={true}
                   />
                 </MessageScrollerItem>
               )}

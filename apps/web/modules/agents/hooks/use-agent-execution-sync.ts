@@ -10,13 +10,11 @@ interface UseAgentExecutionSyncOptions {
   agentId: string | null;
   activeConversationId: string | null;
   activeRunId: string | null;
-  activeRunStatus: string | null;
   lastTerminalRun: RunRecord | null;
   streamingText: string;
   dismissedRunIds: React.MutableRefObject<Set<string>>;
   runs: RunRecord[];
   queryClient: QueryClient;
-  resetStream: () => void;
   onConversationCreated?: (id: string) => void;
   setActiveRunId: (id: string | null) => void;
   setLastTerminalRun: (run: RunRecord | null) => void;
@@ -27,13 +25,11 @@ export function useAgentExecutionSync({
   agentId,
   activeConversationId,
   activeRunId,
-  activeRunStatus,
   lastTerminalRun,
   streamingText,
   dismissedRunIds,
   runs,
   queryClient,
-  resetStream,
   onConversationCreated,
   setActiveRunId,
   setLastTerminalRun,
@@ -112,51 +108,14 @@ export function useAgentExecutionSync({
     },
   });
 
-  // Watch active run state transitions to cleanly release UI lock
-  React.useEffect(() => {
-    if (
-      activeRunStatus === "completed" ||
-      activeRunStatus === "failed" ||
-      activeRunStatus === "cancelled"
-    ) {
-      setIsOptimisticRunning(false);
-      if (activeRunId && streamingText) {
-        setLastTerminalRun(
-          createTerminalRunRecord({
-            id: activeRunId,
-            agentId,
-            conversationId: activeConversationId,
-            status: activeRunStatus,
-            output: { text: streamingText },
-          }),
-        );
-      }
-      if (activeRunId) dismissedRunIds.current.add(activeRunId);
-      resetStream();
-      if (activeConversationId) {
-        queryClient.invalidateQueries({
-          queryKey: ["conversation", activeConversationId],
-        });
-      }
-      if (agentId) {
-        queryClient.invalidateQueries({ queryKey: ["runs", agentId] });
-        queryClient.invalidateQueries({ queryKey: ["agents"] });
-      }
-      setActiveRunId(null);
-    }
-  }, [
-    activeRunStatus,
-    activeRunId,
-    activeConversationId,
-    agentId,
-    streamingText,
-    queryClient,
-    resetStream,
-    dismissedRunIds,
-    setActiveRunId,
-    setIsOptimisticRunning,
-    setLastTerminalRun,
-  ]);
+  // NOTE: Terminal run state transitions (completed/failed/cancelled) are
+  // handled by the SSE stream callbacks in use-agent-execution-stream.ts
+  // (onDone / onStatus) and by the agent-level SSE above (onRunStatus).
+  // A previous effect here duplicated that work, which raced with
+  // resetStream() — clearing streamingText before the server message
+  // arrived via query invalidation, causing the assistant message to
+  // briefly go invisible.
+
 
   // Watch for background runs completing for the current conversation
   const seenCompletedRunIdsRef = React.useRef<Set<string>>(new Set());

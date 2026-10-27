@@ -67,9 +67,10 @@ export function useRunStream({
 
   React.useEffect(() => {
     if (!runId) {
-      accTextRef.current = ""
-      setStreamingText("")
-      setStreamingSteps([])
+      // Only clear control flags — keep streamingText and streamingSteps
+      // so the timeline can display the content during the transition from
+      // "streaming" to "reconciled server message". Content is cleared
+      // explicitly via resetStream() when a new prompt is sent.
       setIsStreaming(false)
       setStatus(null)
       return
@@ -222,6 +223,7 @@ export function useRunStream({
       setStreamingText("")
       setStreamingSteps([])
       setIsStreaming(false)
+      setStatus(null)
     },
   }
 }

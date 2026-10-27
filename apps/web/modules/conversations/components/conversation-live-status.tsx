@@ -22,7 +22,6 @@ interface ConversationLiveStatusProps {
   activeRun: RunRecord | null
   activeRunSteps: StepItem[]
   isActiveRunOngoing: boolean
-  hasStreamingContent?: boolean
 }
 
 export function ConversationLiveStatus({
@@ -30,7 +29,6 @@ export function ConversationLiveStatus({
   activeRun,
   activeRunSteps,
   isActiveRunOngoing,
-  hasStreamingContent = false,
 }: ConversationLiveStatusProps) {
   if (isActiveRunOngoing) {
     // Find the latest active or completed tool step to display minimally

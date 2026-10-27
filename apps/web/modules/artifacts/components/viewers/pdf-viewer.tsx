@@ -247,7 +247,7 @@ export function PdfViewer({ source, content, title }: PdfViewerProps) {
   }
 
   return (
-    <div className="relative flex size-full flex-col overflow-hidden rounded-xl bg-card">
+    <div className="relative flex size-full flex-col overflow-hidden rounded-b-xl bg-card">
       {/* Claude-style Minimal Sticky PDF Viewer Toolbar */}
       <div className="flex h-11 shrink-0 items-center justify-between border-b border-border/70 bg-background/95 px-3 py-1.5 backdrop-blur-xs sm:px-4">
         {/* Left: Document type badge & Page navigation */}

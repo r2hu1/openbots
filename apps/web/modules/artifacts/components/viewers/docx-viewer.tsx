@@ -181,7 +181,7 @@ export function DocxViewer({ source, content, title }: DocxViewerProps) {
   }
 
   return (
-    <div className="relative flex size-full flex-col overflow-hidden bg-muted/20 dark:bg-zinc-950">
+    <div className="relative flex size-full flex-col overflow-hidden bg-card dark:bg-zinc-950">
       <div className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-background px-3 py-1 sm:px-4">
         <div className="flex min-w-0 items-center gap-2">
           {stats && (

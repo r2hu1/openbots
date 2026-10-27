@@ -83,8 +83,8 @@ export function HtmlDocumentViewer({
   }
 
   return (
-    <div className="size-full overflow-hidden">
-      <HtmlSandbox code={html} className="size-full border-0 bg-sidebar" />
+    <div className="size-full overflow-hidden rounded-xl">
+      <HtmlSandbox code={html} className="size-full border-0 bg-card" />
     </div>
   )
 }

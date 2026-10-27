@@ -79,7 +79,7 @@ export function SheetHeaderToolbar({
               aria-label="Preview"
               title="Preview"
             >
-              <IconEye className="size-3.5" />
+              <IconEye />
             </TabsTrigger>
             <TabsTrigger
               className="size-6"
@@ -87,7 +87,7 @@ export function SheetHeaderToolbar({
               aria-label="Code"
               title="Code"
             >
-              <IconCode className="size-3.5" />
+              <IconCode />
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -108,11 +108,11 @@ export function SheetHeaderToolbar({
         {isFileArtifact ? (
           <Button
             variant="secondary"
-            size="sm"
+            size="xs"
             onClick={onDownload}
-            className="h-8 px-2"
+            className="h-7 px-2"
           >
-            <IconDownload className="size-3.5" />
+            <IconDownload />
             <span>Download</span>
           </Button>
         ) : (
@@ -123,7 +123,7 @@ export function SheetHeaderToolbar({
               onClick={onCopy}
               className="h-7 px-2"
             >
-              {copied ? <IconCheck className="size-3.5" /> : null}
+              {copied ? <IconCheck /> : null}
               {copied ? "Copied" : "Copy"}
             </Button>
 
@@ -137,7 +137,7 @@ export function SheetHeaderToolbar({
                   className: "size-7",
                 })}
               >
-                <IconChevronDown className="size-3.5" />
+                <IconChevronDown />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 {!isFileArtifact && (

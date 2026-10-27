@@ -113,8 +113,8 @@ export async function handleUserAgentsStream(c: Context<Env>) {
           });
         }
 
-        // Ping heartbeat every 10s
-        if (Date.now() - lastPing > 10_000) {
+        // Ping heartbeat every 3s to prevent proxy/runtime idle-connection timeouts
+        if (Date.now() - lastPing > 3_000) {
           lastPing = Date.now();
           try {
             await stream.writeSSE({ event: "ping", data: "{}" });
@@ -226,8 +226,8 @@ export async function handleAgentStream(c: Context<Env>) {
           });
         }
 
-        // Ping heartbeat every 10s
-        if (Date.now() - lastPing > 10_000) {
+        // Ping heartbeat every 3s to prevent proxy/runtime idle-connection timeouts
+        if (Date.now() - lastPing > 3_000) {
           lastPing = Date.now();
           try {
             await stream.writeSSE({ event: "ping", data: "{}" });

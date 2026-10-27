@@ -34,6 +34,8 @@ export function useWorkspaceStream({ enabled = true }: UseWorkspaceStreamOptions
     const abortController = new AbortController();
     let reconnectTimer: any = null;
 
+    let retryCount = 0;
+
     const connect = async () => {
       try {
         const apiBaseUrl =
@@ -52,6 +54,13 @@ export function useWorkspaceStream({ enabled = true }: UseWorkspaceStreamOptions
           }
         }
 
+        // Reset active statuses on each new connection — the server will
+        // re-emit `run_status: running` for any genuinely active runs during
+        // initial hydration. Without this, a dropped connection that missed
+        // the `run_status: completed` event leaves stale "running" entries
+        // that never get cleared.
+        setActiveAgentStatuses({});
+
         const res = await fetch(url, {
           method: "GET",
           headers,
@@ -69,6 +78,9 @@ export function useWorkspaceStream({ enabled = true }: UseWorkspaceStreamOptions
         const decoder = new TextDecoder();
         let buffer = "";
         let lastSeenSeq = -1;
+
+        // Connection succeeded — reset backoff
+        retryCount = 0;
 
         while (!abortController.signal.aborted) {
           const { done, value } = await reader.read();
@@ -200,21 +212,25 @@ export function useWorkspaceStream({ enabled = true }: UseWorkspaceStreamOptions
           }
         }
 
-        // Stream closed: reconnect if mounted
+        // Stream closed: reconnect with backoff
         if (!abortController.signal.aborted) {
+          const delay = Math.min(2000 * Math.pow(1.5, retryCount), 15000);
+          retryCount++;
           reconnectTimer = setTimeout(() => {
             if (!abortController.signal.aborted) {
               connect();
             }
-          }, 1500);
+          }, delay);
         }
       } catch {
         if (!abortController.signal.aborted) {
+          const delay = Math.min(2000 * Math.pow(1.5, retryCount), 15000);
+          retryCount++;
           reconnectTimer = setTimeout(() => {
             if (!abortController.signal.aborted) {
               connect();
             }
-          }, 2000);
+          }, delay);
         }
       }
     };

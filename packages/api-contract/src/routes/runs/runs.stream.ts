@@ -198,8 +198,8 @@ export async function handleSingleRunStream(c: Context<Env>) {
           }
         }
 
-        // Send keep-alive ping comment every 10 seconds to keep connection alive across proxies
-        if (Date.now() - lastPing > 10_000) {
+        // Send keep-alive ping comment every 3 seconds to keep connection alive across proxies
+        if (Date.now() - lastPing > 3_000) {
           lastPing = Date.now();
           try {
             await stream.write(": ping\n\n");

@@ -8,9 +8,11 @@ import {
   InputGroupInput,
 } from "@openbots/ui/components/input-group"
 import { Spinner } from "@openbots/ui/components/spinner"
+import { Textarea } from "@openbots/ui/components/textarea"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import {
+  Check,
   Plus as IconPlus,
   Search as IconSearch,
   Trash2 as IconTrash,
@@ -146,7 +148,7 @@ export function AgentMemoryContent({
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}
                 placeholder="e.g. user_preference"
-                className="mt-1 text-xs"
+                className="mt-2 text-xs"
               />
             </div>
             <div>
@@ -157,20 +159,19 @@ export function AgentMemoryContent({
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 placeholder="general, facts, rules..."
-                className="mt-1 text-xs"
+                className="mt-2 text-xs"
               />
             </div>
           </div>
-          <div>
+          <div className="grid gap-2">
             <label className="text-[11px] font-medium text-muted-foreground">
               Memory Content
             </label>
-            <textarea
+            <Textarea
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
               placeholder="What should this agent remember?"
               rows={2}
-              className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
             />
           </div>
           <div className="flex justify-end gap-2">
@@ -180,9 +181,13 @@ export function AgentMemoryContent({
                 !newKey.trim() || !newContent.trim() || addMutation.isPending
               }
               onClick={() => addMutation.mutate()}
-              className="text-xs"
             >
-              {addMutation.isPending ? <Spinner className="size-3" /> : "Save"}
+              Save
+              {addMutation.isPending ? (
+                <Spinner className="size-3" />
+              ) : (
+                <Check />
+              )}
             </Button>
           </div>
         </div>
@@ -205,7 +210,7 @@ export function AgentMemoryContent({
           memories.map((m) => (
             <div
               key={m.id}
-              className="group relative rounded-lg border bg-secondary p-3 text-secondary-foreground transition-colors hover:border-foreground/20"
+              className="group relative rounded-lg border p-3 transition-colors hover:border-foreground/20"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">

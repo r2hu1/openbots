@@ -107,6 +107,7 @@ export async function handleSingleRunStream(c: Context<Env>) {
       }
     } catch {}
 
+    let lastRedisCheck = 0;
     try {
       let lastDbCheck = Date.now();
       let lastPing = Date.now();
@@ -128,54 +129,52 @@ export async function handleSingleRunStream(c: Context<Env>) {
           break;
         }
 
-        // Check cross-process events from Redis (dispatched by Trigger.dev or worker processes)
-        // If we are actively receiving live events directly from local in-process emitter,
-        // we track lastRedisLen so we do not double-enqueue the same events from Redis.
-        try {
-          const redis = getRedis();
-          if (redis) {
-            const channelKey = `run_events:${id}`;
-            const currentLen =
-              (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-            if (currentLen > lastRedisLen) {
-              const items = await redis.lrange(
-                channelKey,
-                lastRedisLen,
-                currentLen - 1,
-              );
-              lastRedisLen = currentLen;
-              // If the local in-process emitter is already actively serving this run,
-              // we don't need to replay from Redis unless hydrating un-seen initial events
-              if (items && items.length > 0) {
-                hadNewEvents = true;
-                for (const raw of items) {
-                  const parsed =
-                    typeof raw === "string" ? JSON.parse(raw) : raw;
-                  if (parsed.seq !== undefined) {
-                    if (parsed.seq <= lastSeenSeq) continue;
-                    lastSeenSeq = parsed.seq;
-                  } else if (hasLocalEvents) {
-                    continue;
+        // Only check cross-process Redis if this run is NOT running locally in this process,
+        // and throttle checks to once every 3 seconds to avoid exhausting Upstash command limits
+        if (!hasLocalEvents && Date.now() - lastRedisCheck >= 3000) {
+          lastRedisCheck = Date.now();
+          try {
+            const redis = getRedis();
+            if (redis) {
+              const channelKey = `run_events:${id}`;
+              const currentLen =
+                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+              if (currentLen > lastRedisLen) {
+                const items = await redis.lrange(
+                  channelKey,
+                  lastRedisLen,
+                  currentLen - 1,
+                );
+                lastRedisLen = currentLen;
+                if (items && items.length > 0) {
+                  hadNewEvents = true;
+                  for (const raw of items) {
+                    const parsed =
+                      typeof raw === "string" ? JSON.parse(raw) : raw;
+                    if (parsed.seq !== undefined) {
+                      if (parsed.seq <= lastSeenSeq) continue;
+                      lastSeenSeq = parsed.seq;
+                    }
+                    queue.push({
+                      event: parsed.type,
+                      data: typeof raw === "string" ? raw : JSON.stringify(raw),
+                    });
+                    if (
+                      parsed.type === "done" ||
+                      (parsed.type === "status" &&
+                        (parsed.status === "completed" ||
+                          parsed.status === "failed" ||
+                          parsed.status === "cancelled"))
+                    ) {
+                      isDone = true;
+                    }
                   }
-                  queue.push({
-                    event: parsed.type,
-                    data: typeof raw === "string" ? raw : JSON.stringify(raw),
-                  });
-                  if (
-                    parsed.type === "done" ||
-                    (parsed.type === "status" &&
-                      (parsed.status === "completed" ||
-                        parsed.status === "failed" ||
-                        parsed.status === "cancelled"))
-                  ) {
-                    isDone = true;
-                  }
+                  if (queue.length > 0) continue;
                 }
-                if (queue.length > 0) continue;
               }
             }
-          }
-        } catch {}
+          } catch {}
+        }
 
         // Fallback DB check every 2.5s: if run is already terminal in database, send terminal state and exit
         if (Date.now() - lastDbCheck > 2_500) {

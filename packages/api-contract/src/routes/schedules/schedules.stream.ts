@@ -24,6 +24,15 @@ export async function handleSchedulesStream(c: Context<Env>) {
     });
 
     const queue: string[] = [];
+    let notifyQueue: (() => void) | null = null;
+    const wakeQueue = () => {
+      if (notifyQueue) {
+        const fn = notifyQueue;
+        notifyQueue = null;
+        fn();
+      }
+    };
+
     const onLocalUserEvent = (ev: UserAgentEvent) => {
       if (
         ev.type === "schedule_updated" ||
@@ -31,6 +40,7 @@ export async function handleSchedulesStream(c: Context<Env>) {
         ev.type === ("schedules_init" as any)
       ) {
         queue.push(JSON.stringify(ev));
+        wakeQueue();
       }
     };
     userLocalEmitter.on(user.id, onLocalUserEvent);
@@ -44,6 +54,7 @@ export async function handleSchedulesStream(c: Context<Env>) {
       }
     } catch {}
 
+    let lastRedisCheck = Date.now();
     try {
       let lastPing = Date.now();
       while (!stream.aborted) {
@@ -55,45 +66,61 @@ export async function handleSchedulesStream(c: Context<Env>) {
           });
         }
 
-        try {
-          const redis = getRedis();
-          if (redis) {
-            const channelKey = `user_agent_events:${user.id}`;
-            const currentLen =
-              (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-            if (currentLen > lastRedisLen) {
-              const items = await redis.lrange(
-                channelKey,
-                lastRedisLen,
-                currentLen - 1,
-              );
-              lastRedisLen = currentLen;
-              for (const item of items) {
-                if (stream.aborted) break;
-                try {
-                  const parsed = JSON.parse(item);
-                  if (
-                    parsed.type === "schedule_updated" ||
-                    parsed.type === "schedule_fired" ||
-                    parsed.type === "schedules_init"
-                  ) {
-                    await stream.writeSSE({
-                      event: "schedule",
-                      data: item,
-                    });
-                  }
-                } catch {}
+        // Only check remote Redis occasionally (every 10 seconds) to avoid burning Upstash command quotas
+        if (Date.now() - lastRedisCheck >= 10000) {
+          lastRedisCheck = Date.now();
+          try {
+            const redis = getRedis();
+            if (redis) {
+              const channelKey = `user_agent_events:${user.id}`;
+              const currentLen =
+                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+              if (currentLen > lastRedisLen) {
+                const items = await redis.lrange(
+                  channelKey,
+                  lastRedisLen,
+                  currentLen - 1,
+                );
+                lastRedisLen = currentLen;
+                for (const item of items) {
+                  if (stream.aborted) break;
+                  try {
+                    const parsed = JSON.parse(item);
+                    if (
+                      parsed.type === "schedule_updated" ||
+                      parsed.type === "schedule_fired" ||
+                      parsed.type === "schedules_init"
+                    ) {
+                      await stream.writeSSE({
+                        event: "schedule",
+                        data: item,
+                      });
+                    }
+                  } catch {}
+                }
               }
             }
-          }
-        } catch {}
+          } catch {}
+        }
 
         if (Date.now() - lastPing >= 15000) {
           await stream.writeSSE({ event: "ping", data: "" });
           lastPing = Date.now();
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (queue.length === 0) {
+          await new Promise<void>((resolve) => {
+            let timer: any = null;
+            notifyQueue = () => {
+              if (timer) clearTimeout(timer);
+              resolve();
+            };
+            timer = setTimeout(() => {
+              notifyQueue = null;
+              resolve();
+            }, 1000);
+          });
+        }
       }
     } catch (err) {
       console.warn("Schedules SSE stream closed or interrupted:", err);

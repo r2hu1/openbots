@@ -1,5 +1,5 @@
 import { runEventHub } from "@openbots/api-contract";
-import { db, getRedis, runSteps } from "@openbots/db";
+import { db, runSteps } from "@openbots/db";
 
 export interface StreamContext {
   runId: string;
@@ -12,24 +12,6 @@ export interface StreamContext {
 export function createStepFinishHandler(ctx: StreamContext) {
   return async (step: any) => {
     if (ctx.abortController.signal.aborted) return;
-
-    if (
-      ctx.currentStepNumber.value > 0 &&
-      ctx.currentStepNumber.value % 3 === 0
-    ) {
-      try {
-        const redis = getRedis();
-        if (redis) {
-          const isCancelled = await redis.get<string>(
-            `run_cancelled:${ctx.runId}`,
-          );
-          if (isCancelled) {
-            ctx.abortController.abort(new Error("Run cancelled remotely"));
-            return;
-          }
-        }
-      } catch {}
-    }
 
     const stepsToInsert: Array<typeof runSteps.$inferInsert> = [];
 

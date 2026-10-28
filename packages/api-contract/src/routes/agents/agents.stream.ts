@@ -53,12 +53,22 @@ export async function handleUserAgentsStream(c: Context<Env>) {
     const queue: Array<{ event: string; data: string }> = [];
     let lastSeenSeq = -1;
 
+    let notifyQueue: (() => void) | null = null;
+    const wakeQueue = () => {
+      if (notifyQueue) {
+        const fn = notifyQueue;
+        notifyQueue = null;
+        fn();
+      }
+    };
+
     // Listen to local in-process user bus for instant event delivery
     const onLocalEvent = (ev: UserAgentEvent) => {
       queue.push({
         event: ev.type,
         data: JSON.stringify(ev),
       });
+      wakeQueue();
     };
     userLocalEmitter.on(user.id, onLocalEvent);
 
@@ -71,39 +81,52 @@ export async function handleUserAgentsStream(c: Context<Env>) {
       }
     } catch {}
 
+    let lastRedisCheck = Date.now();
     try {
       let lastPing = Date.now();
       while (!stream.aborted) {
-        try {
-          const redis = getRedis();
-          if (redis) {
-            const channelKey = `user_agent_events:${user.id}`;
-            const currentLen =
-              (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-            if (currentLen > lastRedisLen) {
-              const items = await redis.lrange(
-                channelKey,
-                lastRedisLen,
-                currentLen - 1,
-              );
-              lastRedisLen = currentLen;
-              if (items && items.length > 0) {
-                for (const raw of items) {
-                  const parsed =
-                    typeof raw === "string" ? JSON.parse(raw) : raw;
-                  if (parsed.seq !== undefined) {
-                    if (parsed.seq <= lastSeenSeq) continue;
-                    lastSeenSeq = parsed.seq;
+        while (queue.length > 0) {
+          const item = queue.shift()!;
+          await stream.writeSSE({
+            event: item.event,
+            data: item.data,
+          });
+        }
+
+        // Only check remote Redis occasionally (every 10 seconds) to avoid burning Upstash command quotas
+        if (Date.now() - lastRedisCheck >= 10000) {
+          lastRedisCheck = Date.now();
+          try {
+            const redis = getRedis();
+            if (redis) {
+              const channelKey = `user_agent_events:${user.id}`;
+              const currentLen =
+                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+              if (currentLen > lastRedisLen) {
+                const items = await redis.lrange(
+                  channelKey,
+                  lastRedisLen,
+                  currentLen - 1,
+                );
+                lastRedisLen = currentLen;
+                if (items && items.length > 0) {
+                  for (const raw of items) {
+                    const parsed =
+                      typeof raw === "string" ? JSON.parse(raw) : raw;
+                    if (parsed.seq !== undefined) {
+                      if (parsed.seq <= lastSeenSeq) continue;
+                      lastSeenSeq = parsed.seq;
+                    }
+                    queue.push({
+                      event: parsed.type,
+                      data: typeof raw === "string" ? raw : JSON.stringify(raw),
+                    });
                   }
-                  queue.push({
-                    event: parsed.type,
-                    data: typeof raw === "string" ? raw : JSON.stringify(raw),
-                  });
                 }
               }
             }
-          }
-        } catch {}
+          } catch {}
+        }
 
         while (queue.length > 0) {
           const item = queue.shift()!;
@@ -121,7 +144,19 @@ export async function handleUserAgentsStream(c: Context<Env>) {
           } catch {}
         }
 
-        await new Promise<void>((resolve) => setTimeout(resolve, 200));
+        if (queue.length === 0) {
+          await new Promise<void>((resolve) => {
+            let timer: any = null;
+            notifyQueue = () => {
+              if (timer) clearTimeout(timer);
+              resolve();
+            };
+            timer = setTimeout(() => {
+              notifyQueue = null;
+              resolve();
+            }, 1000);
+          });
+        }
       }
     } finally {
       userLocalEmitter.off(user.id, onLocalEvent);
@@ -166,12 +201,22 @@ export async function handleAgentStream(c: Context<Env>) {
     const queue: Array<{ event: string; data: string }> = [];
     let lastSeenSeq = -1;
 
+    let notifyQueue: (() => void) | null = null;
+    const wakeQueue = () => {
+      if (notifyQueue) {
+        const fn = notifyQueue;
+        notifyQueue = null;
+        fn();
+      }
+    };
+
     // Listen to local in-process agent bus
     const onLocalEvent = (ev: any) => {
       queue.push({
         event: ev.type,
         data: JSON.stringify(ev),
       });
+      wakeQueue();
     };
     agentLocalEmitter.on(id, onLocalEvent);
 
@@ -184,39 +229,52 @@ export async function handleAgentStream(c: Context<Env>) {
       }
     } catch {}
 
+    let lastRedisCheck = Date.now();
     try {
       let lastPing = Date.now();
       while (!stream.aborted) {
-        try {
-          const redis = getRedis();
-          if (redis) {
-            const channelKey = `agent_events:${id}`;
-            const currentLen =
-              (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-            if (currentLen > lastRedisLen) {
-              const items = await redis.lrange(
-                channelKey,
-                lastRedisLen,
-                currentLen - 1,
-              );
-              lastRedisLen = currentLen;
-              if (items && items.length > 0) {
-                for (const raw of items) {
-                  const parsed =
-                    typeof raw === "string" ? JSON.parse(raw) : raw;
-                  if (parsed.seq !== undefined) {
-                    if (parsed.seq <= lastSeenSeq) continue;
-                    lastSeenSeq = parsed.seq;
+        while (queue.length > 0) {
+          const item = queue.shift()!;
+          await stream.writeSSE({
+            event: item.event,
+            data: item.data,
+          });
+        }
+
+        // Only check remote Redis occasionally (every 10 seconds) to avoid burning Upstash command quotas
+        if (Date.now() - lastRedisCheck >= 10000) {
+          lastRedisCheck = Date.now();
+          try {
+            const redis = getRedis();
+            if (redis) {
+              const channelKey = `agent_events:${id}`;
+              const currentLen =
+                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+              if (currentLen > lastRedisLen) {
+                const items = await redis.lrange(
+                  channelKey,
+                  lastRedisLen,
+                  currentLen - 1,
+                );
+                lastRedisLen = currentLen;
+                if (items && items.length > 0) {
+                  for (const raw of items) {
+                    const parsed =
+                      typeof raw === "string" ? JSON.parse(raw) : raw;
+                    if (parsed.seq !== undefined) {
+                      if (parsed.seq <= lastSeenSeq) continue;
+                      lastSeenSeq = parsed.seq;
+                    }
+                    queue.push({
+                      event: parsed.type,
+                      data: typeof raw === "string" ? raw : JSON.stringify(raw),
+                    });
                   }
-                  queue.push({
-                    event: parsed.type,
-                    data: typeof raw === "string" ? raw : JSON.stringify(raw),
-                  });
                 }
               }
             }
-          }
-        } catch {}
+          } catch {}
+        }
 
         while (queue.length > 0) {
           const item = queue.shift()!;
@@ -234,7 +292,19 @@ export async function handleAgentStream(c: Context<Env>) {
           } catch {}
         }
 
-        await new Promise<void>((resolve) => setTimeout(resolve, 200));
+        if (queue.length === 0) {
+          await new Promise<void>((resolve) => {
+            let timer: any = null;
+            notifyQueue = () => {
+              if (timer) clearTimeout(timer);
+              resolve();
+            };
+            timer = setTimeout(() => {
+              notifyQueue = null;
+              resolve();
+            }, 1000);
+          });
+        }
       }
     } finally {
       agentLocalEmitter.off(id, onLocalEvent);

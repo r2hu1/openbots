@@ -64,8 +64,16 @@ export async function handleSingleRunStream(c: Context<Env>) {
     const queue: Array<{ event: string; data: string }> = [];
     let isDone = false;
     let lastSeenSeq = -1;
-
     let hasLocalEvents = false;
+
+    let notifyQueue: (() => void) | null = null;
+    const wakeQueue = () => {
+      if (notifyQueue) {
+        const fn = notifyQueue;
+        notifyQueue = null;
+        fn();
+      }
+    };
 
     // Process-local listener for zero latency delivery
     const onLocalRunEvent = (ev: RunEvent) => {
@@ -87,6 +95,7 @@ export async function handleSingleRunStream(c: Context<Env>) {
       ) {
         isDone = true;
       }
+      wakeQueue();
     };
     runLocalEmitter.on(id, onLocalRunEvent);
 
@@ -209,8 +218,18 @@ export async function handleSingleRunStream(c: Context<Env>) {
         }
 
         if (queue.length === 0 && !isDone) {
-          const waitMs = hadNewEvents ? 30 : 60;
-          await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
+          const timeoutMs = hadNewEvents ? 20 : 50;
+          await new Promise<void>((resolve) => {
+            let timer: any = null;
+            notifyQueue = () => {
+              if (timer) clearTimeout(timer);
+              resolve();
+            };
+            timer = setTimeout(() => {
+              notifyQueue = null;
+              resolve();
+            }, timeoutMs);
+          });
         }
       }
     } finally {

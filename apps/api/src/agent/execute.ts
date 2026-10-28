@@ -82,6 +82,10 @@ export async function executeAgentRun(
           userId: runRecord.userId,
           agentId: agentRecord.id,
           conversationId: runRecord.conversationId,
+          agentRecord: {
+            sandboxId: agentRecord.sandboxId,
+            name: agentRecord.name,
+          },
         }),
         runRecord.conversationId
           ? db

@@ -19,6 +19,25 @@ import { createReactToMessageTool } from "./react-tool.js";
 import { createMemoryTools } from "./memory-tools.js";
 import { createChatHistoryTool } from "./chat-history-tool.js";
 
+interface CachedComposioTools {
+  tools: Record<string, any>;
+  expiresAt: number;
+}
+
+const COMPOSIO_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const composioToolsCache = new Map<string, CachedComposioTools>();
+let sharedComposioClient: Composio<VercelProvider> | null = null;
+
+function getSharedComposioClient(apiKey: string): Composio<VercelProvider> {
+  if (!sharedComposioClient) {
+    sharedComposioClient = new Composio({
+      apiKey,
+      provider: new VercelProvider(),
+    });
+  }
+  return sharedComposioClient;
+}
+
 export interface ResolvedTools {
   tools: Record<string, any>;
   cleanup: () => Promise<void>;
@@ -28,6 +47,7 @@ export async function buildAgentTools(params: {
   userId: string;
   agentId: string;
   conversationId?: string | null;
+  agentRecord?: { sandboxId?: string | null; name?: string | null } | null;
 }): Promise<ResolvedTools> {
   const { userId, agentId, conversationId } = params;
 
@@ -49,85 +69,103 @@ export async function buildAgentTools(params: {
 
   const composioApiKey = process.env.COMPOSIO_API_KEY;
   if (composioApiKey) {
-    try {
-      const composio = new Composio({
-        apiKey: composioApiKey,
-        provider: new VercelProvider(),
-      });
+    const cachedComposio = composioToolsCache.get(userId);
+    if (cachedComposio && Date.now() < cachedComposio.expiresAt) {
+      Object.assign(activeTools, cachedComposio.tools);
+    } else {
+      try {
+        const composio = getSharedComposioClient(composioApiKey);
 
-      const [existingConn] = await db
-        .select()
-        .from(connections)
-        .where(
-          and(
-            eq(connections.userId, userId),
-            eq(connections.provider, "composio"),
-            eq(connections.status, "active"),
-          ),
-        );
+        const [existingConn] = await db
+          .select()
+          .from(connections)
+          .where(
+            and(
+              eq(connections.userId, userId),
+              eq(connections.provider, "composio"),
+              eq(connections.status, "active"),
+            ),
+          );
 
-      let session: any = null;
-      if (existingConn?.externalAccountId) {
-        try {
-          session = await composio.use(existingConn.externalAccountId);
-        } catch {
-          session = null;
+        let session: any = null;
+        if (existingConn?.externalAccountId) {
+          try {
+            session = await composio.use(existingConn.externalAccountId);
+          } catch {
+            session = null;
+          }
         }
-      }
 
-      if (!session) {
-        session = await composio.create(userId, {
-          sandbox: { enable: false },
-          manageConnections: true,
-        });
-
-        if (existingConn) {
-          await db
-            .update(connections)
-            .set({
-              externalAccountId: session.sessionId,
-              updatedAt: new Date(),
-            })
-            .where(eq(connections.id, existingConn.id));
-        } else {
-          await db.insert(connections).values({
-            userId,
-            provider: "composio",
-            externalAccountId: session.sessionId,
-            status: "active",
+        if (!session) {
+          session = await composio.create(userId, {
+            sandbox: { enable: false },
+            manageConnections: true,
           });
-        }
-      }
 
-      const composioTools = await session.tools();
-      if (Array.isArray(composioTools)) {
-        for (const t of composioTools) {
-          if (t && typeof t === "object" && "name" in t) {
-            activeTools[t.name] = t;
+          if (existingConn) {
+            await db
+              .update(connections)
+              .set({
+                externalAccountId: session.sessionId,
+                updatedAt: new Date(),
+              })
+              .where(eq(connections.id, existingConn.id));
+          } else {
+            await db.insert(connections).values({
+              userId,
+              provider: "composio",
+              externalAccountId: session.sessionId,
+              status: "active",
+            });
           }
         }
-      } else if (composioTools && typeof composioTools === "object") {
-        for (const [key, value] of Object.entries(composioTools)) {
-          if (value) {
-            activeTools[key] = value;
+
+        const composioTools = await session.tools();
+        const extractedComposioTools: Record<string, any> = {};
+        if (Array.isArray(composioTools)) {
+          for (const t of composioTools) {
+            if (t && typeof t === "object" && "name" in t) {
+              extractedComposioTools[t.name] = t;
+              activeTools[t.name] = t;
+            }
+          }
+        } else if (composioTools && typeof composioTools === "object") {
+          for (const [key, value] of Object.entries(composioTools)) {
+            if (value) {
+              extractedComposioTools[key] = value;
+              activeTools[key] = value;
+            }
           }
         }
+
+        if (composioToolsCache.size > 500) {
+          const oldestKey = composioToolsCache.keys().next().value;
+          if (oldestKey) composioToolsCache.delete(oldestKey);
+        }
+        composioToolsCache.set(userId, {
+          tools: extractedComposioTools,
+          expiresAt: Date.now() + COMPOSIO_CACHE_TTL_MS,
+        });
+      } catch (err) {
+        console.warn("Failed to initialize Composio session:", err);
       }
-    } catch (err) {
-      console.warn("Failed to initialize Composio session:", err);
     }
   }
 
-  const [agentRecord] = await db
-    .select({ sandboxId: agents.sandboxId, name: agents.name })
-    .from(agents)
-    .where(eq(agents.id, agentId));
+  let agentRecord = params.agentRecord;
+  if (!agentRecord) {
+    const [dbAg] = await db
+      .select({ sandboxId: agents.sandboxId, name: agents.name })
+      .from(agents)
+      .where(eq(agents.id, agentId));
+    agentRecord = dbAg;
+  }
 
   const desktopContextKey = conversationId || agentId || userId;
   const desktopTools = createDaytonaTools({
     sandboxId: agentRecord?.sandboxId,
     agentId,
-    agentName: agentRecord?.name,
+    agentName: agentRecord?.name ?? undefined,
     contextKey: desktopContextKey,
   });
 

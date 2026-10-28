@@ -44,12 +44,7 @@ export function createDaytonaTools(
 
     // Browser & Navigation
     browser_navigate: browserTools.browser_navigate,
-    browser_click: inputTools.mouse_click, // aliased for backward compatibility
-    browser_type: inputTools.keyboard_type, // aliased for backward compatibility
-    browser_screenshot: screenTools.take_screenshot, // aliased
     browser_extract_content: browserTools.browser_extract_content,
-    browser_scroll: inputTools.mouse_scroll, // aliased
-    browser_evaluate: fileSystemTools.bash, // aliased
     browser_wait_for_user: browserTools.browser_wait_for_user,
     browser_close: browserTools.browser_close,
   };

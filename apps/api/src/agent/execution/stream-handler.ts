@@ -85,6 +85,7 @@ export async function consumeStream(streamResult: any, ctx: StreamContext) {
   let streamError: any = null;
   let pendingDeltaBuffer = "";
   let lastFlushTime = Date.now();
+  let isFirstDelta = true;
 
   const flushDeltas = () => {
     if (pendingDeltaBuffer) {
@@ -104,9 +105,11 @@ export async function consumeStream(streamResult: any, ctx: StreamContext) {
       accumulatedStreamText += part.text;
       pendingDeltaBuffer += part.text;
       if (
-        Date.now() - lastFlushTime >= 40 ||
-        pendingDeltaBuffer.length >= 30
+        isFirstDelta ||
+        Date.now() - lastFlushTime >= 25 ||
+        pendingDeltaBuffer.length >= 15
       ) {
+        isFirstDelta = false;
         flushDeltas();
       }
     } else if (part.type === "tool-call") {

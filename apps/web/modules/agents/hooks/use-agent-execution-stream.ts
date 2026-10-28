@@ -2,6 +2,7 @@
 
 import type { QueryClient } from "@tanstack/react-query";
 import type * as React from "react";
+import { playRunAudioCue } from "@/lib/audio-cues";
 import { useRunStream } from "@/modules/runs/hooks/use-run-stream";
 import type { RunRecord } from "@/modules/runs/types";
 import {
@@ -34,8 +35,14 @@ export function useAgentExecutionStream({
 }: UseAgentExecutionStreamOptions) {
   return useRunStream({
     runId: activeRunId,
+    onToolStart: (step) => {
+      if (step.toolName === "browser_wait_for_user") {
+        playRunAudioCue(activeRunId, "attention");
+      }
+    },
     onStatus: (data) => {
       if (data.status === "failed") {
+        playRunAudioCue(activeRunId, "error");
         setIsOptimisticRunning(false);
         if (data.error) setExecutionError(data.error);
         if (activeRunId) {
@@ -54,6 +61,7 @@ export function useAgentExecutionStream({
       }
     },
     onDone: (data) => {
+      playRunAudioCue(activeRunId, "finish");
       setIsOptimisticRunning(false);
       const finalText = data.output?.text;
       if (finalText && activeRunId) {
@@ -90,6 +98,7 @@ export function useAgentExecutionStream({
           dismissedRunIds.current.add(currentRunId);
           setActiveRunId(null);
           if (verifiedRun.status === "failed") {
+            playRunAudioCue(currentRunId, "error");
             setExecutionError(verifiedRun.error || "Run failed");
           } else if (activeConversationId) {
             queryClient.invalidateQueries({

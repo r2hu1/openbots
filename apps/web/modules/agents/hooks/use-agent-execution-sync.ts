@@ -2,6 +2,7 @@
 
 import type { QueryClient } from "@tanstack/react-query";
 import * as React from "react";
+import { playRunAudioCue } from "@/lib/audio-cues";
 import type { RunRecord } from "@/modules/runs/types";
 import { useAgentStream } from "./use-agent-stream";
 import { createTerminalRunRecord } from "./use-agent-execution-helpers";
@@ -68,6 +69,7 @@ export function useAgentExecutionSync({
         }
       }
       if (ev.status === "completed" || ev.status === "failed") {
+        playRunAudioCue(ev.runId, ev.status === "completed" ? "finish" : "error");
         if (ev.runId) {
           dismissedRunIds.current.add(ev.runId);
         }

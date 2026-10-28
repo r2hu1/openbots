@@ -5,6 +5,7 @@ import { Spinner } from "@openbots/ui/components/spinner"
 import { Switch } from "@openbots/ui/components/switch"
 import * as React from "react"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
+import { playAudioCue } from "@/lib/audio-cues"
 import {
   GroupLabel,
   Panel,
@@ -119,7 +120,17 @@ export function GeneralTab() {
             title="Audio cues"
             description="Play a sound when a run finishes or needs attention."
           >
-            <Switch checked={audioCues} onCheckedChange={setAudioCues} />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => playAudioCue("finish", true)}
+              >
+                Test sound
+              </Button>
+              <Switch checked={audioCues} onCheckedChange={setAudioCues} />
+            </div>
           </SettingRow>
         </Panel>
       </div>

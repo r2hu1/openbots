@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { playRunAudioCue } from "@/lib/audio-cues"
 import type { MessageItem } from "@/modules/conversations/types"
 import type { StepItem } from "@/modules/runs/types"
 import { extractLiveBrowserData, type LiveBrowserInfo } from "./live-browser-extractor"
@@ -95,9 +96,19 @@ export function useLiveBrowserSession({
   }, [activeRunId, activeRunSteps])
 
   const [userExplicitlyToggled, setUserExplicitlyToggled] = React.useState(false)
+  const prevHitlRunIdRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
-    if (activeHitlPrompt || isAgentUsingScreen) {
+    if (activeHitlPrompt && prevHitlRunIdRef.current !== activeHitlPrompt.runId) {
+      prevHitlRunIdRef.current = activeHitlPrompt.runId
+      playRunAudioCue(activeHitlPrompt.runId, "attention")
+      setPreviewManuallyClosed(false)
+    } else if (!activeHitlPrompt) {
+      prevHitlRunIdRef.current = null
+      if (isAgentUsingScreen) {
+        setPreviewManuallyClosed(false)
+      }
+    } else if (isAgentUsingScreen) {
       setPreviewManuallyClosed(false)
     }
   }, [isAgentUsingScreen, activeHitlPrompt])

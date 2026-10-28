@@ -30,7 +30,7 @@ export function AllSchedulesDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="p-0! sm:max-w-2xl">
+        <DialogContent className="p-0! sm:max-w-3xl">
           <DialogHeader className="px-4 py-3 pb-0">
             <DialogTitle>Schedules</DialogTitle>
             <DialogDescription>

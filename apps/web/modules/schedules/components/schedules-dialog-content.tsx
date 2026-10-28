@@ -116,7 +116,7 @@ export function SchedulesDialogContent({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="no-scrollbar flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center">
             <Spinner className="size-5" />
@@ -145,8 +145,8 @@ export function SchedulesDialogContent({
           <div className="space-y-5 p-4">
             {groupedByAgent.map((group) => (
               <section key={group.agentId} aria-label={group.agentName}>
-                <header className="mb-2 flex items-center gap-2.5 px-1">
-                  <Blobatar name={group.agentName} />
+                <header className="mb-2 flex items-center gap-1 px-1">
+                  <Blobatar name={group.agentName} className="size-6!" />
                   <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                     {group.agentName}
                   </h3>
@@ -155,7 +155,7 @@ export function SchedulesDialogContent({
                   </span>
                 </header>
 
-                <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                <div className="divide-y divide-border overflow-hidden rounded-lg border border-input bg-card">
                   {group.items.map((schedule) => (
                     <ScheduleRow
                       key={schedule.id}

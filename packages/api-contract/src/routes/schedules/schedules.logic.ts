@@ -67,6 +67,7 @@ export async function createSchedule(
       timezone: normalizedTimezone,
       deduplicationKey: inserted.id,
       externalId: inserted.id,
+      window: "0m",
     });
 
     if (triggerSched?.id) {
@@ -134,6 +135,7 @@ export async function updateSchedule(
           task: "scheduled-agent-task",
           cron: data.cronExpression ?? existing.cronExpression,
           timezone: normalizedTimezone ?? existing.timezone,
+          window: "0m",
         });
       }
     } catch (err) {

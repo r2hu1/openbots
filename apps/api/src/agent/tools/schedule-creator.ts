@@ -106,6 +106,7 @@ export function createScheduleTool(
             timezone: normalizedTz,
             deduplicationKey: schedule.id,
             externalId: schedule.id,
+            window: "0m",
           });
 
           if (triggerSched?.id) {

@@ -149,6 +149,7 @@ export function createRecurringTaskTool(
           timezone: normalizedTz,
           externalId: schedule.id,
           deduplicationKey: schedule.id,
+          window: "0m",
         });
 
         if (triggerSched?.id) {

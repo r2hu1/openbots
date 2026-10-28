@@ -1,7 +1,7 @@
 import { agentEventHub } from "@openbots/api-contract";
 import { db, runs, schedules } from "@openbots/db";
 import { task, schedules as triggerSchedules } from "@trigger.dev/sdk";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { executeAgentRun } from "../agent/execute.js";
 
 export const agentRunTask = task({
@@ -123,37 +123,38 @@ export const scheduledAgentTask = triggerSchedules.task({
           .from(schedules)
           .where(eq(schedules.triggerScheduleId, targetId));
 
-    // If still not found by direct ID (e.g., if trigger.dev scheduled task fired for an orphaned schedule ID
-    // or externalId was not propagated), attempt matching active schedules
     if (!scheduleRecord) {
       console.warn(
-        `No schedule found in DB for id: ${targetId}, checking active schedules...`,
+        `[scheduled-agent-task] No schedule found in DB matching Trigger.dev target ID: ${targetId}. Skipping execution.`,
       );
-      const activeList = await db
-        .select()
-        .from(schedules)
-        .where(eq(schedules.status, "active"));
-
-      if (activeList.length === 1 && activeList[0]) {
-        // Unambiguous single active schedule
-        scheduleRecord = activeList[0];
-        console.log(
-          `Resolved to single active schedule: '${scheduleRecord.name}' (${scheduleRecord.id})`,
-        );
-      } else {
-        console.warn(`Could not resolve schedule for trigger ID: ${targetId}`);
-        return;
-      }
-    }
-
-    if (!scheduleRecord) {
-      console.warn(`Schedule record is undefined for ID: ${targetId}`);
       return;
     }
 
     if (scheduleRecord.status !== "active") {
       console.log(
         `Schedule '${scheduleRecord.name}' (${scheduleRecord.id}) is paused, skipping execution.`,
+      );
+      return;
+    }
+
+    // Deduplication check: prevent multiple runs within 10 minutes (handles worker restarts / duplicate trigger events)
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const recentRuns = await db
+      .select({ id: runs.id })
+      .from(runs)
+      .where(
+        and(
+          eq(runs.agentId, scheduleRecord.agentId),
+          eq(runs.triggerType, "schedule"),
+          sql`${runs.input}->>'recurringScheduleId' = ${scheduleRecord.id}`,
+          gte(runs.createdAt, tenMinutesAgo),
+        ),
+      )
+      .limit(1);
+
+    if (recentRuns.length > 0) {
+      console.warn(
+        `[scheduled-agent-task] Schedule '${scheduleRecord.name}' (${scheduleRecord.id}) already executed recently within 10m (run ${recentRuns[0]?.id}). Skipping duplicate execution.`,
       );
       return;
     }

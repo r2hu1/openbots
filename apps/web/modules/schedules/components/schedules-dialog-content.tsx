@@ -1,7 +1,11 @@
 "use client"
 
-import { Input } from "@openbots/ui/components/input"
 import { Spinner } from "@openbots/ui/components/spinner"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@openbots/ui/components/input-group"
 import * as React from "react"
 import { Search } from "reicon-react"
 import { useAgentsQuery } from "@/modules/agents/queries"
@@ -14,13 +18,15 @@ import type { ScheduleItem } from "../types"
 import { ScheduleDetailsDialog } from "./schedule-details-dialog"
 import { ScheduleRow } from "./schedule-row"
 import { SchedulesEmptyState } from "./schedules-empty-state"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@openbots/ui/components/input-group"
+import { Blobatar } from "@openbots/ui/components/ui/blobatar"
 
-export function SchedulesDialogContent() {
+export function SchedulesDialogContent({
+  onOpenChange,
+  onSelectSchedule,
+}: {
+  onOpenChange?: (open: boolean) => void
+  onSelectSchedule?: (schedule: ScheduleItem) => void
+}) {
   const { data: schedules = [], isLoading } = useSchedulesQuery()
   const { data: agents = [] } = useAgentsQuery()
   const [selectedSchedule, setSelectedSchedule] =
@@ -84,19 +90,30 @@ export function SchedulesDialogContent() {
     return groups.sort((a, b) => a.agentName.localeCompare(b.agentName))
   }, [filtered, agentMap])
 
+  const hasQuery = search.trim().length > 0
+  const activeCount = filtered.filter((s) => s.status === "active").length
+
   return (
     <div className="flex h-[70vh] flex-col overflow-hidden">
-      <div className="px-3 py-1">
+      <div className="space-y-2 border-b border-border px-4 pt-1 pb-3">
         <InputGroup>
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
           <InputGroupInput
-            placeholder="Search all schedules by name, instruction, or agent..."
+            placeholder="Search by name, instruction, or agent"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </InputGroup>
+
+        {!isLoading && schedules.length > 0 && (
+          <p className="px-1 text-xs text-muted-foreground tabular-nums">
+            {filtered.length} {filtered.length === 1 ? "schedule" : "schedules"}
+            {" · "}
+            {activeCount} active
+          </p>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -104,25 +121,41 @@ export function SchedulesDialogContent() {
           <div className="flex h-40 items-center justify-center">
             <Spinner className="size-5" />
           </div>
-        ) : groupedByAgent.length === 0 ? (
+        ) : schedules.length === 0 ? (
           <div className="p-8">
             <SchedulesEmptyState />
           </div>
+        ) : groupedByAgent.length === 0 ? (
+          <div className="flex h-48 flex-col items-center justify-center gap-1 px-8 text-center">
+            <p className="text-base font-medium text-foreground">
+              No matches for “{search.trim()}”
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Try a different name, agent, or part of the instruction.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="mt-3 rounded-lg px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              Clear search
+            </button>
+          </div>
         ) : (
-          <div className="space-y-4 p-3">
+          <div className="space-y-5 p-4">
             {groupedByAgent.map((group) => (
-              <div
-                key={group.agentId}
-                className="overflow-hidden rounded-lg border border-input"
-              >
-                <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3.5 py-2 text-xs font-semibold text-foreground">
-                  <span className="truncate">{group.agentName}</span>
-                  <span className="text-[11px] font-normal text-muted-foreground">
-                    {group.items.length}{" "}
-                    {group.items.length === 1 ? "task" : "tasks"}
+              <section key={group.agentId} aria-label={group.agentName}>
+                <header className="mb-2 flex items-center gap-2.5 px-1">
+                  <Blobatar name={group.agentName} />
+                  <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+                    {group.agentName}
+                  </h3>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground tabular-nums">
+                    {group.items.length}
                   </span>
-                </div>
-                <div className="divide-y divide-border">
+                </header>
+
+                <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
                   {group.items.map((schedule) => (
                     <ScheduleRow
                       key={schedule.id}
@@ -131,22 +164,27 @@ export function SchedulesDialogContent() {
                       deleting={deleteMutation.isPending}
                       onToggle={handleToggle}
                       onDelete={handleDelete}
-                      onSelect={setSelectedSchedule}
+                      onSelect={onSelectSchedule ?? setSelectedSchedule}
                     />
                   ))}
                 </div>
-              </div>
+              </section>
             ))}
           </div>
         )}
       </div>
 
-      <ScheduleDetailsDialog
-        schedule={selectedSchedule}
-        onOpenChange={(open) => {
-          if (!open) setSelectedSchedule(null)
-        }}
-      />
+      {!onSelectSchedule && (
+        <ScheduleDetailsDialog
+          schedule={selectedSchedule}
+          onOpenChange={(open) => {
+            if (!open) {
+              onOpenChange?.(true)
+            }
+            setSelectedSchedule(null)
+          }}
+        />
+      )}
     </div>
   )
 }

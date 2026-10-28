@@ -66,10 +66,7 @@ export function UserMenu({
   return (
     <SidebarMenu className="min-w-0 flex-1 gap-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2">
       <SidebarMenuItem>
-        <SidebarMenuButton
-          className="bg-sidebar-accent/50"
-          onClick={() => setSchedulesOpen(true)}
-        >
+        <SidebarMenuButton onClick={() => setSchedulesOpen(true)}>
           <TimeFwd />
           Schedules
         </SidebarMenuButton>

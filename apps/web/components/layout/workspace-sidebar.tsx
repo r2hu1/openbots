@@ -19,6 +19,7 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
   SidebarTrigger,
 } from "@openbots/ui/components/sidebar"
 import { Skeleton } from "@openbots/ui/components/skeleton"
@@ -231,6 +232,7 @@ export function WorkspaceSidebar({
           onSignOut={handleSignOut}
         />
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

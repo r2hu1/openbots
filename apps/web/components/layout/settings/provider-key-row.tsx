@@ -20,17 +20,10 @@ import {
   Eye as IconEye,
   EyeOff as IconEyeOff,
   Key as IconKey,
-  Trash as IconTrash,
+  Trash2 as IconTrash,
 } from "reicon-react"
-import type {
-  ConfiguredKeyInfo,
-  ProviderKeyMeta,
-} from "./api-keys-constants"
-import {
-  Feedback,
-  StatusMessage,
-  useAutoClear,
-} from "./settings-shared"
+import type { ConfiguredKeyInfo, ProviderKeyMeta } from "./api-keys-constants"
+import { Feedback, StatusMessage, useAutoClear } from "./settings-shared"
 
 export function ProviderKeyRow({
   meta,

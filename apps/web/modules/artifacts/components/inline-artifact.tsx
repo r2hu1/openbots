@@ -47,15 +47,13 @@ export function InlineArtifact({ artifact, onClick }: ArtifactCardProps) {
       )}
 
       {hasContent ? (
-        <div className="relative w-full overflow-hidden rounded-lg">
-          <div>
-            <ArtifactPreview
-              artifact={artifact}
-              fitContent
-              htmlClassName="border-0 bg-transparent p-0"
-              mediaClassName="block w-full max-w-full border-0 bg-transparent p-0 [&_svg]:block [&_svg]:w-full [&_svg]:max-w-full [&_svg]:h-auto"
-            />
-          </div>
+        <div className="relative w-full overflow-hidden rounded-none">
+          <ArtifactPreview
+            artifact={artifact}
+            fitContent
+            htmlClassName="border-0 bg-transparent p-0"
+            mediaClassName="block w-full max-w-full border-0 bg-transparent p-0 [&_svg]:block [&_svg]:w-full [&_svg]:max-w-full [&_svg]:h-auto"
+          />
         </div>
       ) : (
         <div className="flex h-36 w-full items-center justify-center rounded-lg border border-dashed border-border/70 bg-muted/10">

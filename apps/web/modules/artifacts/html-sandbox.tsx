@@ -156,16 +156,26 @@ export function HtmlSandbox({
   } | null>(null)
 
   React.useEffect(() => {
-    if (!fitContent) return
-
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) {
         return
       }
 
       const data = event.data
+      if (!data) return
 
-      if (!data || data.type !== "openbots-artifact-size") {
+      if (data.type === "openbots:send-prompt" && typeof data.prompt === "string" && data.prompt.trim()) {
+        window.dispatchEvent(
+          new CustomEvent("openbots:send-prompt", {
+            detail: { prompt: data.prompt.trim() },
+          })
+        )
+        return
+      }
+
+      if (!fitContent) return
+
+      if (data.type !== "openbots-artifact-size") {
         return
       }
 

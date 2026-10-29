@@ -1,4 +1,5 @@
 import {
+  ARTIFACT_ACTION_SCRIPT,
   AUTO_HEIGHT_SCRIPT,
   CHART_COMPAT_SCRIPT,
   TAILWIND_BROWSER,
@@ -25,6 +26,7 @@ export function buildHead(theme: "light" | "dark", autoHeight: boolean) {
     `<script>document.documentElement.classList.toggle("dark", ${theme === "dark"});</script>`,
     `<style>${TOKENS_CSS}${COLOR_SCHEME_CSS}${autoHeight ? AUTO_HEIGHT_CSS : ""}</style>`,
     `<script>${CHART_COMPAT_SCRIPT}</script>`,
+    `<script>${ARTIFACT_ACTION_SCRIPT}</script>`,
     autoHeight ? `<script>${AUTO_HEIGHT_SCRIPT}</script>` : "",
     `<script src="${TAILWIND_BROWSER}"></script>`,
     `<style type="text/tailwindcss">${THEME_CSS}</style>`,

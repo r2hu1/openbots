@@ -23,6 +23,17 @@ export function useWorkspaceChat({ agentId }: UseWorkspaceChatProps) {
     return null
   })
 
+  const { data: conversationsData, isLoading: isLoadingConversations } = useConversationsQuery(agentId)
+  const conversations = React.useMemo(() => conversationsData ?? [], [conversationsData])
+
+  const activeConversationId = selectedConversationId ?? conversations[0]?.id ?? null
+
+  const execution = useAgentExecution({
+    agentId,
+    activeConversationId,
+    onConversationCreated: setSelectedConversationId,
+  })
+
   React.useEffect(() => {
     const handleNavigate = (event: Event) => {
       const customEvent = event as CustomEvent<{
@@ -35,22 +46,22 @@ export function useWorkspaceChat({ agentId }: UseWorkspaceChatProps) {
       }
     }
 
+    const handleSendPrompt = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        prompt: string
+      }>
+      if (customEvent.detail?.prompt) {
+        execution.sendPrompt(customEvent.detail.prompt)
+      }
+    }
+
     window.addEventListener("openbots:navigate-message", handleNavigate)
+    window.addEventListener("openbots:send-prompt", handleSendPrompt)
     return () => {
       window.removeEventListener("openbots:navigate-message", handleNavigate)
+      window.removeEventListener("openbots:send-prompt", handleSendPrompt)
     }
-  }, [agentId])
-
-  const { data: conversationsData, isLoading: isLoadingConversations } = useConversationsQuery(agentId)
-  const conversations = React.useMemo(() => conversationsData ?? [], [conversationsData])
-
-  const activeConversationId = selectedConversationId ?? conversations[0]?.id ?? null
-
-  const execution = useAgentExecution({
-    agentId,
-    activeConversationId,
-    onConversationCreated: setSelectedConversationId,
-  })
+  }, [agentId, execution.sendPrompt])
 
   const {
     data: conversationInfiniteData,

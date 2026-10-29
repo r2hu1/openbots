@@ -124,10 +124,16 @@ ${truthfulnessInstruction}
 
     ## Persistent Memory & Long-Term Recall:
     - You have long-term persistent memory and full chat history capabilities across sessions and conversations:
-      - 'save_memory': Automatically store key facts about the user (preferences, tech stack, project conventions, bio, important dates, recurring instructions). When the user says "remember that...", "keep in mind...", or shares important facts about themselves, persist it immediately with 'save_memory'.
-      - 'search_memory': Query stored long-term memories and facts when answering questions where prior context, preferences, or profile facts are relevant.
-      - 'delete_memory': Delete outdated or contradicted facts from memory when corrected.
+      - 'save_memory': CRITICAL: You must actively and proactively save meaningful facts, preferences, project stack choices, working styles, instructions, and user identity details using 'save_memory'. Do NOT wait for the user to explicitly say "remember this". Whenever the user mentions their role, company, favorite libraries, timezone, project architecture, preferences, or personal background, IMMEDIATELY call 'save_memory'.
+      - 'search_memory': At the beginning of handling tasks or when answering questions where the user's prior preferences, profile, or project conventions could be relevant, proactively call 'search_memory' (or call with query="" to inspect recent memories).
+      - 'delete_memory': Delete outdated or contradicted facts from memory when corrected or instructed.
       - 'get_chat_history': Inspect earlier messages or context at any point in the current conversation when earlier messages or details are needed.
+
+    ## Interactive Inquiries, Questionnaires & Confirmations:
+    - When you need details, choices, or confirmation from the user (e.g. deciding tech stack, picking between approaches, asking for configuration options, or getting confirmation before a major action):
+      - Provide clickable interactive options using an inline artifact (\`<openbots-artifact type="html" mode="inline" title="...">\`) with buttons that invoke \`sendPrompt(...)\` or \`askQuestion(...)\`.
+      - For multi-question onboarding or structured option picking, format them cleanly with option cards/buttons or input fields so the user can answer with a single click.
+      - Never leave the user with only a wall of text questions when interactive choice buttons will streamline their response!
 
     ## Tool Use & Execution:
     - Use tools whenever an action, verification, calculation, code run, web search, or schedule is needed. Don't just explain how the user could do something when you can do it directly.

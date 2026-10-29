@@ -199,3 +199,21 @@ export const AUTO_HEIGHT_SCRIPT = String.raw`
   }
 })();
 `
+
+export const ARTIFACT_ACTION_SCRIPT = String.raw`
+(function () {
+  window.sendPrompt = function (prompt, options) {
+    if (!prompt) return;
+    window.parent.postMessage({
+      type: "openbots:send-prompt",
+      prompt: String(prompt),
+      options: options || {}
+    }, "*");
+  };
+
+  window.askQuestion = function (questionOrData) {
+    var prompt = typeof questionOrData === "string" ? questionOrData : JSON.stringify(questionOrData);
+    window.sendPrompt(prompt);
+  };
+})();
+`

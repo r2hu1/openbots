@@ -35,7 +35,9 @@ export function MessagePartsView({
   // Reorder segments so all text content appears first, and artifacts render at the end
   const orderedParts = React.useMemo(() => {
     return messageParts.map((part) => {
-      const textSegments = part.segments.filter((s) => s.type === "text" && s.text)
+      const textSegments = part.segments.filter(
+        (s) => s.type === "text" && s.text
+      )
       const artifactSegments = part.segments.filter(
         (s) => s.type === "artifact" && s.artifact
       )
@@ -84,14 +86,7 @@ export function MessagePartsView({
                 if (!typeOfA) return null
                 const isInlineVisual = artifact.mode === "inline"
                 return (
-                  <div
-                    key={seg.id}
-                    className={
-                      isInlineVisual
-                        ? "relative w-full max-w-3xl"
-                        : "relative w-full max-w-2xl"
-                    }
-                  >
+                  <div key={seg.id} className={"relative w-full max-w-[80%]"}>
                     <ArtifactCard
                       artifact={artifact}
                       onClick={() => onOpenArtifact?.(artifact)}

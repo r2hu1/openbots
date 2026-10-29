@@ -1,9 +1,10 @@
-import { db, getRedis, messages, runSteps, runs } from "@openbots/db";
+import { db, messages, runSteps, runs } from "@openbots/db";
 import { runs as triggerRuns } from "@trigger.dev/sdk";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   agentEventHub,
   getDirectRunCanceller,
+  runEventHub,
 } from "./runs.events.js";
 
 export * from "./runs.events.js";
@@ -80,38 +81,31 @@ export async function cancelRun(runId: string, userId: string) {
       getDirectRunCanceller()?.(runId, "Run cancelled by user");
     } catch {}
 
-    // 2. Broadcast cancellation event and fast lookup key over Redis so any worker instance running this job aborts
-    try {
-      const redis = getRedis();
-      if (redis) {
-        const channelKey = `run_events:${runId}`;
-        const cancelEvent = {
-          type: "status",
+    // 2. Broadcast cancellation event immediately via in-process emitters
+    runEventHub.publish(runId, {
+      type: "status",
+      status: "cancelled",
+      output: { text: stopMessageText },
+    });
+    runEventHub.publish(runId, {
+      type: "done",
+      status: "cancelled",
+      output: { text: stopMessageText },
+    });
+
+    if (cancelled.agentId) {
+      agentEventHub.publish(
+        cancelled.agentId,
+        {
+          type: "run_status",
+          runId,
           status: "cancelled",
           output: { text: stopMessageText },
-        };
-        const cancelFlagKey = `run_cancelled:${runId}`;
-        await Promise.allSettled([
-          redis.set(cancelFlagKey, "1", { ex: 3600 }),
-          redis
-            .rpush(channelKey, JSON.stringify(cancelEvent))
-            .then(() => redis.expire(channelKey, 3600)),
-        ]);
-        if (cancelled.agentId) {
-          agentEventHub.publish(
-            cancelled.agentId,
-            {
-              type: "run_status",
-              runId,
-              status: "cancelled",
-              output: { text: stopMessageText },
-              conversationId: cancelled.conversationId,
-            },
-            userId,
-          );
-        }
-      }
-    } catch {}
+          conversationId: cancelled.conversationId,
+        },
+        userId,
+      );
+    }
 
     // 3. Fire-and-forget cancellation to Trigger.dev for serverless task workers
     triggerRuns.cancel(runId).catch(() => {});

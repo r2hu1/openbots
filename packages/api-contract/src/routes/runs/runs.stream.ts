@@ -1,4 +1,3 @@
-import { getRedis } from "@openbots/db";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { runLocalEmitter, type RunEvent } from "./runs.events.js";
@@ -27,7 +26,7 @@ export async function handleSingleRunStream(c: Context<Env>) {
   c.header("X-Accel-Buffering", "no");
 
   return streamSSE(c, async (stream) => {
-    // If already terminal, emit current state and exit
+    // If already terminal, emit current state and exit immediately
     if (
       initial.run.status === "completed" ||
       initial.run.status === "failed" ||
@@ -52,7 +51,7 @@ export async function handleSingleRunStream(c: Context<Env>) {
       return;
     }
 
-    // Initial status
+    // Emit initial status and past steps for hydration
     await stream.writeSSE({
       event: "status",
       data: JSON.stringify({
@@ -61,178 +60,79 @@ export async function handleSingleRunStream(c: Context<Env>) {
       }),
     });
 
-    const queue: Array<{ event: string; data: string }> = [];
-    let isDone = false;
+    let isTerminated = false;
     let lastSeenSeq = -1;
-    let hasLocalEvents = false;
+    let keepAliveTimer: any = null;
+    let resolveStreamPromise: (() => void) | null = null;
 
-    let notifyQueue: (() => void) | null = null;
-    const wakeQueue = () => {
-      if (notifyQueue) {
-        const fn = notifyQueue;
-        notifyQueue = null;
-        fn();
+    const terminate = () => {
+      if (isTerminated) return;
+      isTerminated = true;
+      if (keepAliveTimer) {
+        clearInterval(keepAliveTimer);
+        keepAliveTimer = null;
+      }
+      runLocalEmitter.off(id, onLocalRunEvent);
+      if (resolveStreamPromise) {
+        const resolve = resolveStreamPromise;
+        resolveStreamPromise = null;
+        resolve();
       }
     };
 
-    // Process-local listener for zero latency delivery
-    const onLocalRunEvent = (ev: RunEvent) => {
-      hasLocalEvents = true;
+    // Pure reactive push listener: zero polling, zero latency
+    const onLocalRunEvent = async (ev: RunEvent) => {
+      if (isTerminated || stream.aborted) {
+        terminate();
+        return;
+      }
+
       if (typeof ev.seq === "number") {
         if (ev.seq <= lastSeenSeq) return;
         lastSeenSeq = ev.seq;
       }
-      queue.push({
-        event: ev.type,
-        data: JSON.stringify(ev),
-      });
-      if (
-        ev.type === "done" ||
-        (ev.type === "status" &&
-          (ev.status === "completed" ||
-            ev.status === "failed" ||
-            ev.status === "cancelled"))
-      ) {
-        isDone = true;
+
+      try {
+        await stream.writeSSE({
+          event: ev.type,
+          data: JSON.stringify(ev),
+        });
+
+        if (
+          ev.type === "done" ||
+          (ev.type === "status" &&
+            (ev.status === "completed" ||
+              ev.status === "failed" ||
+              ev.status === "cancelled"))
+        ) {
+          terminate();
+        }
+      } catch {
+        terminate();
       }
-      wakeQueue();
     };
+
     runLocalEmitter.on(id, onLocalRunEvent);
 
-    let lastRedisLen = 0;
-    try {
-      const redis = getRedis();
-      if (redis) {
-        lastRedisLen = 0; // Read all past events for this run to hydrate client
+    // Keepalive ping comment every 15 seconds to prevent proxy / load balancer idle timeouts
+    keepAliveTimer = setInterval(async () => {
+      if (isTerminated || stream.aborted) {
+        terminate();
+        return;
       }
-    } catch {}
-
-    let lastRedisCheck = 0;
-    try {
-      let lastDbCheck = Date.now();
-      let lastPing = Date.now();
-      while (!stream.aborted) {
-        let hadNewEvents = false;
-        if (queue.length > 0) {
-          const item = queue.shift()!;
-          await stream.writeSSE({
-            event: item.event,
-            data: item.data,
-          });
-          if (item.event === "done") {
-            break;
-          }
-          continue;
-        }
-
-        if (isDone && queue.length === 0) {
-          break;
-        }
-
-        // Only check cross-process Redis if this run is NOT running locally in this process,
-        // and throttle checks to once every 3 seconds to avoid exhausting Upstash command limits
-        if (!hasLocalEvents && Date.now() - lastRedisCheck >= 3000) {
-          lastRedisCheck = Date.now();
-          try {
-            const redis = getRedis();
-            if (redis) {
-              const channelKey = `run_events:${id}`;
-              const currentLen =
-                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-              if (currentLen > lastRedisLen) {
-                const items = await redis.lrange(
-                  channelKey,
-                  lastRedisLen,
-                  currentLen - 1,
-                );
-                lastRedisLen = currentLen;
-                if (items && items.length > 0) {
-                  hadNewEvents = true;
-                  for (const raw of items) {
-                    const parsed =
-                      typeof raw === "string" ? JSON.parse(raw) : raw;
-                    if (parsed.seq !== undefined) {
-                      if (parsed.seq <= lastSeenSeq) continue;
-                      lastSeenSeq = parsed.seq;
-                    }
-                    queue.push({
-                      event: parsed.type,
-                      data: typeof raw === "string" ? raw : JSON.stringify(raw),
-                    });
-                    if (
-                      parsed.type === "done" ||
-                      (parsed.type === "status" &&
-                        (parsed.status === "completed" ||
-                          parsed.status === "failed" ||
-                          parsed.status === "cancelled"))
-                    ) {
-                      isDone = true;
-                    }
-                  }
-                  if (queue.length > 0) continue;
-                }
-              }
-            }
-          } catch {}
-        }
-
-        // Fallback DB check every 2.5s: if run is already terminal in database, send terminal state and exit
-        if (Date.now() - lastDbCheck > 2_500) {
-          lastDbCheck = Date.now();
-          const current = await getRun(id, user.id);
-          if (
-            current &&
-            (current.run.status === "completed" ||
-              current.run.status === "failed" ||
-              current.run.status === "cancelled")
-          ) {
-            await stream.writeSSE({
-              event: "status",
-              data: JSON.stringify({
-                status: current.run.status,
-                output: current.run.output,
-                error: current.run.error,
-                steps: current.steps,
-              }),
-            });
-            await stream.writeSSE({
-              event: "done",
-              data: JSON.stringify({
-                status: current.run.status,
-                output: current.run.output,
-              }),
-            });
-            break;
-          }
-        }
-
-        // Send keep-alive ping comment every 3 seconds to keep connection alive across proxies
-        if (Date.now() - lastPing > 3_000) {
-          lastPing = Date.now();
-          try {
-            await stream.write(": ping\n\n");
-          } catch {
-            break;
-          }
-        }
-
-        if (queue.length === 0 && !isDone) {
-          const timeoutMs = hadNewEvents ? 20 : 50;
-          await new Promise<void>((resolve) => {
-            let timer: any = null;
-            notifyQueue = () => {
-              if (timer) clearTimeout(timer);
-              resolve();
-            };
-            timer = setTimeout(() => {
-              notifyQueue = null;
-              resolve();
-            }, timeoutMs);
-          });
-        }
+      try {
+        await stream.write(": ping\n\n");
+      } catch {
+        terminate();
       }
-    } finally {
-      runLocalEmitter.off(id, onLocalRunEvent);
-    }
+    }, 15_000);
+
+    // Keep stream open until run finishes or client disconnects
+    await new Promise<void>((resolve) => {
+      resolveStreamPromise = resolve;
+      stream.onAbort(() => {
+        terminate();
+      });
+    });
   });
 }

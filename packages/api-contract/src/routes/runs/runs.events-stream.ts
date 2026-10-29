@@ -1,10 +1,8 @@
-import { getRedis } from "@openbots/db";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import {
   agentLocalEmitter,
   userLocalEmitter,
-  type AgentEvent,
 } from "./runs.events.js";
 
 type Env = {
@@ -28,25 +26,44 @@ export async function handleRunStream(c: Context<Env>) {
       data: JSON.stringify({ userId: user.id, agentId: agentId || null }),
     });
 
-    const queue: Array<{ event: string; data: string }> = [];
-    let lastSeenSeq = -1;
+    let isClosed = false;
+    let keepAliveTimer: any = null;
+    let resolveStreamPromise: (() => void) | null = null;
 
-    let notifyQueue: (() => void) | null = null;
-    const wakeQueue = () => {
-      if (notifyQueue) {
-        const fn = notifyQueue;
-        notifyQueue = null;
-        fn();
+    const cleanup = () => {
+      if (isClosed) return;
+      isClosed = true;
+      if (keepAliveTimer) {
+        clearInterval(keepAliveTimer);
+        keepAliveTimer = null;
+      }
+      if (agentId) {
+        agentLocalEmitter.off(agentId, onLocalEvent);
+      } else {
+        userLocalEmitter.off(user.id, onLocalEvent);
+      }
+      if (resolveStreamPromise) {
+        const resolve = resolveStreamPromise;
+        resolveStreamPromise = null;
+        resolve();
       }
     };
 
-    const onLocalEvent = (ev: any) => {
+    // Pure reactive push listener: zero polling, zero latency
+    const onLocalEvent = async (ev: any) => {
+      if (isClosed || stream.aborted) {
+        cleanup();
+        return;
+      }
       if (ev.type === "run_created" || ev.type === "run_status") {
-        queue.push({
-          event: ev.type,
-          data: JSON.stringify(ev),
-        });
-        wakeQueue();
+        try {
+          await stream.writeSSE({
+            event: ev.type,
+            data: JSON.stringify(ev),
+          });
+        } catch {
+          cleanup();
+        }
       }
     };
 
@@ -56,105 +73,23 @@ export async function handleRunStream(c: Context<Env>) {
       userLocalEmitter.on(user.id, onLocalEvent);
     }
 
-    let lastRedisLen = 0;
-    const channelKey = agentId
-      ? `agent_events:${agentId}`
-      : `user_agent_events:${user.id}`;
-
-    try {
-      const redis = getRedis();
-      if (redis) {
-        lastRedisLen = (await redis.llen(channelKey).catch(() => 0)) ?? 0;
+    keepAliveTimer = setInterval(async () => {
+      if (isClosed || stream.aborted) {
+        cleanup();
+        return;
       }
-    } catch {}
-
-    let lastRedisCheck = Date.now();
-    try {
-      let lastPing = Date.now();
-      while (!stream.aborted) {
-        while (queue.length > 0) {
-          const item = queue.shift()!;
-          await stream.writeSSE({
-            event: item.event,
-            data: item.data,
-          });
-        }
-
-        // Only check remote Redis occasionally (every 10 seconds) to avoid burning Upstash command quotas
-        if (Date.now() - lastRedisCheck >= 10000) {
-          lastRedisCheck = Date.now();
-          try {
-            const redis = getRedis();
-            if (redis) {
-              const currentLen =
-                (await redis.llen(channelKey).catch(() => 0)) ?? 0;
-              if (currentLen > lastRedisLen) {
-                const items = await redis.lrange(
-                  channelKey,
-                  lastRedisLen,
-                  currentLen - 1,
-                );
-                lastRedisLen = currentLen;
-                if (items && items.length > 0) {
-                  for (const raw of items) {
-                    const parsed =
-                      typeof raw === "string" ? JSON.parse(raw) : raw;
-                    if (parsed.seq !== undefined) {
-                      if (parsed.seq <= lastSeenSeq) continue;
-                      lastSeenSeq = parsed.seq;
-                    }
-                    if (
-                      parsed.type === "run_created" ||
-                      parsed.type === "run_status"
-                    ) {
-                      queue.push({
-                        event: parsed.type,
-                        data: typeof raw === "string" ? raw : JSON.stringify(raw),
-                      });
-                    }
-                  }
-                }
-              }
-            }
-          } catch {}
-        }
-
-        while (queue.length > 0) {
-          const item = queue.shift()!;
-          await stream.writeSSE({
-            event: item.event,
-            data: item.data,
-          });
-        }
-
-        // Ping heartbeat every 10s to keep connection alive
-        if (Date.now() - lastPing > 10_000) {
-          lastPing = Date.now();
-          try {
-            await stream.writeSSE({ event: "ping", data: "{}" });
-          } catch {}
-        }
-
-        if (queue.length === 0) {
-          await new Promise<void>((resolve) => {
-            let timer: any = null;
-            notifyQueue = () => {
-              if (timer) clearTimeout(timer);
-              resolve();
-            };
-            timer = setTimeout(() => {
-              notifyQueue = null;
-              resolve();
-            }, 1000);
-          });
-        }
+      try {
+        await stream.write(": ping\n\n");
+      } catch {
+        cleanup();
       }
-    } finally {
-      if (agentId) {
-        agentLocalEmitter.off(agentId, onLocalEvent);
-      } else {
-        userLocalEmitter.off(user.id, onLocalEvent);
-      }
-    }
+    }, 15_000);
+
+    await new Promise<void>((resolve) => {
+      resolveStreamPromise = resolve;
+      stream.onAbort(() => {
+        cleanup();
+      });
+    });
   });
 }

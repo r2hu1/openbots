@@ -2,8 +2,6 @@
 
 # OpenBots
 
-### Autonomous AI Agents Workspace
-
 Build a team of AI agents that research, write and execute code, use your apps, and run tasks in the background. Each agent has its own personality, persistent memory, and isolated virtual machine. infinite possibilities, Open source and self hostable.
 
 [Explore Features](#a-walkthrough-of-openbots) • [Self-Hosting Guide](SELF_HOST.md) • [Technical Docs](DOCUMENTATION.md)
